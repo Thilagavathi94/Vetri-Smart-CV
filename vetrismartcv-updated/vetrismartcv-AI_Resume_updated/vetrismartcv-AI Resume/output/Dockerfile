@@ -3,11 +3,12 @@ FROM maven:3.9.8-eclipse-temurin-17 AS build
 WORKDIR /app
 
 COPY pom.xml .
-RUN mvn -q -DskipTests dependency:go-offline
+RUN mvn -DskipTests dependency:go-offline
 
 COPY src ./src
 
-RUN mvn -q -DskipTests clean package
+# Force Spring Boot to build a fully repackaged executable jar with runtime dependencies.
+RUN mvn -DskipTests clean package spring-boot:repackage
 
 FROM eclipse-temurin:17-jre
 
