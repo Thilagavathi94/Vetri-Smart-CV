@@ -1,0 +1,6 @@
+git init
+@"
+target/
+.vscode/
+.idea/
+*.log

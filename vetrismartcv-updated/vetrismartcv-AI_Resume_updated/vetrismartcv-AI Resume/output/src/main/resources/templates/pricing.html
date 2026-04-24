@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Builder Pricing – Affordable Plans | Vetri</title>
+    <meta name="description" content="Check resume builder pricing and choose the best plan. Create professional AI-powered resumes with advanced features and flexible options.">
+    <meta name="keywords" content="resume builder pricing, resume builder plans, CV maker subscription, free vs paid resume builder, premium resume builder, affordable resume builder, best resume builder pricing, resume builder premium features, upgrade resume builder plan, is paid resume builder worth it, free vs paid resume builder comparison">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Resume Builder Pricing – Affordable Plans | Vetri">
+    <meta property="og:description" content="Check resume builder pricing and choose the best plan. Create professional AI-powered resumes with advanced features and flexible options.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Resume Builder Pricing – Affordable Plans | Vetri">
+    <meta name="twitter:description" content="Check resume builder pricing and choose the best plan. Create professional AI-powered resumes with advanced features and flexible options.">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f5f7; color: #1a1a2e; }
+
+        /* ── NAVBAR ── */
+        .navbar {
+            background: #6c3fc9;
+            padding: 0 60px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 16px rgba(108,63,201,0.4);
+        }
+        .navbar .logo img { height: 44px; }
+        .nav-links {
+            list-style: none; display: flex; gap: 6px;
+            margin: 0; padding: 0;
+            position: absolute; left: 50%; transform: translateX(-50%);
+            z-index: 1; align-items: center;
+        }
+        .nav-links a {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .nav-links a:hover { background: rgba(255,255,255,0.18); color: #fff; }
+        .nav-links a.active-link { background: #fff; color: #6c3fc9; }
+        .nav-actions {
+            display: flex; align-items: center; gap: 10px;
+            position: relative; z-index: 1000; margin-left: auto;
+        }
+        /* Login dropdown */
+        .nav-login-wrap { position: relative; }
+        .nav-login-btn {
+            display: flex; align-items: center; gap: 7px;
+            background: rgba(255,255,255,0.15);
+            border: 1.5px solid rgba(255,255,255,0.4);
+            color: #fff; font-size: 14px; font-weight: 600;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 9px 15px; border-radius: 9px;
+            cursor: pointer; transition: background 0.2s, border-color 0.2s; white-space: nowrap;
+        }
+        .nav-login-btn:hover { background: rgba(255,255,255,0.28); border-color: rgba(255,255,255,0.7); }
+        .nav-chevron { transition: transform 0.2s ease; }
+        .nav-login-wrap.open .nav-chevron { transform: rotate(180deg); }
+        .nav-dropdown {
+            display: none; position: absolute; top: calc(100% + 10px); right: 0;
+            width: 226px; background: #fff; border-radius: 14px;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.22); border: 1px solid #eee;
+            overflow: hidden; z-index: 99999; animation: dropFade 0.18s ease;
+        }
+        @keyframes dropFade { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+        .nav-login-wrap.open .nav-dropdown { display: block; }
+        .nav-dropdown-header { padding: 14px 16px 12px; background: linear-gradient(135deg,#6c3fc9,#a855f7); }
+        .nav-dropdown-header p { margin: 0 0 2px; font-size: 14px; font-weight: 700; color: #fff; }
+        .nav-dropdown-header span { font-size: 12px; color: rgba(255,255,255,0.75); }
+        .nav-dropdown-divider { height: 1px; background: #f0f0f5; margin: 4px 0; }
+        .nav-dropdown-item {
+            display: flex; align-items: center; gap: 10px; padding: 11px 16px;
+            font-size: 14px; font-weight: 500; color: #374151; text-decoration: none; transition: background 0.15s;
+        }
+        .nav-dropdown-item:hover { background: #f5f3ff; color: #6c3fc9; }
+        .nav-dropdown-item svg { flex-shrink: 0; opacity: 0.6; }
+        .nav-dropdown-item:hover svg { opacity: 1; }
+        .nav-dropdown-pro { color: #d97706 !important; font-weight: 600 !important; margin-bottom: 4px; }
+        .nav-dropdown-pro:hover { background: #fffbeb !important; color: #b45309 !important; }
+        /* Logged-in pill */
+        .nav-user-pill {
+            display: flex; align-items: center; gap: 9px;
+            background: rgba(255,255,255,0.15); border-radius: 99px;
+            padding: 5px 14px 5px 7px; cursor: default;
+        }
+        .nav-user-avatar {
+            width: 30px; height: 30px; background: #f59e0b; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 13px; color: #fff;
+        }
+        .nav-user-name { color: #fff; font-size: 14px; font-weight: 600; }
+        .nav-logout-btn {
+            background: transparent; border: 1.5px solid rgba(255,255,255,0.4);
+            color: #fff; border-radius: 8px; padding: 6px 14px; font-size: 13px;
+            cursor: pointer; font-family: inherit; transition: background 0.2s;
+        }
+        .nav-logout-btn:hover { background: rgba(255,255,255,0.1); }
+        .nav-create-btn {
+            background: #f59e0b;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 9px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            transition: opacity 0.2s;
+        }
+        .nav-create-btn:hover { opacity: 0.9; }
+
+        /* ── HERO ── */
+        .pricing-hero {
+            background: #fff;
+            text-align: center;
+            padding: 64px 20px 50px;
+        }
+        .pricing-hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: #1a1a2e;
+        }
+        .pricing-hero h1 span { color: #7c3aed; }
+        .pricing-hero p {
+            color: #6b7280;
+            margin-top: 10px;
+            font-size: 15px;
+        }
+
+        /* ── TOGGLE ── */
+        .toggle-wrap {
+            display: flex;
+            justify-content: center;
+            margin-top: 32px;
+        }
+        .toggle-pill {
+            background: #fff;
+            border-radius: 50px;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+            border: 1px solid #e5e7eb;
+        }
+        .toggle-btn {
+            padding: 10px 32px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: #6b7280;
+            transition: all 0.25s;
+            position: relative;
+        }
+        .toggle-btn.active {
+            background: #7c3aed;
+            color: #fff;
+            box-shadow: 0 3px 10px rgba(124,58,237,0.3);
+        }
+        .save-badge {
+            position: absolute;
+            top: -10px;
+            right: -4px;
+            background: #16a34a;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 99px;
+        }
+
+        /* ── CARDS SECTION ── */
+        .cards-section {
+            background: #f5f5f7;
+            padding: 50px 40px 60px;
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* ── PLAN CARD ── */
+        .plan-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 32px 28px 28px;
+            border: 1.5px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .plan-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.10);
+        }
+        .plan-card.popular {
+            border-color: #7c3aed;
+            box-shadow: 0 8px 32px rgba(124,58,237,0.12);
+        }
+
+        .plan-icon { width: 80px; height: 80px; margin-bottom: 18px; }
+
+        .plan-name { font-size: 1.4rem; font-weight: 800; color: #1a1a2e; margin-bottom: 4px; }
+        .plan-desc { font-size: 13.5px; color: #6b7280; margin-bottom: 18px; }
+
+        .plan-price {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+        .price-symbol { font-size: 1.4rem; font-weight: 700; color: #1a1a2e; }
+        .price-amount { font-size: 3rem; font-weight: 800; color: #1a1a2e; line-height: 1; }
+        .price-period { font-size: 0.95rem; color: #6b7280; font-weight: 400; }
+
+        .plan-btn {
+            display: block;
+            width: 100%;
+            padding: 13px;
+            border-radius: 10px;
+            border: none;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            margin-bottom: 24px;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .plan-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-free { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; }
+        .btn-pro  { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #fff; }
+        .btn-premium { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #fff; }
+
+        /* Feature list */
+        .feature-list { list-style: none; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #374151;
+        }
+        .feature-list li .chk {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .chk-green { color: #16a34a; font-size: 16px; font-weight: 700; }
+
+        /* ── COMPARE TABLE ── */
+        .compare-section {
+            background: #f5f5f7;
+            padding: 60px 40px;
+            text-align: center;
+        }
+        .compare-section h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 32px;
+        }
+        .compare-section h2 span { color: #7c3aed; }
+        .compare-table-wrap {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead tr {
+            background: #faf5ff;
+        }
+        thead th {
+            padding: 18px 20px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #1a1a2e;
+            text-align: left;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        thead th:not(:first-child) { text-align: center; }
+        tbody tr { border-bottom: 1px solid #f3f4f6; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody td {
+            padding: 16px 20px;
+            font-size: 14px;
+            color: #374151;
+        }
+        tbody td:not(:first-child) { text-align: center; }
+        tbody tr:hover { background: #faf5ff; }
+        .tbl-check { color: #16a34a; font-size: 17px; font-weight: 700; }
+        .tbl-dash  { color: #9ca3af; font-size: 18px; }
+
+        /* ── CTA SECTION ── */
+        .cta-section {
+            background: #f5f5f7;
+            padding: 20px 40px 60px;
+        }
+        .cta-box {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #7c3aed 0%, #a855f7 60%, #c084fc 100%);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            min-height: 280px;
+            position: relative;
+        }
+        .cta-img-wrap {
+            width: 42%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            flex-shrink: 0;
+            padding-left: 20px;
+        }
+        .cta-img-wrap img {
+            width: 100%;
+            max-width: 340px;
+            display: block;
+        }
+        .cta-content {
+            flex: 1;
+            padding: 44px 44px 44px 20px;
+            color: #fff;
+        }
+        .cta-content h2 { font-size: 1.7rem; font-weight: 800; margin-bottom: 10px; line-height: 1.3; }
+        .cta-content p  { font-size: 14px; opacity: 0.88; margin-bottom: 28px; }
+        .cta-btns { display: flex; gap: 14px; flex-wrap: wrap; }
+        .cta-btn-white {
+            padding: 13px 30px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.18);
+            border: 2px solid rgba(255,255,255,0.55);
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .cta-btn-white:hover { background: rgba(255,255,255,0.30); }
+        .cta-btn-orange {
+            padding: 13px 30px;
+            border-radius: 10px;
+            background: #f59e0b;
+            border: none;
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .cta-btn-orange:hover { opacity: 0.9; }
+
+        /* ── FOOTER ── */
+
+        /* ── PLAN ICON SVGs (inline emoji replacements) ── */
+        .badge-popular {
+            display: inline-block;
+            background: #7c3aed;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 14px;
+            border-radius: 99px;
+            margin-bottom: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .cards-grid { grid-template-columns: 1fr; max-width: 420px; }
+            .footer-inner { grid-template-columns: 1fr 1fr; }
+            .cta-img-wrap { display: none; }
+        }
+    </style>
+    <script>
+    async function doLogout() {
+        try { await fetch("/api/auth/logout", { method: "POST" }); } catch(e) {}
+        window.location.href = "/";
+    }
+    function toggleLoginDropdown(e) {
+        if (e) e.stopPropagation();
+        var wrap = document.getElementById("navLoginWrap");
+        if (wrap) wrap.classList.toggle("open");
+    }
+    document.addEventListener("click", function(e) {
+        var wrap = document.getElementById("navLoginWrap");
+        if (wrap && !wrap.contains(e.target)) wrap.classList.remove("open");
+    });
+    </script>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="logo">
+        <a href="/">
+            <img src="/images/logo.png" alt="VetriSmartCV"
+                 onerror="this.style.display='none';this.nextSibling.style.display='inline'">
+            <span style="display:none;color:#fff;font-size:1.3rem;font-weight:800;">VetriSmartCV</span>
+        </a>
+    </div>
+
+    <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/template">Resume Templates</a></li>
+        <li><a href="/pricing" class="active-link">Pricing</a></li>
+    </ul>
+
+    <div class="nav-actions">
+
+        <!-- ── LOGGED OUT: login dropdown ── -->
+        <div class="nav-login-wrap" id="navLoginWrap" th:if="${!loggedIn}">
+            <button class="nav-login-btn" onclick="toggleLoginDropdown(event)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                Login
+                <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="nav-dropdown" id="navDropdown">
+                <div class="nav-dropdown-header">
+                    <p>Welcome back</p>
+                    <span>Sign in to your account</span>
+                </div>
+                <div class="nav-dropdown-divider"></div>
+                <a href="/login" class="nav-dropdown-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                    Log In
+                </a>
+                <a href="/register" class="nav-dropdown-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    Sign Up — it's free
+                </a>
+                <div class="nav-dropdown-divider"></div>
+                <a href="/pricing" class="nav-dropdown-item nav-dropdown-pro">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    View Pro Plans
+                </a>
+            </div>
+        </div>
+
+        <!-- ── LOGGED IN: user pill + logout ── -->
+        <div class="nav-user-pill" th:if="${loggedIn}">
+            <div class="nav-user-avatar" th:text="${userInitial}">?</div>
+            <span class="nav-user-name" th:text="${userName}">User</span>
+        </div>
+        <button class="nav-logout-btn" th:if="${loggedIn}" onclick="doLogout()">Logout</button>
+
+        <a href="#" onclick="openResumeModal(); return false;" class="nav-create-btn">
+            &#8679; Create My Resume
+        </a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<div class="pricing-hero">
+    <h1>Resume Builder Pricing – Free &amp; Premium Plans</h1>
+    <p>Choose the best resume builder pricing plan. Start free or upgrade to Pro and Premium for advanced AI resume features.</p>
+
+    <!-- TOGGLE -->
+    <div class="toggle-wrap">
+        <div class="toggle-pill">
+            <button class="toggle-btn active" id="btnMonthly" onclick="setToggle('monthly')">Monthly</button>
+            <button class="toggle-btn" id="btnYearly" onclick="setToggle('yearly')">
+                Yearly
+                <span class="save-badge">Save 17%</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- PRICING CARDS -->
+<div class="cards-section">
+    <div class="cards-grid">
+
+        <!-- FREE -->
+        <div class="plan-card">
+            <img class="plan-icon" src="/images/free-icon.png" onerror="this.outerHTML='<div style=\'font-size:64px;margin-bottom:14px;\'>🆓</div>'" alt="Free">
+            <div class="plan-name">Free Resume Builder</div>
+            <div class="plan-desc">Perfect for getting started</div>
+            <div class="plan-price">
+                <span class="price-symbol">₹</span>
+                <span class="price-amount">0</span>
+                <span class="price-period">/Month</span>
+            </div>
+            <a href="/builder" class="plan-btn btn-free">Get Started</a>
+            <ul class="feature-list">
+                <li><span class="chk-green">✓</span> 1 resume</li>
+                <li><span class="chk-green">✓</span> 3 basic templates</li>
+                <li><span class="chk-green">✓</span> PDF download</li>
+                <li><span class="chk-green">✓</span> Basic AI suggestions</li>
+                <li><span class="chk-green">✓</span> Email support</li>
+            </ul>
+        </div>
+
+        <!-- PRO -->
+        <div class="plan-card popular">
+            <img class="plan-icon" src="/images/pro-icon.png" onerror="this.outerHTML='<div style=\'font-size:64px;margin-bottom:14px;\'>🛡️</div>'" alt="Pro">
+            <div class="plan-name">Pro Resume Builder</div>
+            <div class="plan-desc">For serious job seekers</div>
+            <div class="plan-price">
+                <span class="price-symbol">₹</span>
+                <span class="price-amount" id="proPrice">120</span>
+                <span class="price-period" id="proPeriod">/Month</span>
+            </div>
+            <a href="javascript:void(0)" class="plan-btn btn-pro" onclick="goToPlan('PRO')">Upgrade to Pro</a>
+            <ul class="feature-list">
+                <li><span class="chk-green">✓</span> Unlimited resumes</li>
+                <li><span class="chk-green">✓</span> All premium templates</li>
+                <li><span class="chk-green">✓</span> PDF &amp; DOCX downloads</li>
+                <li><span class="chk-green">✓</span> Advanced AI content</li>
+                <li><span class="chk-green">✓</span> Cover letter builder</li>
+                <li><span class="chk-green">✓</span> ATS optimization</li>
+                <li><span class="chk-green">✓</span> Priority support</li>
+                <li><span class="chk-green">✓</span> Custom branding</li>
+            </ul>
+        </div>
+
+        <!-- PREMIUM -->
+        <div class="plan-card">
+            <img class="plan-icon" src="/images/premium-icon.png" onerror="this.outerHTML='<div style=\'font-size:64px;margin-bottom:14px;\'>🏆</div>'" alt="Premium">
+            <div class="plan-name">Premium Resume Builder</div>
+            <div class="plan-desc">For power users</div>
+            <div class="plan-price">
+                <span class="price-symbol">₹</span>
+                <span class="price-amount" id="premiumPrice">250</span>
+                <span class="price-period" id="premiumPeriod">/Month</span>
+            </div>
+            <a href="javascript:void(0)" class="plan-btn btn-premium" onclick="goToPlan('PREMIUM')">Go Premium</a>
+            <ul class="feature-list">
+                <li><span class="chk-green">✓</span> Everything in Pro</li>
+                <li><span class="chk-green">✓</span> Unlimited AI generations</li>
+                <li><span class="chk-green">✓</span> LinkedIn profile optimizer</li>
+                <li><span class="chk-green">✓</span> Interview preparation</li>
+                <li><span class="chk-green">✓</span> Career coaching session</li>
+                <li><span class="chk-green">✓</span> Personal website</li>
+                <li><span class="chk-green">✓</span> Job application tracker</li>
+                <li><span class="chk-green">✓</span> Dedicated support</li>
+            </ul>
+        </div>
+
+    </div>
+</div>
+
+<!-- COMPARE TABLE -->
+<div class="compare-section">
+    <h2>Compare Resume Builder Plans and Features</h2>
+    <div class="compare-table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:40%">Feature</th>
+                    <th>Free</th>
+                    <th>Pro</th>
+                    <th>Premium</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Number of Resumes</td>
+                    <td>1</td>
+                    <td>Unlimited</td>
+                    <td>Unlimited</td>
+                </tr>
+                <tr>
+                    <td>Templates</td>
+                    <td>3 Basic</td>
+                    <td>All Premium</td>
+                    <td>All Premium</td>
+                </tr>
+                <tr>
+                    <td>AI Content Suggestions</td>
+                    <td><span class="tbl-check">✓</span></td>
+                    <td><span class="tbl-check">✓</span></td>
+                    <td><span class="tbl-check">✓</span></td>
+                </tr>
+                <tr>
+                    <td>Cover Letter Builder</td>
+                    <td><span class="tbl-dash">—</span></td>
+                    <td><span class="tbl-check">✓</span></td>
+                    <td><span class="tbl-check">✓</span></td>
+                </tr>
+                <tr>
+                    <td>Career Coaching</td>
+                    <td><span class="tbl-dash">—</span></td>
+                    <td><span class="tbl-dash">—</span></td>
+                    <td><span class="tbl-check">✓</span></td>
+                </tr>
+                <tr>
+                    <td>LinkedIn Profile Optimizer</td>
+                    <td><span class="tbl-dash">—</span></td>
+                    <td><span class="tbl-dash">—</span></td>
+                    <td><span class="tbl-check">✓</span></td>
+                </tr>
+                <tr>
+                    <td>ATS Optimization</td>
+                    <td><span class="tbl-dash">—</span></td>
+                    <td><span class="tbl-check">✓</span></td>
+                    <td><span class="tbl-check">✓</span></td>
+                </tr>
+                <tr>
+                    <td>Priority Support</td>
+                    <td><span class="tbl-dash">—</span></td>
+                    <td><span class="tbl-check">✓</span></td>
+                    <td><span class="tbl-check">✓</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- CTA SECTION -->
+<div class="cta-section">
+    <div class="cta-box">
+        <div class="cta-img-wrap">
+            <img src="/images/ChatGPT Image Mar 14, 2026, 03_52_12 PM.png"
+                 onerror="this.style.display='none'"
+                 alt="Resume builder illustration">
+        </div>
+        <div class="cta-content">
+            <h2>Start Building Your Professional Resume Today</h2>
+            <p>Choose the plan that fits your needs and create a job-winning resume with AI.</p>
+            <div class="cta-btns">
+                <a href="/builder" class="cta-btn-white">Start Free</a>
+                <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'}); return false;" class="cta-btn-orange">View Plans</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<!-- ===================== FULL SITE FOOTER (matches index.html) ===================== -->
+<footer class="footer">
+    <div class="footer-container">
+
+        <!-- BRAND COL -->
+        <div class="footer-col footer-brand-col">
+            <div class="footer-logo">
+                <img src="/images/logo.png" alt="VetriSmartCV" style="height:40px;width:auto;flex-shrink:0;">
+                
+            </div>
+            <p>Build job-winning resumes in minutes with AI-powered suggestions, ATS-friendly templates, and instant downloads.</p>
+            <div class="footer-socials">
+                <a href="https://www.instagram.com/vetriitsystems" target="_blank" title="Instagram" class="social-instagram">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                </a>
+                <a href="https://www.linkedin.com" target="_blank" title="LinkedIn" class="social-linkedin">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                </a>
+                <a href="https://twitter.com" target="_blank" title="Twitter / X" class="social-twitter">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+                <a href="https://www.youtube.com" target="_blank" title="YouTube" class="social-youtube">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.97C18.88 4 12 4 12 4s-6.88 0-8.59.45A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 0 0 1.95-1.97A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#fff"/></svg>
+                </a>
+                <a href="https://github.com" target="_blank" title="GitHub" class="social-github">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7a3.37 3.37 0 0 0-.94 2.58V22"/></svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- PRODUCT -->
+        <div class="footer-col">
+            <h3>Product</h3>
+            <ul>
+                <li><a href="/builder"><span class="link-icon">✏️</span> Resume Builder</a></li>
+                <li><a href="/template"><span class="link-icon">📄</span> Templates</a></li>
+                <li><a href="/pricing"><span class="link-icon">💎</span> Pricing</a></li>
+                <li><a href="/builder"><span class="link-icon">🤖</span> AI Suggestions</a></li>
+                <li><a href="/builder"><span class="link-icon">⬇️</span> PDF Download</a></li>
+            </ul>
+        </div>
+
+        <!-- SUPPORT -->
+        <div class="footer-col">
+            <h3>Support</h3>
+            <ul>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('help')"><span class="link-icon">❓</span> Help Center</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('privacy')"><span class="link-icon">🔒</span> Privacy Policy</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('terms')"><span class="link-icon">📋</span> Terms of Service</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('cookies')"><span class="link-icon">🍪</span> Cookie Policy</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('contact')"><span class="link-icon">💬</span> Contact Us</a></li>
+            </ul>
+        </div>
+
+        <!-- CONTACT -->
+        <div class="footer-col">
+            <h3>Contact</h3>
+            <div class="footer-contact-item">
+                <div class="contact-icon">📞</div>
+                <span>+91-1234567890</span>
+            </div>
+            <div class="footer-contact-item">
+                <div class="contact-icon">✉️</div>
+                <a href="/cdn-cgi/l/email-protection#c7b4aaa6b5b3a4b187a0aaa6aeabe9a4a8aa"><span class="__cf_email__" data-cfemail="d1a2bcb0a3a5b2a791b6bcb0b8bdffb2bebc">[email&#160;protected]</span></a>
+            </div>
+            <div class="footer-contact-item">
+                <div class="contact-icon">📍</div>
+                <span>Chennai, Tamil Nadu, India</span>
+            </div>
+            <div class="footer-contact-item">
+                <div class="contact-icon">🕐</div>
+                <span>Mon–Fri, 9am–6pm IST</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- BADGE ROW -->
+    <div class="footer-badge-row">
+        <span class="footer-badge"><span class="badge-dot"></span> Service Active</span>
+        <span class="footer-badge">🤖 AI-Powered</span>
+        <span class="footer-badge">✅ ATS-Friendly</span>
+        <span class="footer-badge">⬇️ Instant PDF</span>
+        <span class="footer-badge">🔒 Secure &amp; Private</span>
+    </div>
+
+    <div class="footer-bottom">
+        <span>© 2026 VetriSmartCV. All rights reserved.</span>
+        <div class="footer-bottom-links">
+            <a href="javascript:void(0)" onclick="openFooterModal('privacy')">Privacy</a>
+            <a href="javascript:void(0)" onclick="openFooterModal('terms')">Terms</a>
+            <a href="javascript:void(0)" onclick="openFooterModal('cookies')">Cookies</a>
+        </div>
+    </div>
+</footer>
+
+<!-- ===================== FOOTER MODALS ===================== -->
+<div id="footerModalOverlay" onclick="closeFooterModal()" style="display:none;position:fixed;inset:0;background:rgba(10,8,30,0.65);backdrop-filter:blur(4px);z-index:10000;"></div>
+<div id="footerModalBox" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;width:min(680px,93vw);max-height:88vh;background:#fff;border-radius:24px;box-shadow:0 32px 80px rgba(0,0,0,0.25);overflow:hidden;flex-direction:column;">
+    <div id="footerModalHeader" style="padding:24px 28px 20px;border-bottom:1px solid #f0f0f5;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div id="footerModalIcon" style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#6c3fc9,#a855f7);display:flex;align-items:center;justify-content:center;font-size:18px;"></div>
+            <h2 id="footerModalTitle" style="margin:0;font-size:1.25rem;font-weight:800;color:#1a1a2e;"></h2>
+        </div>
+        <button onclick="closeFooterModal()" style="background:none;border:none;cursor:pointer;width:36px;height:36px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:18px;color:#6b7280;transition:background 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">✕</button>
+    </div>
+    <div id="footerModalContent" style="padding:28px;overflow-y:auto;flex:1;font-size:14px;line-height:1.75;color:#374151;"></div>
+</div>
+
+<style>
+.social-instagram:hover { background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888) !important; border-color: transparent !important; }
+.social-linkedin:hover   { background: #0077b5 !important; border-color: transparent !important; }
+.social-twitter:hover    { background: #000 !important; border-color: transparent !important; }
+.social-youtube:hover    { background: #ff0000 !important; border-color: transparent !important; }
+.social-github:hover     { background: #333 !important; border-color: transparent !important; }
+.footer-modal-section    { margin-bottom: 22px; }
+.footer-modal-section h4 { font-size: 15px; font-weight: 700; color: #1a1a2e; margin: 0 0 8px; }
+.footer-modal-section p  { margin: 0 0 8px; }
+.footer-modal-section ul { margin: 6px 0 0 18px; padding: 0; }
+.footer-modal-section ul li { margin-bottom: 5px; }
+.contact-form-grid    { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.contact-form-input   { padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; width: 100%; box-sizing: border-box; transition: border 0.2s; }
+.contact-form-input:focus { border-color: #7c3aed; }
+.contact-form-textarea { padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; width: 100%; box-sizing: border-box; resize: vertical; transition: border 0.2s; }
+.contact-form-textarea:focus { border-color: #7c3aed; }
+.faq-item { border: 1px solid #f0f0f5; border-radius: 10px; margin-bottom: 8px; overflow: hidden; cursor: pointer; }
+.faq-q { padding: 12px 16px; font-weight: 600; font-size: 14px; color: #1a1a2e; display: flex; justify-content: space-between; align-items: center; }
+.faq-a { display: none; padding: 0 16px 12px; font-size: 13px; color: #6b7280; line-height: 1.6; }
+.faq-item.open .faq-a { display: block; }
+.faq-item.open .faq-arrow { transform: rotate(180deg); }
+.faq-arrow { transition: transform 0.2s; font-size: 12px; color: #9ca3af; }
+.contact-submit-btn { margin-top: 14px; width: 100%; padding: 12px; background: linear-gradient(135deg,#6c3fc9,#a855f7); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+.contact-submit-btn:hover { opacity: 0.9; }
+</style>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+const footerModalContents = {
+    help: {
+        icon: '❓',
+        title: 'Help Center',
+        html: `
+        <div class="footer-modal-section">
+            <h4>Frequently Asked Questions</h4>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">How do I create my first resume? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Click "Create My Resume" on the homepage, choose a template, then fill in your details step by step. Our AI will guide you through each section — job title, skills, education, and personal info.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">Can I download my resume as PDF? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Yes! On the Review page, click the "Download" button and choose PDF format. Free users get one PDF download. Pro and Premium users get unlimited downloads.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">What does AI Suggestions do? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Our AI analyzes your job title and experience to suggest relevant skills and generate 3 professional profile summary options tailored to your role. Simply click to apply the one you like.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">Is my data safe? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Absolutely. Your resume data is stored securely and never shared with third parties. Only you can access your resumes when logged in.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">How do I upgrade my plan? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Visit the Pricing page from the navigation menu. Choose a plan that suits you and complete the payment. Your account upgrades instantly.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">Can I edit my resume after saving? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Yes! All saved resumes appear on your Dashboard. Click "Edit" on any resume card to return to the Review page where you can edit any section, change the template, or update design settings.</div>
+            </div>
+        </div>
+        <div class="footer-modal-section" style="background:#f0f7ff;padding:16px;border-radius:12px;">
+            <h4>Still need help?</h4>
+            <p style="margin:0;">Email us at <a href="mailto:smartcv@gmail.com" style="color:#6c3fc9;font-weight:600;">smartcv@gmail.com</a> or use the <a href="javascript:void(0)" onclick="openFooterModal('contact')" style="color:#6c3fc9;font-weight:600;">Contact Us</a> form and we'll respond within 24 hours.</p>
+        </div>`
+    },
+    privacy: {
+        icon: '🔒',
+        title: 'Privacy Policy',
+        html: `
+        <p style="color:#9ca3af;font-size:12px;margin-bottom:20px;">Last updated: April 2026</p>
+        <div class="footer-modal-section"><h4>1. Information We Collect</h4><p>When you use VetriSmartCV, we collect account information (name, email, hashed password), resume data you enter, optional profile photos, and usage data to improve our service.</p></div>
+        <div class="footer-modal-section"><h4>2. How We Use Your Information</h4><p>To generate and display your resume, save resumes to your dashboard, send account-related emails, and improve AI suggestions and template quality.</p></div>
+        <div class="footer-modal-section"><h4>3. Data Storage &amp; Security</h4><p>All data is stored on secured servers with industry-standard encryption for data in transit (HTTPS) and at rest. Passwords are hashed and never stored in plain text.</p></div>
+        <div class="footer-modal-section"><h4>4. Data Sharing</h4><p>We <strong>never sell or share</strong> your personal data with advertisers or third parties. Your data belongs to you.</p></div>
+        <div class="footer-modal-section"><h4>5. Your Rights</h4><p>You can access, delete, correct, or export your data at any time through your account settings.</p></div>
+        <div class="footer-modal-section"><h4>6. Contact</h4><p>For privacy inquiries, email <a href="mailto:smartcv@gmail.com" style="color:#6c3fc9;font-weight:600;">smartcv@gmail.com</a> with subject "Privacy Request".</p></div>`
+    },
+    terms: {
+        icon: '📋',
+        title: 'Terms of Service',
+        html: `
+        <p style="color:#9ca3af;font-size:12px;margin-bottom:20px;">Effective: April 2026 · By using VetriSmartCV, you agree to these terms.</p>
+        <div class="footer-modal-section"><h4>1. Acceptance of Terms</h4><p>By accessing or using VetriSmartCV, you agree to be bound by these Terms of Service.</p></div>
+        <div class="footer-modal-section"><h4>2. Account Responsibility</h4><p>You are responsible for maintaining the confidentiality of your login credentials and all activities under your account.</p></div>
+        <div class="footer-modal-section"><h4>3. Acceptable Use</h4><p>You agree not to upload false content, attempt to hack or scrape our platform, use the Service for unlawful purposes, or share credentials.</p></div>
+        <div class="footer-modal-section"><h4>4. Content Ownership</h4><p>You retain full ownership of all resume content you create. We make no claim of ownership over your resume data.</p></div>
+        <div class="footer-modal-section"><h4>5. Plans &amp; Payments</h4><p>Free plan users are limited to 1 active resume and 1 PDF download. Pro and Premium plans are billed as described on the Pricing page. All payments are non-refundable except as required by law.</p></div>
+        <div class="footer-modal-section"><h4>6. Limitation of Liability</h4><p>VetriSmartCV is provided "as is." We do not guarantee employment outcomes. Our liability is limited to the amount paid in the preceding 3 months.</p></div>`
+    },
+    cookies: {
+        icon: '🍪',
+        title: 'Cookie Policy',
+        html: `
+        <p style="color:#9ca3af;font-size:12px;margin-bottom:20px;">Last updated: April 2026</p>
+        <div class="footer-modal-section"><h4>What Are Cookies?</h4><p>Cookies are small text files placed on your device to remember your preferences and login status.</p></div>
+        <div class="footer-modal-section"><h4>Cookies We Use</h4><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f9fafb;"><th style="padding:10px 12px;text-align:left;border:1px solid #e5e7eb;font-weight:700;color:#374151;">Cookie</th><th style="padding:10px 12px;text-align:left;border:1px solid #e5e7eb;font-weight:700;color:#374151;">Purpose</th><th style="padding:10px 12px;text-align:left;border:1px solid #e5e7eb;font-weight:700;color:#374151;">Duration</th></tr></thead><tbody><tr><td style="padding:9px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:12px;">JSESSIONID</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">Keeps you logged in</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">Session</td></tr><tr style="background:#fafafa;"><td style="padding:9px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:12px;">resume_draft</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">Saves resume progress</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">7 days</td></tr><tr><td style="padding:9px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:12px;">user_pref</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">Remembers template preference</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">30 days</td></tr></tbody></table></div></div>
+        <div class="footer-modal-section"><h4>No Tracking Cookies</h4><p>We do not use advertising cookies, cross-site tracking, or third-party analytics cookies.</p></div>
+        <div class="footer-modal-section"><h4>Managing Cookies</h4><p>You can disable cookies in your browser settings. Disabling session cookies will log you out.</p></div>`
+    },
+    contact: {
+        icon: '💬',
+        title: 'Contact Us',
+        html: `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;">
+            <div style="background:#f8f5ff;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📧</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Email</div><a href="mailto:smartcv@gmail.com" style="font-size:13px;color:#6c3fc9;text-decoration:none;font-weight:600;">smartcv@gmail.com</a></div>
+            <div style="background:#f0fdf4;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📞</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Phone</div><span style="font-size:13px;color:#374151;font-weight:600;">+91-1234567890</span></div>
+            <div style="background:#fff7ed;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📍</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Location</div><span style="font-size:13px;color:#374151;">Chennai, Tamil Nadu, India</span></div>
+            <div style="background:#f0f9ff;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">🕐</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Hours</div><span style="font-size:13px;color:#374151;">Mon–Fri, 9am–6pm IST</span></div>
+        </div>
+        <div style="border-top:1px solid #f0f0f5;padding-top:20px;">
+            <h4 style="font-size:15px;font-weight:700;color:#1a1a2e;margin:0 0 16px;">Send Us a Message</h4>
+            <div id="contactFormWrap">
+                <div class="contact-form-grid">
+                    <input class="contact-form-input" type="text" id="cf_name" placeholder="Your Name">
+                    <input class="contact-form-input" type="email" id="cf_email" placeholder="Your Email">
+                </div>
+                <input class="contact-form-input" type="text" id="cf_subject" placeholder="Subject" style="margin-bottom:14px;">
+                <textarea class="contact-form-textarea" id="cf_message" rows="4" placeholder="Your message..."></textarea>
+                <button class="contact-submit-btn" onclick="submitContactForm()">📨 Send Message</button>
+            </div>
+            <div id="contactFormSuccess" style="display:none;text-align:center;padding:30px 20px;">
+                <div style="font-size:3rem;margin-bottom:12px;">✅</div>
+                <h4 style="font-size:1.1rem;color:#1a1a2e;margin:0 0 6px;">Message Sent!</h4>
+                <p style="color:#6b7280;margin:0;font-size:14px;">Thank you for reaching out. We'll get back to you within 24 hours.</p>
+            </div>
+        </div>`
+    }
+};
+
+function openFooterModal(type) {
+    const content = footerModalContents[type];
+    if (!content) return;
+    document.getElementById('footerModalIcon').textContent  = content.icon;
+    document.getElementById('footerModalTitle').textContent = content.title;
+    document.getElementById('footerModalContent').innerHTML = content.html;
+    document.getElementById('footerModalOverlay').style.display = 'block';
+    const box = document.getElementById('footerModalBox');
+    box.style.display = 'flex';
+    if (type === 'contact') {
+        const wrap = document.getElementById('contactFormWrap');
+        const succ = document.getElementById('contactFormSuccess');
+        if (wrap) wrap.style.display = 'block';
+        if (succ) succ.style.display = 'none';
+    }
+    box.style.opacity = '0';
+    box.style.transform = 'translate(-50%, -46%)';
+    requestAnimationFrame(() => {
+        box.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+        box.style.opacity = '1';
+        box.style.transform = 'translate(-50%, -50%)';
+    });
+}
+
+function closeFooterModal() {
+    document.getElementById('footerModalOverlay').style.display = 'none';
+    document.getElementById('footerModalBox').style.display     = 'none';
+}
+
+function toggleFaq(el) {
+    el.classList.toggle('open');
+}
+
+function submitContactForm() {
+    const name    = document.getElementById('cf_name')?.value.trim();
+    const email   = document.getElementById('cf_email')?.value.trim();
+    const subject = document.getElementById('cf_subject')?.value.trim();
+    const message = document.getElementById('cf_message')?.value.trim();
+    if (!name || !email || !subject || !message) {
+        alert('Please fill in all fields before sending.');
+        return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('Please enter a valid email address.');
+        return;
+    }
+    document.getElementById('contactFormWrap').style.display    = 'none';
+    document.getElementById('contactFormSuccess').style.display = 'block';
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeFooterModal();
+});
+</script>
+
+
+<!-- RESUME MODAL (reused from main site) -->
+<div id="resumeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:36px 32px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative;">
+    <button onclick="closeResumeModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;">&#10005;</button>
+    <h2 style="font-size:1.4rem;font-weight:800;color:#1a1a2e;margin:0 0 6px;">Create Your Resume</h2>
+    <p style="color:#6b7280;font-size:14px;margin:0 0 24px;">Start fresh or import an existing CV</p>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <a href="/builder" style="display:block;padding:14px 20px;background:linear-gradient(135deg,#6c3fc9,#a855f7);color:#fff;border-radius:12px;text-align:center;font-weight:700;text-decoration:none;font-size:15px;">&#9997; Build from Scratch</a>
+      <button onclick="importCV()" style="padding:14px 20px;background:#f3f4f6;color:#374151;border:2px solid #e5e7eb;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;">&#128196; Import Existing CV</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/script.js"></script>
+<script>
+    // Plan selection → login → payment flow
+    async function goToPlan(plan) {
+        try {
+            const res = await fetch('/api/auth/session');
+            const data = await res.json();
+            if (data.loggedIn) {
+                // Already logged in → go straight to payment
+                window.location.href = '/payment?plan=' + plan;
+            } else {
+                // Not logged in → go to login, pass redirect destination
+                window.location.href = '/login?redirect=/payment%3Fplan%3D' + plan;
+            }
+        } catch(e) {
+            window.location.href = '/login?redirect=/payment%3Fplan%3D' + plan;
+        }
+    }
+
+    // Monthly / Yearly toggle
+    const prices = {
+        monthly: { pro: { amount: '120', period: '/Month' }, premium: { amount: '250', period: '/Month' } },
+        yearly:  { pro: { amount: '450', period: '/Year'  }, premium: { amount: '850', period: '/Lifetime' } }
+    };
+
+    function setToggle(mode) {
+        document.getElementById('btnMonthly').classList.toggle('active', mode === 'monthly');
+        document.getElementById('btnYearly').classList.toggle('active', mode === 'yearly');
+        const p = prices[mode];
+        document.getElementById('proPrice').textContent     = p.pro.amount;
+        document.getElementById('proPeriod').textContent    = p.pro.period;
+        document.getElementById('premiumPrice').textContent = p.premium.amount;
+        document.getElementById('premiumPeriod').textContent = p.premium.period;
+    }
+
+    // Modal helpers
+    function openResumeModal() {
+        const m = document.getElementById('resumeModal');
+        
+        m.style.display = 'flex';
+    }
+    function closeResumeModal() {
+        document.getElementById('resumeModal').style.display = 'none';
+    }
+    function importCV() {
+        var input = document.getElementById('cvFileInput');
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'file';
+            input.id = 'cvFileInput';
+            input.accept = '.pdf,.doc,.docx';
+            input.style.display = 'none';
+            input.onchange = function (event) {
+                if (window.handleCVImport) window.handleCVImport(event);
+            };
+            document.body.appendChild(input);
+        }
+        input.click();
+    }
+
+    // ---- HIGHLIGHT PREMIUM PLAN if coming from review upgrade flow ----
+    (function checkHighlight() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('highlight') === 'premium') {
+            // Wait for DOM to be ready then scroll to & highlight premium card
+            window.addEventListener('load', () => {
+                // Find the premium plan card (contains "PREMIUM" text)
+                const premiumCard = document.querySelector('.plan-card.premium, [data-plan="PREMIUM"], .plan-premium-card');
+                const allCards = document.querySelectorAll('.plan-card, .pricing-card');
+                let target = premiumCard;
+                if (!target) {
+                    // Fallback: find card containing "Premium"
+                    allCards.forEach(c => { if (c.textContent.includes('Premium')) target = c; });
+                }
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    target.style.transition = 'box-shadow 0.4s, transform 0.4s';
+                    target.style.boxShadow = '0 0 0 4px #7c3aed, 0 20px 60px rgba(124,58,237,0.3)';
+                    target.style.transform = 'scale(1.03)';
+                    // Show a banner
+                    const banner = document.createElement('div');
+                    banner.style.cssText = `position:fixed;top:70px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;padding:14px 28px;border-radius:14px;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.25);display:flex;align-items:center;gap:10px;white-space:nowrap;`;
+                    banner.innerHTML = `<span style="font-size:20px;">🏆</span> Upgrade to <strong>Premium</strong> to unlock Font, Spacing &amp; more! <button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.25);border:none;color:#fff;font-size:16px;cursor:pointer;padding:2px 8px;border-radius:8px;margin-left:8px;">✕</button>`;
+                    document.body.appendChild(banner);
+                    setTimeout(() => banner.remove(), 8000);
+                }
+            });
+        }
+    })();
+</script>
+<script src="/js/navbar.js"></script>
+</body>
+</html>

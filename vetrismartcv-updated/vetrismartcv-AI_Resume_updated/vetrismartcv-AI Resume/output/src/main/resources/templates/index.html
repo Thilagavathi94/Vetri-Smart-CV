@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Builder – Create CV Online Free | Vetri</title>
+    <meta name="description" content="Create a professional resume using our AI resume builder. Build ATS-friendly CVs online for free with smart suggestions and modern templates.">
+    <meta name="keywords" content="AI resume builder, free CV maker, resume builder online, online CV maker, AI CV generator, create resume with AI, build resume online free, best AI resume builder, AI resume maker free, how to create resume, resume tips for freshers, ATS resume meaning, how AI helps in resume writing">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="AI Resume Builder – Create CV Online Free | Vetri">
+    <meta property="og:description" content="Create a professional resume using our AI resume builder. Build ATS-friendly CVs online for free with smart suggestions and modern templates.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AI Resume Builder – Create CV Online Free | Vetri">
+    <meta name="twitter:description" content="Create a professional resume using our AI resume builder. Build ATS-friendly CVs online for free with smart suggestions and modern templates.">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+      /* Logged-in user pill in navbar */
+      .nav-user-pill {
+        display: none;
+        align-items: center;
+        gap: 9px;
+        background: rgba(255,255,255,0.15);
+        border-radius: 99px;
+        padding: 5px 14px 5px 7px;
+        cursor: default;
+      }
+      .nav-user-avatar {
+        width: 30px; height: 30px;
+        background: #f59e0b;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 13px; color: #fff;
+      }
+      .nav-user-name { color: #fff; font-size: 14px; font-weight: 600; }
+      .nav-logout-btn {
+        background: transparent;
+        border: 1.5px solid rgba(255,255,255,0.4);
+        color: #fff; border-radius: 8px;
+        padding: 6px 14px; font-size: 13px; cursor: pointer;
+        font-family: inherit; transition: background 0.2s;
+      }
+      .nav-logout-btn:hover { background: rgba(255,255,255,0.1); }
+    </style>
+    <script>
+    async function doLogout() {
+        try { await fetch("/api/auth/logout", { method: "POST" }); } catch(e) {}
+        window.location.href = "/";
+    }
+    function toggleLoginDropdown(e) {
+        if (e) e.stopPropagation();
+        var wrap = document.getElementById("navLoginWrap");
+        if (wrap) wrap.classList.toggle("open");
+    }
+    document.addEventListener("click", function(e) {
+        var wrap = document.getElementById("navLoginWrap");
+        if (wrap && !wrap.contains(e.target)) wrap.classList.remove("open");
+    });
+    </script>
+</head>
+<body>
+
+<!-- HERO (Navbar inside this) -->
+<section class="hero">
+
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+
+ <nav class="navbar">
+  <div class="logo">
+    <a href="/">
+      <img src="/images/logo.png" alt="VetriSmartCV" style="height:44px;" 
+           onerror="this.style.display='none';this.nextSibling.style.display='inline'">
+      <span style="display:none;color:#fff;font-size:1.3rem;font-weight:800;">VetriSmartCV</span>
+    </a>
+  </div>
+
+  <ul class="nav-links">
+    <li><a href="/" class="active">Home</a></li>
+    <li><a href="/template">Resume Templates</a></li>
+    <li><a href="/pricing">Pricing</a></li>
+  </ul>
+
+  <div class="nav-actions">
+
+    <!-- ── LOGGED OUT: show login dropdown ── -->
+    <div class="nav-login-wrap" id="navLoginWrap" th:if="${!loggedIn}">
+      <button class="nav-login-btn" onclick="toggleLoginDropdown(event)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Login
+        <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+
+      <div class="nav-dropdown" id="navDropdown">
+        <div class="nav-dropdown-header">
+          <p>Welcome back</p>
+          <span>Sign in to your account</span>
+        </div>
+        <div class="nav-dropdown-divider"></div>
+        <a href="/login" class="nav-dropdown-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Log In
+        </a>
+        <a href="/register" class="nav-dropdown-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          Sign Up — it's free
+        </a>
+        <div class="nav-dropdown-divider"></div>
+        <a href="/pricing" class="nav-dropdown-item nav-dropdown-pro">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          View Pro Plans
+        </a>
+      </div>
+    </div>
+
+    <!-- ── LOGGED IN: show user pill + logout ── -->
+    <div class="nav-user-pill" th:if="${loggedIn}" style="display:flex;">
+      <div class="nav-user-avatar" th:text="${userInitial}">?</div>
+      <span class="nav-user-name" th:text="${userName}">User</span>
+    </div>
+    <button class="nav-logout-btn" th:if="${loggedIn}" onclick="doLogout()" style="display:inline-block;">Logout</button>
+
+    <a href="#" onclick="openResumeModal()" class="btn orange">Create My Resume</a>
+  </div>
+</nav>
+    <!-- HERO CONTENT -->
+    <div class="hero-content">
+        <h1>AI Resume Builder – Create Professional CV Online</h1>
+
+        <p>
+            Build a job-winning resume in minutes using our AI-powered resume builder.
+            Choose a template, add your details, and download instantly.
+        </p>
+
+         <div class="buttons">
+     <a href="#" onclick="openResumeModal()" class="btn purple">
+    Create My Resume
+</a>
+        <a href="/template" class="btn orange">View Templates</a>
+    </div>
+
+        <p class="small">No design skills required. ATS-friendly templates.</p>
+    </div>
+
+</section>
+<section class="moving-bar">
+    <div class="moving-track">
+
+      <div class="moving-content">
+    <span>⭐ AI writing suggestions</span>
+    <span>⭐ Instant download</span>
+    <span>⭐ ATS-friendly template</span>
+    <span>⭐ Easy resume builder</span>
+    <span>⭐ Professional templates</span>
+</div>
+
+        <!-- DUPLICATE (MANDATORY FOR LOOP) -->
+      <div class="moving-content">
+    <span>⭐ AI writing suggestions</span>
+    <span>⭐ Instant download</span>
+    <span>⭐ ATS-friendly template</span>
+    <span>⭐ Easy resume builder</span>
+    <span>⭐ Professional templates</span>
+</div>
+
+    </div>
+</section>
+
+<!-- NEXT SECTION -->
+<section class="how-section">
+
+    <h2 class="how-title">How to Create a Resume Online in 3 Simple Steps</h2>
+
+    <p class="how-subtitle">
+        Follow these 3 easy steps to build your professional resume online for free.
+    </p>
+
+    <div class="how-container">
+
+        <div class="how-card">
+            <div class="icon-box">
+                <img src="/images/h1.png">
+            </div>
+            <h3>Choose a Professional Resume Template</h3>
+            <p>Select from modern, professional resume templates designed for recruiters</p>
+        </div>
+
+        <div class="how-card">
+            <div class="icon-box">
+                <img src="/images/h2.png">
+            </div>
+            <h3>Add Your Details</h3>
+            <p>Fill in your experience, education, and skills with our easy-to-use builder.</p>
+        </div>
+
+        <div class="how-card">
+            <div class="icon-box">
+                <img src="/images/h3.png">
+            </div>
+            <h3>Download Your Resume Instantly</h3>
+            <p>Get a polished, ATS-friendly resume ready to apply for jobs.</p>
+        </div>
+
+    </div>
+
+    <!-- BUTTON -->
+    <div class="how-btn">
+       <a href="#" onclick="openResumeModal()" class="btn purple">
+    Create My Resume
+</a>
+    </div>
+
+</section>
+<section class="features">
+
+    <h2 class="feature-title">AI Resume Builder Features</h2>
+    <p class="feature-sub">Smart Tools to Build the Perfect Resume</p>
+
+    <!-- ROW 1 -->
+    <div class="feature-row top">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <img src="/images/f1.png">
+            </div>
+            <h3>AI Content Suggestions</h3>
+            <p>Improve your resume with smart writing recommendations.</p>
+            <div class="bottom-bar"></div>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">
+                <img src="/images/f2.png">
+            </div>
+            <h3>Instant Resume Download</h3>
+            <p>Download your resume instantly in a professional format.</p>
+            <div class="bottom-bar"></div>
+        </div>
+    </div>
+
+    <!-- ROW 2 -->
+    <div class="feature-row bottom">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <img src="/images/f3.png">
+            </div>
+            <h3>Easy-to-Use Resume Builder</h3>
+            <p>Create and edit your resume quickly with an intuitive editor.</p>
+            <div class="bottom-bar"></div>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">
+                <img src="/images/f4.png">
+            </div>
+            <h3>ATS Resume Optimization</h3>
+            <p>Ensure your resume passes modern Applicant Tracking Systems.</p>
+            <div class="bottom-bar"></div>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">
+                <img src="/images/f6.png">
+            </div>
+            <h3>Professional Templates</h3>
+            <p>Choose from beautifully designed, recruiter-approved layouts.</p>
+            <div class="bottom-bar"></div>
+        </div>
+    </div>
+
+</section>
+<div class="template-section">
+
+  <h2>Choose a Resume Template That Fits Your Style</h2>
+  <p style="color:#6b7280;font-size:14px;margin-bottom:30px;">
+    Click any template to preview &amp; edit
+  </p>
+
+  <div class="template-container">
+
+    <!-- CARD 1: Robert — Executive Dark -->
+    <div class="template-card">
+      <div class="template-preview">
+        <img src="/images/previews/robert.jpg"
+             alt="Executive Dark Template"
+             class="tpl-img">
+        <div class="tpl-plan pro">Pro</div>
+        <div class="tpl-ats">✓ ATS-Friendly</div>
+      </div>
+      <div class="template-overlay">
+        <button onclick="homeOpenTemplate('robert','Executive Dark','Bold maroon sidebar · Professional','pro')">👁 Preview</button>
+        <button onclick="homeUseTemplate('robert','pro')">🔒 Use Template</button>
+      </div>
+      <div class="template-card-content">
+        <h3>Executive Dark</h3>
+        <p>Bold maroon sidebar · Professional &amp; striking.</p>
+        <div class="template-tags">
+          <span style="border-color:#f59e0b;color:#f59e0b;">Pro</span>
+          <span>ATS-friendly</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD 2: Olivia — Clean Two-Column -->
+    <div class="template-card">
+      <div class="template-preview">
+        <img src="/images/previews/olivia.jpg"
+             alt="Clean Two-Column Template"
+             class="tpl-img">
+        <div class="tpl-plan free">Free</div>
+        <div class="tpl-ats">✓ ATS-Friendly</div>
+      </div>
+      <div class="template-overlay">
+        <button onclick="homeOpenTemplate('olivia','Clean Two-Column','Photo · Teal accent · Modern layout','free')">👁 Preview</button>
+        <button onclick="homeUseTemplate('olivia','free')">✏ Use Template</button>
+      </div>
+      <div class="template-card-content">
+        <h3>Clean Two-Column</h3>
+        <p>Photo · Teal accent · Modern layout.</p>
+        <div class="template-tags">
+          <span style="border-color:#16a34a;color:#16a34a;">Free</span>
+          <span>ATS-friendly</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD 3: Mary — Minimal Elegant -->
+    <div class="template-card">
+      <div class="template-preview">
+        <img src="/images/previews/mary.jpg"
+             alt="Minimal Elegant Template"
+             class="tpl-img">
+        <div class="tpl-plan pro">Pro</div>
+        <div class="tpl-ats">✓ ATS-Friendly</div>
+      </div>
+      <div class="template-overlay">
+        <button onclick="homeOpenTemplate('mary','Minimal Elegant','Green skill bars · Clean &amp; classic','pro')">👁 Preview</button>
+        <button onclick="homeUseTemplate('mary','pro')">🔒 Use Template</button>
+      </div>
+      <div class="template-card-content">
+        <h3>Minimal Elegant</h3>
+        <p>Green skill bars · Clean &amp; classic design.</p>
+        <div class="template-tags">
+          <span style="border-color:#f59e0b;color:#f59e0b;">Pro</span>
+          <span>Creative</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="view-all">
+    <a href="/template" class="main-btn">View All Templates →</a>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════
+     HOME TEMPLATE PREVIEW MODAL
+══════════════════════════════════════════ -->
+<div id="homeTplModal"
+     onclick="if(event.target===this)closeHomeTpl()"
+     style="display:none;position:fixed;inset:0;
+            background:rgba(0,0,0,0.75);z-index:99999;
+            align-items:center;justify-content:center;padding:16px;">
+  <div onclick="event.stopPropagation()"
+       style="background:#fff;border-radius:20px;width:100%;max-width:780px;
+              max-height:92vh;display:flex;flex-direction:column;overflow:hidden;
+              box-shadow:0 28px 80px rgba(0,0,0,0.4);
+              animation:htmIn .22s ease;">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:18px 24px;border-bottom:1px solid #f0f0f5;flex-shrink:0;">
+      <div>
+        <h2 id="htmTitle"
+            style="margin:0;font-size:18px;font-weight:800;color:#1a1a2e;"></h2>
+        <p  id="htmSubtitle"
+            style="margin:5px 0 0;font-size:12px;color:#9ca3af;"></p>
+      </div>
+      <button onclick="closeHomeTpl()"
+              style="width:36px;height:36px;border-radius:50%;background:#f3f4f6;
+                     border:none;cursor:pointer;font-size:18px;
+                     display:flex;align-items:center;justify-content:center;
+                     color:#6b7280;">✕</button>
+    </div>
+    <!-- Image -->
+    <div style="flex:1;overflow:auto;background:#f4f4f8;
+                display:flex;align-items:flex-start;
+                justify-content:center;padding:20px;">
+      <img id="htmImg" src="" alt="Template Preview"
+           style="max-width:100%;border-radius:8px;
+                  box-shadow:0 8px 32px rgba(0,0,0,0.15);display:block;">
+    </div>
+    <!-- Footer -->
+    <div style="padding:16px 24px;border-top:1px solid #f0f0f5;
+                display:flex;align-items:center;justify-content:flex-end;
+                gap:12px;flex-shrink:0;">
+      <button onclick="closeHomeTpl()"
+              style="background:transparent;border:2px solid #d1d5db;
+                     color:#6b7280;padding:9px 20px;border-radius:10px;
+                     font-size:13px;font-weight:700;cursor:pointer;
+                     font-family:inherit;">Close</button>
+      <button id="htmUseBtn"
+              style="padding:9px 22px;border-radius:10px;font-size:13px;
+                     font-weight:700;cursor:pointer;border:none;color:#fff;
+                     font-family:inherit;">Use This Template</button>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes htmIn {
+  from { transform:scale(0.94); opacity:0; }
+  to   { transform:scale(1);    opacity:1; }
+}
+</style>
+
+<script>
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   HOME PAGE TEMPLATE PREVIEW + USE FUNCTIONS
+   Same flow as /template page
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function homeOpenTemplate(key, title, subtitle, plan) {
+  document.getElementById('htmTitle').textContent    = title    || key;
+  document.getElementById('htmSubtitle').textContent = subtitle || '';
+  document.getElementById('htmImg').src = '/images/previews/' + key + '.jpg';
+
+  var btn = document.getElementById('htmUseBtn');
+  btn.style.background = (plan === 'pro')
+    ? 'linear-gradient(135deg,#f59e0b,#d97706)'
+    : 'linear-gradient(135deg,#7c3aed,#5b21b6)';
+  btn.onclick = function() { closeHomeTpl(); homeUseTemplate(key, plan); };
+
+  var modal = document.getElementById('homeTplModal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeHomeTpl() {
+  document.getElementById('homeTplModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function homeUseTemplate(name, plan) {
+  closeHomeTpl();
+  var planLevel = { free: 0, pro: 1 };
+  var metaEl    = document.querySelector('meta[name="user-plan"]');
+  var userPlan  = metaEl
+    ? (metaEl.getAttribute('content') || 'free').toLowerCase()
+    : 'free';
+
+  if ((planLevel[userPlan] || 0) < (planLevel[plan] || 0)) {
+    if (confirm(
+      '\uD83D\uDD12 This is a Pro template.\n\n' +
+      'Upgrade to unlock all 38+ premium templates.\n\nGo to Pricing?'
+    )) {
+      fetch('/api/auth/session')
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          window.location.href = d.loggedIn
+            ? '/payment?plan=PRO'
+            : '/login?redirect=%2Fpayment%3Fplan%3DPRO';
+        })
+        .catch(function(){ window.location.href = '/pricing'; });
+    }
+    return;
+  }
+  window.location.href = '/builder?template=' + encodeURIComponent(name);
+}
+
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeHomeTpl();
+});
+</script>
+<section class="job-section">
+
+    <h2>Why Choose Our AI Resume Builder</h2>
+
+    <div class="job-container">
+
+        <!-- LEFT IMAGE -->
+        <div class="job-left">
+            <img src="/images/ChatGPT Image Mar 14, 2026, 03_52_12 PM.png" alt="job seeker">
+        </div>
+
+        <!-- RIGHT CONTENT -->
+        <div class="job-right">
+
+            <div class="job-item">
+                <img src="/images/w1.png">
+                <p>AI-Powered Resume Writing Assistance</p>
+            </div>
+
+            <div class="job-item">
+                <img src="/images/q2.png">
+                <p>ATS-Friendly Resume Templates</p>
+            </div>
+
+            <div class="job-item">
+                <img src="/images/q3.png">
+                <p>Simple Resume Creation Process</p>
+            </div>
+
+            <div class="job-item">
+                <img src="/images/q4.png">
+                <p>Fast and Easy Resume Creation</p>
+            </div>
+
+            <div class="job-item">
+                <img src="/images/q5.png">
+                <p>Trusted by Thousands of Job Seekers</p>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<section class="cta-section">
+    <div class="cta-container">
+
+        <!-- LEFT IMAGE -->
+        <div class="cta-image">
+            <img src="images/ChatGPT Image Mar 16, 2026, 03_11_42 PM.png" alt="resume">
+        </div>
+
+        <!-- RIGHT CONTENT -->
+        <div class="cta-content">
+            <h2>Create Your Professional Resume in Minutes</h2>
+            <p>
+                Build a job-winning resume using AI-powered suggestions and modern templates.
+            </p>
+
+        <a href="#" onclick="openResumeModal()" class="btn orange">
+    Create My Resume
+</a>
+        </div>
+
+    </div>
+</section>
+<footer class="footer">
+    <div class="footer-container">
+
+        <!-- BRAND COL -->
+        <div class="footer-col footer-brand-col">
+            <div class="footer-logo">
+                <img src="/images/logo.png" alt="VetriSmartCV" style="height:40px;width:auto;flex-shrink:0;">
+                
+            </div>
+            <p>Build job-winning resumes in minutes with AI-powered suggestions, ATS-friendly templates, and instant downloads.</p>
+            <div class="footer-socials">
+                <a href="https://www.instagram.com/vetriitsystems
+" target="_blank" title="Instagram" class="social-instagram">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                </a>
+                <a href="https://www.linkedin.com
+" target="_blank" title="LinkedIn" class="social-linkedin">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                </a>
+                <a href="https://twitter.com
+" target="_blank" title="Twitter / X" class="social-twitter">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+                <a href="https://www.youtube.com
+" target="_blank" title="YouTube" class="social-youtube">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.97C18.88 4 12 4 12 4s-6.88 0-8.59.45A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 0 0 1.95-1.97A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#fff"/></svg>
+                </a>
+                <a href="https://github.com" target="_blank" title="GitHub" class="social-github">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+</a>
+                </a>
+            </div>
+        </div>
+
+        <!-- PRODUCT -->
+        <div class="footer-col">
+            <h3>Product</h3>
+            <ul>
+                <li><a href="/builder"><span class="link-icon">✏️</span> Resume Builder</a></li>
+                <li><a href="/template"><span class="link-icon">📄</span> Templates</a></li>
+                <li><a href="/pricing"><span class="link-icon">💎</span> Pricing</a></li>
+                <li><a href="/builder"><span class="link-icon">🤖</span> AI Suggestions</a></li>
+                <li><a href="/builder"><span class="link-icon">⬇️</span> PDF Download</a></li>
+            </ul>
+        </div>
+
+        <!-- SUPPORT -->
+        <div class="footer-col">
+            <h3>Support</h3>
+            <ul>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('help')"><span class="link-icon">❓</span> Help Center</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('privacy')"><span class="link-icon">🔒</span> Privacy Policy</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('terms')"><span class="link-icon">📋</span> Terms of Service</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('cookies')"><span class="link-icon">🍪</span> Cookie Policy</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('contact')"><span class="link-icon">💬</span> Contact Us</a></li>
+            </ul>
+        </div>
+
+        <!-- CONTACT -->
+        <div class="footer-col">
+            <h3>Contact</h3>
+            <div class="footer-contact-item">
+                <div class="contact-icon">📞</div>
+                <span>+91-1234567890</span>
+            </div>
+            <div class="footer-contact-item">
+                <div class="contact-icon">✉️</div>
+                <a href="/cdn-cgi/l/email-protection#26554b475452455066414b474f4a0845494b"><span class="__cf_email__" data-cfemail="c9baa4a8bbbdaabf89aea4a8a0a5e7aaa6a4">[email&#160;protected]</span></a>
+            </div>
+            <div class="footer-contact-item">
+                <div class="contact-icon">📍</div>
+                <span>Chennai, Tamil Nadu, India</span>
+            </div>
+            <div class="footer-contact-item">
+                <div class="contact-icon">🕐</div>
+                <span>Mon–Fri, 9am–6pm IST</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- BADGE ROW -->
+    <div class="footer-badge-row">
+        <span class="footer-badge"><span class="badge-dot"></span> Service Active</span>
+        <span class="footer-badge">🤖 AI-Powered</span>
+        <span class="footer-badge">✅ ATS-Friendly</span>
+        <span class="footer-badge">⬇️ Instant PDF</span>
+        <span class="footer-badge">🔒 Secure &amp; Private</span>
+    </div>
+
+    <div class="footer-bottom">
+        <span>© 2026 VetriSmartCV. All rights reserved.</span>
+        <div class="footer-bottom-links">
+            <a href="javascript:void(0)" onclick="openFooterModal('privacy')">Privacy</a>
+            <a href="javascript:void(0)" onclick="openFooterModal('terms')">Terms</a>
+            <a href="javascript:void(0)" onclick="openFooterModal('cookies')">Cookies</a>
+        </div>
+    </div>
+</footer>
+
+<!-- ===================== FOOTER MODALS ===================== -->
+
+<!-- MODAL OVERLAY -->
+<div id="footerModalOverlay" onclick="closeFooterModal()" style="display:none;position:fixed;inset:0;background:rgba(10,8,30,0.65);backdrop-filter:blur(4px);z-index:10000;"></div>
+
+<!-- MODAL BOX -->
+<div id="footerModalBox" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;width:min(680px,93vw);max-height:88vh;background:#fff;border-radius:24px;box-shadow:0 32px 80px rgba(0,0,0,0.25);overflow:hidden;flex-direction:column;">
+    <!-- Modal Header -->
+    <div id="footerModalHeader" style="padding:24px 28px 20px;border-bottom:1px solid #f0f0f5;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div id="footerModalIcon" style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#6c3fc9,#a855f7);display:flex;align-items:center;justify-content:center;font-size:18px;"></div>
+            <h2 id="footerModalTitle" style="margin:0;font-size:1.25rem;font-weight:800;color:#1a1a2e;"></h2>
+        </div>
+        <button onclick="closeFooterModal()" style="background:none;border:none;cursor:pointer;width:36px;height:36px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:18px;color:#6b7280;transition:background 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">✕</button>
+    </div>
+    <!-- Modal Content -->
+    <div id="footerModalContent" style="padding:28px;overflow-y:auto;flex:1;font-size:14px;line-height:1.75;color:#374151;"></div>
+</div>
+
+<!-- SOCIAL ICON HOVER STYLES -->
+<style>
+.social-instagram:hover { background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888) !important; border-color: transparent !important; }
+.social-linkedin:hover   { background: #0077b5 !important; border-color: transparent !important; }
+.social-twitter:hover    { background: #000 !important; border-color: transparent !important; }
+.social-youtube:hover    { background: #ff0000 !important; border-color: transparent !important; }
+.social-github:hover     { background: #333 !important; border-color: transparent !important; }
+.footer-modal-section    { margin-bottom: 22px; }
+.footer-modal-section h4 { font-size: 15px; font-weight: 700; color: #1a1a2e; margin: 0 0 8px; }
+.footer-modal-section p  { margin: 0 0 8px; }
+.footer-modal-section ul { margin: 6px 0 0 18px; padding: 0; }
+.footer-modal-section ul li { margin-bottom: 5px; }
+.contact-form-grid       { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.contact-form-input      { padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; width: 100%; box-sizing: border-box; transition: border 0.2s; }
+.contact-form-input:focus { border-color: #7c3aed; }
+.contact-form-textarea   { padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; width: 100%; box-sizing: border-box; resize: vertical; transition: border 0.2s; }
+.contact-form-textarea:focus { border-color: #7c3aed; }
+.contact-submit-btn      { width: 100%; padding: 13px; background: linear-gradient(135deg,#6c3fc9,#a855f7); color: #fff; border: none; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 4px; transition: opacity 0.2s; }
+.contact-submit-btn:hover { opacity: 0.9; }
+.faq-item                { border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+.faq-q                   { padding: 14px 16px; font-weight: 600; font-size: 14px; color: #1a1a2e; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
+.faq-q:hover             { background: #f3f4f6; }
+.faq-a                   { display: none; padding: 0 16px 14px; font-size: 13.5px; color: #6b7280; line-height: 1.7; }
+.faq-item.open .faq-a    { display: block; }
+.faq-item.open .faq-arrow { transform: rotate(180deg); }
+.faq-arrow               { transition: transform 0.2s; font-size: 12px; color: #9ca3af; }
+</style>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+const footerModalContents = {
+    help: {
+        icon: '❓',
+        title: 'Help Center',
+        html: `
+        <div class="footer-modal-section">
+            <h4>Frequently Asked Questions</h4>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">How do I create my first resume? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Click "Create My Resume" on the homepage, choose a template, then fill in your details step by step. Our AI will guide you through each section — job title, skills, education, and personal info.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">Can I download my resume as PDF? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Yes! On the Review page, click the "Download" button and choose PDF format. Free users get one PDF download. Pro and Premium users get unlimited downloads.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">What does AI Suggestions do? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Our AI analyzes your job title and experience to suggest relevant skills and generate 3 professional profile summary options tailored to your role. Simply click to apply the one you like.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">Is my data safe? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Absolutely. Your resume data is stored securely and never shared with third parties. Only you can access your resumes when logged in. See our Privacy Policy for full details.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">How do I upgrade my plan? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Visit the Pricing page from the navigation menu. Choose a plan that suits you and complete the payment. Your account upgrades instantly.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">Can I edit my resume after saving? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Yes! All saved resumes appear on your Dashboard. Click "Edit" on any resume card to return to the Review page where you can edit any section, change the template, or update design settings.</div>
+            </div>
+        </div>
+        <div class="footer-modal-section" style="background:#f0f7ff;padding:16px;border-radius:12px;">
+            <h4>Still need help?</h4>
+            <p style="margin:0;">Email us at <a href="mailto:smartcv@gmail.com" style="color:#6c3fc9;font-weight:600;">smartcv@gmail.com</a> or use the <a href="javascript:void(0)" onclick="openFooterModal('contact')" style="color:#6c3fc9;font-weight:600;">Contact Us</a> form and we'll respond within 24 hours.</p>
+        </div>`
+    },
+    privacy: {
+        icon: '🔒',
+        title: 'Privacy Policy',
+        html: `
+        <p style="color:#9ca3af;font-size:12px;margin-bottom:20px;">Last updated: April 2026</p>
+        <div class="footer-modal-section">
+            <h4>1. Information We Collect</h4>
+            <p>When you use VetriSmartCV, we collect:</p>
+            <ul>
+                <li><strong>Account information:</strong> Name, email address, and password (hashed) when you register.</li>
+                <li><strong>Resume data:</strong> Job title, skills, education, projects, and personal details you enter in the builder.</li>
+                <li><strong>Profile photo:</strong> If you choose to upload one, stored as base64 in our database.</li>
+                <li><strong>Usage data:</strong> Pages visited, features used, and download counts to improve our service.</li>
+            </ul>
+        </div>
+        <div class="footer-modal-section">
+            <h4>2. How We Use Your Information</h4>
+            <ul>
+                <li>To generate and display your resume on our platform.</li>
+                <li>To save your resumes to your dashboard so you can access them anytime.</li>
+                <li>To send account-related emails (password resets, plan updates).</li>
+                <li>To improve AI suggestions and template quality.</li>
+            </ul>
+        </div>
+        <div class="footer-modal-section">
+            <h4>3. Data Storage & Security</h4>
+            <p>All data is stored on secured servers. We use industry-standard encryption for data in transit (HTTPS) and at rest. Passwords are hashed and never stored in plain text. Profile photos and resume content are accessible only to the account owner.</p>
+        </div>
+        <div class="footer-modal-section">
+            <h4>4. Data Sharing</h4>
+            <p>We <strong>never sell or share</strong> your personal data with advertisers or third parties. We do not allow advertisers to target you based on your resume content. Your data belongs to you.</p>
+        </div>
+        <div class="footer-modal-section">
+            <h4>5. Your Rights</h4>
+            <ul>
+                <li><strong>Access:</strong> Request a copy of all data we hold about you.</li>
+                <li><strong>Delete:</strong> Delete your account and all associated resume data at any time.</li>
+                <li><strong>Correct:</strong> Edit any inaccurate information through your account settings.</li>
+                <li><strong>Export:</strong> Download your resumes as PDF or text at any time.</li>
+            </ul>
+        </div>
+        <div class="footer-modal-section">
+            <h4>6. Contact</h4>
+            <p>For privacy-related inquiries, email <a href="mailto:smartcv@gmail.com" style="color:#6c3fc9;font-weight:600;">smartcv@gmail.com</a> with subject line "Privacy Request".</p>
+        </div>`
+    },
+    terms: {
+        icon: '📋',
+        title: 'Terms of Service',
+        html: `
+        <p style="color:#9ca3af;font-size:12px;margin-bottom:20px;">Effective: April 2026 · By using VetriSmartCV, you agree to these terms.</p>
+        <div class="footer-modal-section">
+            <h4>1. Acceptance of Terms</h4>
+            <p>By accessing or using VetriSmartCV ("Service"), you agree to be bound by these Terms of Service. If you do not agree, please do not use the Service.</p>
+        </div>
+        <div class="footer-modal-section">
+            <h4>2. Account Responsibility</h4>
+            <p>You are responsible for maintaining the confidentiality of your login credentials and for all activities under your account. Notify us immediately of any unauthorized access at <a href="mailto:smartcv@gmail.com" style="color:#6c3fc9;">smartcv@gmail.com</a>.</p>
+        </div>
+        <div class="footer-modal-section">
+            <h4>3. Acceptable Use</h4>
+            <p>You agree not to:</p>
+            <ul>
+                <li>Upload false, misleading, or plagiarized content in your resume.</li>
+                <li>Attempt to reverse engineer, hack, or scrape our platform.</li>
+                <li>Use the Service for any unlawful purpose.</li>
+                <li>Share account credentials with others.</li>
+            </ul>
+        </div>
+        <div class="footer-modal-section">
+            <h4>4. Content Ownership</h4>
+            <p>You retain full ownership of all resume content you create. By using our Service, you grant VetriSmartCV a limited license to store and display your content for the purpose of providing the Service. We make no claim of ownership over your resume data.</p>
+        </div>
+        <div class="footer-modal-section">
+            <h4>5. Plans & Payments</h4>
+            <p>Free plan users are limited to 1 active resume and 1 PDF download. Pro and Premium plans are billed as described on the Pricing page. All payments are non-refundable except as required by applicable law.</p>
+        </div>
+        <div class="footer-modal-section">
+            <h4>6. Termination</h4>
+            <p>We reserve the right to suspend or terminate accounts that violate these terms. You may delete your account at any time from your Dashboard settings.</p>
+        </div>
+        <div class="footer-modal-section">
+            <h4>7. Limitation of Liability</h4>
+            <p>VetriSmartCV is provided "as is." We do not guarantee employment outcomes from using our resumes. Our liability is limited to the amount paid for the Service in the preceding 3 months.</p>
+        </div>`
+    },
+    cookies: {
+        icon: '🍪',
+        title: 'Cookie Policy',
+        html: `
+        <p style="color:#9ca3af;font-size:12px;margin-bottom:20px;">Last updated: April 2026</p>
+        <div class="footer-modal-section">
+            <h4>What Are Cookies?</h4>
+            <p>Cookies are small text files placed on your device by a website. They help the site remember your preferences and login status so you don't have to log in every visit.</p>
+        </div>
+        <div class="footer-modal-section">
+            <h4>Cookies We Use</h4>
+            <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr style="background:#f9fafb;">
+                        <th style="padding:10px 12px;text-align:left;border:1px solid #e5e7eb;font-weight:700;color:#374151;">Cookie Name</th>
+                        <th style="padding:10px 12px;text-align:left;border:1px solid #e5e7eb;font-weight:700;color:#374151;">Purpose</th>
+                        <th style="padding:10px 12px;text-align:left;border:1px solid #e5e7eb;font-weight:700;color:#374151;">Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding:9px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:12px;">JSESSIONID</td>
+                        <td style="padding:9px 12px;border:1px solid #e5e7eb;">Keeps you logged in during your session</td>
+                        <td style="padding:9px 12px;border:1px solid #e5e7eb;">Session</td>
+                    </tr>
+                    <tr style="background:#fafafa;">
+                        <td style="padding:9px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:12px;">resume_draft</td>
+                        <td style="padding:9px 12px;border:1px solid #e5e7eb;">Saves resume progress temporarily</td>
+                        <td style="padding:9px 12px;border:1px solid #e5e7eb;">7 days</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:9px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:12px;">user_pref</td>
+                        <td style="padding:9px 12px;border:1px solid #e5e7eb;">Remembers your preferred template and theme</td>
+                        <td style="padding:9px 12px;border:1px solid #e5e7eb;">30 days</td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+        <div class="footer-modal-section">
+            <h4>No Tracking Cookies</h4>
+            <p>We do not use advertising cookies, cross-site tracking, or third-party analytics cookies. VetriSmartCV does not track you across other websites.</p>
+        </div>
+        <div class="footer-modal-section">
+            <h4>Managing Cookies</h4>
+            <p>You can disable cookies in your browser settings. Note that disabling session cookies will log you out of your account. Our core resume-building features work without tracking cookies.</p>
+        </div>`
+    },
+    contact: {
+        icon: '💬',
+        title: 'Contact Us',
+        html: `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;">
+            <div style="background:#f8f5ff;padding:16px;border-radius:12px;text-align:center;">
+                <div style="font-size:24px;margin-bottom:6px;">📧</div>
+                <div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Email</div>
+                <a href="mailto:smartcv@gmail.com" style="font-size:13px;color:#6c3fc9;text-decoration:none;font-weight:600;">smartcv@gmail.com</a>
+            </div>
+            <div style="background:#f0fdf4;padding:16px;border-radius:12px;text-align:center;">
+                <div style="font-size:24px;margin-bottom:6px;">📞</div>
+                <div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Phone</div>
+                <span style="font-size:13px;color:#374151;font-weight:600;">+91-1234567890</span>
+            </div>
+            <div style="background:#fff7ed;padding:16px;border-radius:12px;text-align:center;">
+                <div style="font-size:24px;margin-bottom:6px;">📍</div>
+                <div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Location</div>
+                <span style="font-size:13px;color:#374151;">Chennai, Tamil Nadu, India</span>
+            </div>
+            <div style="background:#f0f9ff;padding:16px;border-radius:12px;text-align:center;">
+                <div style="font-size:24px;margin-bottom:6px;">🕐</div>
+                <div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Hours</div>
+                <span style="font-size:13px;color:#374151;">Mon–Fri, 9am–6pm IST</span>
+            </div>
+        </div>
+        <div style="border-top:1px solid #f0f0f5;padding-top:20px;">
+            <h4 style="font-size:15px;font-weight:700;color:#1a1a2e;margin:0 0 16px;">Send Us a Message</h4>
+            <div id="contactFormWrap">
+                <div class="contact-form-grid">
+                    <input class="contact-form-input" type="text" id="cf_name" placeholder="Your Name" required>
+                    <input class="contact-form-input" type="email" id="cf_email" placeholder="Your Email" required>
+                </div>
+                <input class="contact-form-input" type="text" id="cf_subject" placeholder="Subject" style="margin-bottom:14px;" required>
+                <textarea class="contact-form-textarea" id="cf_message" rows="4" placeholder="Your message..." required></textarea>
+                <button class="contact-submit-btn" onclick="submitContactForm()">📨 Send Message</button>
+            </div>
+            <div id="contactFormSuccess" style="display:none;text-align:center;padding:30px 20px;">
+                <div style="font-size:3rem;margin-bottom:12px;">✅</div>
+                <h4 style="font-size:1.1rem;color:#1a1a2e;margin:0 0 6px;">Message Sent!</h4>
+                <p style="color:#6b7280;margin:0;font-size:14px;">Thank you for reaching out. We'll get back to you within 24 hours.</p>
+            </div>
+        </div>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f0f0f5;">
+            <h4 style="font-size:14px;font-weight:700;color:#1a1a2e;margin:0 0 12px;">Follow Us</h4>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <a href="https://www.instagram.com/vetrismartcv" target="_blank" style="display:flex;align-items:center;gap:7px;padding:8px 14px;background:#fdf2f8;color:#be185d;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;border:1px solid #fbcfe8;">📷 Instagram</a>
+                <a href="https://www.linkedin.com/company/vetrismartcv" target="_blank" style="display:flex;align-items:center;gap:7px;padding:8px 14px;background:#eff6ff;color:#1d4ed8;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;border:1px solid #bfdbfe;">in LinkedIn</a>
+                <a href="https://twitter.com/vetrismartcv" target="_blank" style="display:flex;align-items:center;gap:7px;padding:8px 14px;background:#f9fafb;color:#111827;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;border:1px solid #e5e7eb;">𝕏 Twitter</a>
+                <a href="https://www.youtube.com/@vetrismartcv" target="_blank" style="display:flex;align-items:center;gap:7px;padding:8px 14px;background:#fff1f2;color:#be123c;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;border:1px solid #fecdd3;">▶ YouTube</a>
+            </div>
+        </div>`
+    }
+};
+
+function openFooterModal(type) {
+    const content = footerModalContents[type];
+    if (!content) return;
+    document.getElementById('footerModalIcon').textContent    = content.icon;
+    document.getElementById('footerModalTitle').textContent   = content.title;
+    document.getElementById('footerModalContent').innerHTML   = content.html;
+    document.getElementById('footerModalOverlay').style.display = 'block';
+    const box = document.getElementById('footerModalBox');
+    box.style.display = 'flex';
+    // Reset contact form state
+    if (type === 'contact') {
+        const wrap = document.getElementById('contactFormWrap');
+        const succ = document.getElementById('contactFormSuccess');
+        if (wrap) wrap.style.display = 'block';
+        if (succ) succ.style.display = 'none';
+    }
+    // Animate in
+    box.style.opacity = '0';
+    box.style.transform = 'translate(-50%, -46%)';
+    requestAnimationFrame(() => {
+        box.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+        box.style.opacity = '1';
+        box.style.transform = 'translate(-50%, -50%)';
+    });
+}
+
+function closeFooterModal() {
+    document.getElementById('footerModalOverlay').style.display = 'none';
+    document.getElementById('footerModalBox').style.display     = 'none';
+}
+
+function toggleFaq(el) {
+    el.classList.toggle('open');
+}
+
+function submitContactForm() {
+    const name    = document.getElementById('cf_name')?.value.trim();
+    const email   = document.getElementById('cf_email')?.value.trim();
+    const subject = document.getElementById('cf_subject')?.value.trim();
+    const message = document.getElementById('cf_message')?.value.trim();
+    if (!name || !email || !subject || !message) {
+        alert('Please fill in all fields before sending.');
+        return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('Please enter a valid email address.');
+        return;
+    }
+    // Show success state
+    document.getElementById('contactFormWrap').style.display    = 'none';
+    document.getElementById('contactFormSuccess').style.display = 'block';
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeFooterModal();
+});
+</script>
+        
+<!-- RESUME CREATION MODAL -->
+<div id="resumeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:36px 32px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative;">
+    <button onclick="closeResumeModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;">&#10005;</button>
+    <h2 style="font-size:1.4rem;font-weight:800;color:#1a1a2e;margin:0 0 6px;">Create Your Resume</h2>
+    <p style="color:#6b7280;font-size:14px;margin:0 0 24px;">Start fresh or import an existing CV</p>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <a href="/builder" style="display:block;padding:14px 20px;background:linear-gradient(135deg,#6c3fc9,#a855f7);color:#fff;border-radius:12px;text-align:center;font-weight:700;text-decoration:none;font-size:15px;">&#9997; Build from Scratch</a>
+      <button onclick="importCV()" style="padding:14px 20px;background:#f3f4f6;color:#374151;border:2px solid #e5e7eb;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;">&#128228; Import Existing CV</button>
+      <input type="file" id="cvFileInput" accept=".pdf,.doc,.docx" style="display:none;" onchange="handleCVImport(event)">
+    </div>
+  </div>
+</div>
+<script src="/js/script.js"></script>
+<script src="/js/navbar.js"></script>
+<script src="/js/scroll-animations.js"></script>
+</body>
+</html>

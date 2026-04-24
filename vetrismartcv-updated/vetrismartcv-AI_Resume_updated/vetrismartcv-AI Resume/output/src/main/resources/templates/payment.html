@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VetriSmartCV - Upgrade Plan</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body { background: #f4f5f7; font-family: 'Segoe UI', sans-serif; }
+        .pay-nav { background: #6c3fc9; padding: 14px 50px; display: flex; justify-content: space-between; align-items: center; }
+        .pay-nav .logo-text { color: #fff; font-size: 1.2rem; font-weight: 800; text-decoration: none; }
+        .pay-page { max-width: 520px; margin: 60px auto; padding: 0 20px; }
+        .pay-card { background: #fff; border-radius: 20px; padding: 40px 36px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .pay-card h2 { font-size: 1.4rem; font-weight: 800; color: #1a1a2e; margin-bottom: 4px; }
+        .pay-card .pay-sub { color: #6b7280; font-size: 14px; margin-bottom: 28px; }
+        .plan-sel { display: flex; gap: 12px; margin-bottom: 28px; }
+        .plan-opt { flex: 1; border: 2px solid #e5e7eb; border-radius: 14px; padding: 14px 10px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .plan-opt:hover { border-color: #7c3aed; }
+        .plan-opt.selected { border-color: #f59e0b; background: #fffbeb; }
+        .plan-opt .plan-name { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+        .plan-opt .plan-price { font-size: 1.2rem; font-weight: 800; color: #7c3aed; margin: 4px 0; }
+        .plan-opt .plan-price span { font-size: 12px; color: #6b7280; font-weight: 400; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .form-group input { width: 100%; padding: 12px 16px; border: 1.5px solid #e5e7eb; border-radius: 12px; font-size: 15px; outline: none; background: #f9fafb; box-sizing: border-box; }
+        .form-group input:focus { border-color: #7c3aed; }
+        .card-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+        .pay-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .pay-btn:hover { opacity: 0.92; }
+        .secure-note { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 14px; }
+        .summary-box { background: #f9fafb; border-radius: 12px; padding: 16px; margin-bottom: 24px; }
+        .summary-row { display: flex; justify-content: space-between; font-size: 14px; color: #374151; padding: 4px 0; }
+        .summary-row.total { font-weight: 700; border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 6px; }
+        .err-msg { color: #ef4444; font-size: 13px; margin-top: 8px; display: none; }
+    </style>
+    <script>
+    async function doLogout() {
+        try { await fetch("/api/auth/logout", { method: "POST" }); } catch(e) {}
+        window.location.href = "/";
+    }
+    function toggleLoginDropdown(e) {
+        if (e) e.stopPropagation();
+        var wrap = document.getElementById("navLoginWrap");
+        if (wrap) wrap.classList.toggle("open");
+    }
+    document.addEventListener("click", function(e) {
+        var wrap = document.getElementById("navLoginWrap");
+        if (wrap && !wrap.contains(e.target)) wrap.classList.remove("open");
+    });
+    </script>
+</head>
+<body>
+<nav class="pay-nav">
+    <a href="/" class="logo-text">VetriSmartCV</a>
+    <div style="display:flex;align-items:center;gap:10px;">
+        <!-- Logged-in user widget -->
+        <div th:if="${loggedIn}" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);border-radius:99px;padding:5px 14px 5px 7px;">
+            <div th:text="${userInitial}" style="width:28px;height:28px;background:#f59e0b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;">?</div>
+            <span th:text="${userName}" style="color:#fff;font-size:13px;font-weight:600;">User</span>
+        </div>
+        <button th:if="${loggedIn}" onclick="doLogout()" style="background:transparent;border:1.5px solid rgba(255,255,255,0.4);color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit;">Logout</button>
+        <a href="/pricing" style="color:rgba(255,255,255,0.8);font-size:13px;text-decoration:none;">← Back to Pricing</a>
+    </div>
+</nav>
+
+<div class="pay-page">
+    <div class="pay-card">
+        <h2>Upgrade Your Plan</h2>
+        <p class="pay-sub">Choose a plan and enter your payment details</p>
+
+        <div class="plan-sel">
+            <div class="plan-opt selected" id="planPro" onclick="selectPlan('PRO')">
+                <div class="plan-name">Pro</div>
+                <div class="plan-price">₹120 <span>/mo</span></div>
+            </div>
+            <div class="plan-opt" id="planPremium" onclick="selectPlan('PREMIUM')">
+                <div class="plan-name">Premium</div>
+                <div class="plan-price">₹250 <span>/mo</span></div>
+            </div>
+        </div>
+
+        <div class="summary-box">
+            <div class="summary-row"><span id="summaryPlan">Pro Plan</span><span id="summaryPrice">₹120/mo</span></div>
+            <div class="summary-row"><span>14-day free trial</span><span style="color:#22c55e;">FREE</span></div>
+            <div class="summary-row total"><span>Total today</span><span>₹0</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Cardholder Name</label>
+            <input type="text" id="cardName" placeholder="As on card">
+        </div>
+        <div class="form-group">
+            <label>Card Number</label>
+            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" oninput="formatCard(this)">
+        </div>
+        <div class="card-row">
+            <div class="form-group">
+                <label>Expiry</label>
+                <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5">
+            </div>
+            <div class="form-group">
+                <label>CVV</label>
+                <input type="text" id="cardCvv" placeholder="123" maxlength="3">
+            </div>
+        </div>
+
+        <button class="pay-btn" id="payBtn" onclick="processPayment()">Start Free Trial →</button>
+        <div class="err-msg" id="payErr"></div>
+        <div class="secure-note">🔒 Secured by 256-bit SSL encryption. Cancel anytime.</div>
+    </div>
+</div>
+
+<script>
+let selectedPlan = 'PRO';
+
+function selectPlan(plan) {
+    selectedPlan = plan;
+    document.getElementById('planPro').classList.toggle('selected', plan === 'PRO');
+    document.getElementById('planPremium').classList.toggle('selected', plan === 'PREMIUM');
+    document.getElementById('summaryPlan').textContent = plan === 'PRO' ? 'Pro Plan' : 'Premium Plan';
+    document.getElementById('summaryPrice').textContent = plan === 'PRO' ? '₹120/mo' : '₹250/mo';
+}
+
+function formatCard(input) {
+    let val = input.value.replace(/\D/g,'');
+    val = val.match(/.{1,4}/g)?.join(' ') || val;
+    input.value = val;
+}
+
+async function processPayment() {
+    const name   = document.getElementById('cardName').value.trim();
+    const number = document.getElementById('cardNumber').value.trim();
+    const expiry = document.getElementById('cardExpiry').value.trim();
+    const cvv    = document.getElementById('cardCvv').value.trim();
+    const errEl  = document.getElementById('payErr');
+    const btn    = document.getElementById('payBtn');
+
+    errEl.style.display = 'none';
+    if (!name || !number || !expiry || !cvv) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return; }
+
+    btn.disabled = true; btn.textContent = 'Processing...';
+
+    setTimeout(async () => {
+        try {
+            const res  = await fetch('/api/auth/upgrade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan: selectedPlan })
+            });
+            const data = await res.json();
+            if (data.success) {
+                sessionStorage.setItem('justUpgraded', selectedPlan);
+                const explicitRedirect = params.get('redirect');
+                const storedReviewReturn = sessionStorage.getItem('pendingReviewReturnUrl');
+                // Return to review page when requested, else fallback to dashboard
+                if (explicitRedirect) {
+                    const redirectUrl = new URL(explicitRedirect, window.location.origin);
+                    redirectUrl.searchParams.set('upgraded', '1');
+                    window.location.href = redirectUrl.pathname + redirectUrl.search;
+                    return;
+                }
+                if (storedReviewReturn) {
+                    const redirectUrl = new URL(storedReviewReturn, window.location.origin);
+                    redirectUrl.searchParams.set('upgraded', '1');
+                    window.location.href = redirectUrl.pathname + redirectUrl.search;
+                    return;
+                }
+                // Legacy fallback: Return to resume review page if we came from there, else dashboard
+                const resumeId = sessionStorage.getItem('pendingResumeId') || '';
+                if (resumeId) {
+                    window.location.href = '/review/' + resumeId + '?upgraded=1';
+                } else {
+                    window.location.href = '/dashboard?upgraded=1';
+                }
+            } else {
+                errEl.textContent = data.message || 'Please log in first to upgrade.';
+                errEl.style.display = 'block';
+                btn.disabled = false; btn.textContent = 'Start Free Trial →';
+            }
+        } catch {
+            errEl.textContent = 'Payment processing error. Please try again.';
+            errEl.style.display = 'block';
+            btn.disabled = false; btn.textContent = 'Start Free Trial →';
+        }
+    }, 1500);
+}
+
+// Pre-select plan from URL
+const params = new URLSearchParams(window.location.search);
+if (params.get('plan') === 'PREMIUM') selectPlan('PREMIUM');
+</script>
+<script src="/js/navbar.js"></script>
+</body>
+</html>

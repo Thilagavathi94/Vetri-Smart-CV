@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VetriSmartCV - Build Your Resume</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/builder.css">
+    <script>
+    async function doLogout() {
+        try { await fetch("/api/auth/logout", { method: "POST" }); } catch(e) {}
+        window.location.href = "/";
+    }
+    function toggleLoginDropdown(e) {
+        if (e) e.stopPropagation();
+        var wrap = document.getElementById("navLoginWrap");
+        if (wrap) wrap.classList.toggle("open");
+    }
+    document.addEventListener("click", function(e) {
+        var wrap = document.getElementById("navLoginWrap");
+        if (wrap && !wrap.contains(e.target)) wrap.classList.remove("open");
+    });
+    </script>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar builder-nav">
+    <div class="logo">
+        <a href="/">
+            <img src="/images/logo.png" alt="VetriSmartCV" onerror="this.style.display='none';this.nextSibling.style.display='inline'">
+            <span style="display:none;color:#fff;font-size:1.2rem;font-weight:800;">VetriSmartCV</span>
+        </a>
+    </div>
+
+    <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/template">Resume Templates</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+    </ul>
+
+    <div class="nav-actions">
+
+        <!-- ── LOGGED OUT: login dropdown ── -->
+        <div class="nav-login-wrap" id="navLoginWrap" th:if="${!loggedIn}">
+            <button class="nav-login-btn" onclick="toggleLoginDropdown(event)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                Login
+                <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="nav-dropdown" id="navDropdown">
+                <div class="nav-dropdown-header">
+                    <p>Welcome back</p>
+                    <span>Sign in to your account</span>
+                </div>
+                <div class="nav-dropdown-divider"></div>
+                <a href="/login" class="nav-dropdown-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                    Log In
+                </a>
+                <a href="/register" class="nav-dropdown-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    Sign Up — it's free
+                </a>
+                <div class="nav-dropdown-divider"></div>
+                <a href="/pricing" class="nav-dropdown-item nav-dropdown-pro">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    View Pro Plans
+                </a>
+            </div>
+        </div>
+
+        <!-- ── LOGGED IN: user pill + logout ── -->
+        <div class="nav-user-pill" th:if="${loggedIn}">
+            <div class="nav-user-avatar" th:text="${userInitial}">?</div>
+            <span class="nav-user-name" th:text="${userName}">User</span>
+        </div>
+        <button class="nav-logout-btn" th:if="${loggedIn}" onclick="doLogout()">Logout</button>
+
+        <a href="#" onclick="openResumeModal()" class="btn orange">Create My Resume</a>
+    </div>
+</nav>
+
+<!-- BUILDER MAIN -->
+<div class="builder-page">
+
+    <!-- UPLOAD CV BANNER -->
+    <div class="upload-cv-banner">
+        <div class="upload-cv-info">
+            <span class="upload-cv-icon">📄</span>
+            <div>
+                <strong>Already have a CV?</strong>
+                <p>Upload it and we'll auto-fill your details</p>
+            </div>
+        </div>
+        <label class="upload-cv-btn" for="cvUploadInput">
+            ⬆ Upload CV
+            <input type="file" id="cvUploadInput" accept=".pdf,.txt,.doc,.docx" style="display:none" onchange="handleCvUpload(event)">
+        </label>
+    </div>
+
+    <div class="builder-header">
+        <h1>Create Your Resume with AI – <span>Step-by-Step Builder</span></h1>
+        <p>Answer a few quick questions and our AI will generate a professional, job-ready resume for you.</p>
+    </div>
+
+    <!-- PROGRESS BAR -->
+    <div class="progress-section">
+        <div class="step-label">Step <span id="currentStepLabel">1</span> of 7</div>
+        <div class="progress-bar-outer">
+            <div class="progress-bar-inner" id="progressBar"></div>
+        </div>
+        <div class="step-dots">
+            <div class="step-dot active" id="dot-1"><span>1</span></div>
+            <div class="dot-line" id="line-1"></div>
+            <div class="step-dot" id="dot-2"><span>2</span></div>
+            <div class="dot-line" id="line-2"></div>
+            <div class="step-dot" id="dot-3"><span>3</span></div>
+            <div class="dot-line" id="line-3"></div>
+            <div class="step-dot" id="dot-4"><span>4</span></div>
+            <div class="dot-line" id="line-4"></div>
+            <div class="step-dot" id="dot-5"><span>5</span></div>
+            <div class="dot-line" id="line-5"></div>
+            <div class="step-dot" id="dot-6"><span>6</span></div>
+            <div class="dot-line" id="line-6"></div>
+            <div class="step-dot" id="dot-7"><span>7</span></div>
+        </div>
+    </div>
+
+    <!-- STEP CARDS -->
+    <div class="step-container">
+
+        <!-- STEP 1: Job Title -->
+        <div class="step-card active" id="step-1">
+            <h3 class="step-label-seo">Step 1 of 7 – Job Details</h3>
+            <h2>Enter the Job Role You're Targeting</h2>
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="jobInput" placeholder="Search or type a job title" oninput="filterJobSuggestions(this.value)" onkeydown="handleJobKey(event)">
+                <button class="add-custom-btn" onclick="addCustomJob()" title="Add custom job">＋ Add</button>
+            </div>
+            <div id="selectedJobTag" class="selected-tag-area"></div>
+            <div class="ai-label">✦ AI Suggestion</div>
+            <ul class="suggestion-list" id="jobSuggestions">
+                <li onclick="selectJob('UI Designer')">UI Designer</li>
+                <li onclick="selectJob('Software Developer')">Software Developer</li>
+                <li onclick="selectJob('Marketing Executive')">Marketing Executive</li>
+                <li onclick="selectJob('Data Analyst')">Data Analyst</li>
+                <li onclick="selectJob('Customer Support')">Customer Support</li>
+                <li onclick="selectJob('Product Manager')">Product Manager</li>
+                <li onclick="selectJob('Full Stack Developer')">Full Stack Developer</li>
+                <li onclick="selectJob('Web Developer')">Web Developer</li>
+                <li onclick="selectJob('DevOps Engineer')">DevOps Engineer</li>
+                <li onclick="selectJob('Graphic Designer')">Graphic Designer</li>
+            </ul>
+            <div class="step-actions">
+                <button class="btn-back" onclick="prevStep()">Back</button>
+                <button class="btn-draft" onclick="saveDraft()">💾 Save as draft</button>
+                <button class="btn-next" onclick="nextStep()">Next</button>
+            </div>
+        </div>
+
+        <!-- STEP 2: Experience Level -->
+        <div class="step-card" id="step-2">
+            <h3 class="step-label-seo">Step 2 of 7 – Experience Level</h3>
+            <h2>Experience Level for Better Resume Suggestions</h2>
+            <p class="step-sub">Choose your experience level so our AI can personalize your resume content and suggestions.</p>
+            <div class="exp-grid">
+                <div class="exp-card" onclick="selectExp(this, 'No Experience (Fresher)')">
+                    <img src="/images/exp-fresher.png" onerror="this.src='https://via.placeholder.com/60'">
+                    <span>Fresher – No Work Experience</span>
+                </div>
+                <div class="exp-card" onclick="selectExp(this, '1-2 years')">
+                    <img src="/images/exp-1-2.png" onerror="this.src='https://via.placeholder.com/60'">
+                    <span>1–2 Years Experience</span>
+                </div>
+                <div class="exp-card" onclick="selectExp(this, '3-5 Years')">
+                    <img src="/images/exp-3-5.png" onerror="this.src='https://via.placeholder.com/60'">
+                    <span>3–5 Years Experience</span>
+                </div>
+                <div class="exp-card" onclick="selectExp(this, '5-10 Years')">
+                    <img src="/images/exp-5-10.png" onerror="this.src='https://via.placeholder.com/60'">
+                    <span>5–10 Years Experience</span>
+                </div>
+                <div class="exp-card" onclick="selectExp(this, '10+ Years')">
+                    <img src="/images/exp-10plus.png" onerror="this.src='https://via.placeholder.com/60'">
+                    <span>10+ Years Experience</span>
+                </div>
+            </div>
+
+            <!-- Experience Details Form — shown for non-freshers -->
+            <div id="experienceDetailsSection" style="display:none;">
+                <div class="exp-details-header">
+                    <h3>Work Experience Details</h3>
+                    <p>Add your work history so we can build a stronger resume for you.</p>
+                </div>
+                <div id="experienceEntries">
+                    <div class="exp-entry" id="exp-entry-0">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Job Title / Role*</label>
+                                <input type="text" placeholder="e.g., Software Developer" class="exp-jobtitle">
+                            </div>
+                            <div class="form-group">
+                                <label>Company Name*</label>
+                                <input type="text" placeholder="e.g., Infosys" class="exp-company">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Location</label>
+                                <input type="text" placeholder="e.g., Chennai, Tamil Nadu" class="exp-location">
+                            </div>
+                            <div class="form-group">
+                                <label>Employment Type</label>
+                                <select class="exp-type">
+                                    <option value="">Select</option>
+                                    <option>Full-time</option>
+                                    <option>Part-time</option>
+                                    <option>Internship</option>
+                                    <option>Freelance</option>
+                                    <option>Contract</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Start Date*</label>
+                                <div style="display:flex;gap:8px;">
+                                    <select class="exp-start-month" style="flex:1;">
+                                        <option value="">Month</option>
+                                        <option>January</option><option>February</option><option>March</option>
+                                        <option>April</option><option>May</option><option>June</option>
+                                        <option>July</option><option>August</option><option>September</option>
+                                        <option>October</option><option>November</option><option>December</option>
+                                    </select>
+                                    <select class="exp-start-year" style="flex:1;"></select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>End Date</label>
+                                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                    <select class="exp-end-month" style="flex:1;">
+                                        <option value="">Month</option>
+                                        <option>January</option><option>February</option><option>March</option>
+                                        <option>April</option><option>May</option><option>June</option>
+                                        <option>July</option><option>August</option><option>September</option>
+                                        <option>October</option><option>November</option><option>December</option>
+                                    </select>
+                                    <select class="exp-end-year" style="flex:1;"></select>
+                                    <label class="exp-current-label">
+                                        <input type="checkbox" class="exp-current" onchange="toggleCurrentJob(this)"> Currently Working
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Job Description / Responsibilities</label>
+                            <textarea placeholder="Describe your key responsibilities and achievements..." class="exp-desc" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-add-more" onclick="addExperience()">+ Add Another Experience</button>
+            </div>
+
+            <div class="step-actions">
+                <button class="btn-back" onclick="prevStep()">Back</button>
+                <button class="btn-draft" onclick="saveDraft()">💾 Save as draft</button>
+                <button class="btn-next" onclick="nextStep()">Next</button>
+            </div>
+        </div>
+
+        <!-- STEP 3: Education -->
+        <div class="step-card" id="step-3">
+            <h3 class="step-label-seo">Step 3 of 7 – Education Details</h3>
+            <h2>Education Details for a Strong Resume</h2>
+            <p class="step-sub">Enter your education details so our AI can highlight your qualifications and build a professional resume.</p>
+            <div id="educationEntries">
+                <div class="edu-entry" id="edu-0">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>University*</label>
+                            <input type="text" placeholder="University Name" class="edu-university">
+                        </div>
+                        <div class="form-group">
+                            <label>University Location*</label>
+                            <input type="text" placeholder="Tamil Nadu, India" class="edu-location">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Degree*</label>
+                            <select class="edu-degree">
+                                <option value="">Select</option>
+                                <option>B.E / B.Tech</option>
+                                <option>M.E / M.Tech</option>
+                                <option>B.Sc</option><option>M.Sc</option>
+                                <option>MBA</option><option>B.Com</option>
+                                <option>BCA</option><option>MCA</option>
+                                <option>PhD</option><option>Diploma</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Field of Study*</label>
+                            <input type="text" placeholder="e.g., ECE" class="edu-field">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Graduation Month</label>
+                            <select class="edu-month">
+                                <option>January</option><option>February</option><option>March</option>
+                                <option>April</option><option>May</option><option>June</option>
+                                <option>July</option><option>August</option><option>September</option>
+                                <option>October</option><option>November</option><option>December</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Graduation Year*</label>
+                            <select class="edu-year" id="gradYearSelect"></select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>CGPA / Percentage</label>
+                            <input type="text" placeholder="e.g., 80%" class="edu-cgpa">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-add-more" onclick="addEducation()">+ Add Degree</button>
+            <div class="step-actions">
+                <button class="btn-back" onclick="prevStep()">Back</button>
+                <button class="btn-draft" onclick="saveDraft()">💾 Save as draft</button>
+                <button class="btn-next" onclick="nextStep()">Next</button>
+            </div>
+        </div>
+
+        <!-- STEP 4: Skills -->
+        <div class="step-card" id="step-4">
+            <h3 class="step-label-seo">Step 4 of 7 – Skills</h3>
+            <h2>Add Your Skills to Strengthen Your Resume</h2>
+            <p class="step-sub">Add relevant skills to showcase your strengths. Our AI will suggest the best skills based on your job role.</p>
+            <div class="skill-input-row">
+                <div class="search-box" style="flex:1;margin-bottom:0;">
+                    <input type="text" id="skillInput" placeholder="Type a skill (e.g., JavaScript)" onkeydown="handleSkillKey(event)" oninput="filterSkillSearch(this.value)">
+                </div>
+                <button class="add-custom-btn skill-add-btn" onclick="addSkillFromInput()">＋ Add</button>
+            </div>
+            <div id="selectedSkillTags" class="tag-area"></div>
+            <div class="ai-label">✦ AI Suggestion</div>
+            <ul class="suggestion-list" id="skillSuggestions"></ul>
+            <div class="step-actions">
+                <button class="btn-back" onclick="prevStep()">Back</button>
+                <button class="btn-draft" onclick="saveDraft()">💾 Save as draft</button>
+                <button class="btn-next" onclick="nextStep()">Next</button>
+            </div>
+        </div>
+
+        <!-- STEP 5: Projects -->
+        <div class="step-card" id="step-5">
+            <h3 class="step-label-seo">Step 5 of 7 – Projects</h3>
+            <h2>Do You Have Any Academic or Personal Projects to Add?</h2>
+            <p class="step-sub">Projects help showcase your practical skills. Our AI can help you structure and describe your projects professionally.</p>
+            <div class="yes-no-area">
+                <button class="yn-btn" id="projYesBtn" onclick="toggleProjects(true)">Yes, Add My Projects</button>
+                <button class="yn-btn" id="projNoBtn" onclick="toggleProjects(false)">Skip for Now</button>
+            </div>
+            <div id="projectForm" style="display:none;">
+                <div id="projectEntries">
+                    <div class="proj-entry">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Project Title*</label>
+                                <input type="text" placeholder="Title" class="proj-title">
+                            </div>
+                            <div class="form-group">
+                                <label>Tools Used</label>
+                                <input type="text" placeholder="Tools & Technologies" class="proj-tools">
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Description</label>
+                            <textarea placeholder="About Project" class="proj-desc" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-add-more" onclick="addProject()">+ Add Project</button>
+            </div>
+            <div class="step-actions">
+                <button class="btn-back" onclick="prevStep()">Back</button>
+                <button class="btn-draft" onclick="saveDraft()">💾 Save as draft</button>
+                <button class="btn-next" onclick="nextStep()">Next</button>
+            </div>
+        </div>
+
+        <!-- STEP 6: Personal Details -->
+        <div class="step-card" id="step-6">
+            <h3 class="step-label-seo">Step 6 of 7 – Personal &amp; Summary</h3>
+            <h2>Add Your Personal Details &amp; Professional Summary</h2>
+            <p class="step-sub">Enter your details and let our AI generate a professional summary that highlights your strengths.</p>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Name*</label>
+                    <input type="text" id="fullName" placeholder="Enter name">
+                </div>
+                <div class="form-group">
+                    <label>Email Address*</label>
+                    <input type="email" id="emailAddr" placeholder="Enter Email Id">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Phone Number*</label>
+                    <input type="tel" id="phoneNum" placeholder="Enter Phone no">
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <input type="text" id="addressField" placeholder="e.g., 123 Main St, Chennai">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Website / Portfolio</label>
+                    <input type="text" id="websiteField" placeholder="e.g., yoursite.com">
+                </div>
+                <div class="form-group">
+                    <label>LinkedIn</label>
+                    <input type="text" id="linkedinField" placeholder="e.g., linkedin.com/in/yourname">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Location / City</label>
+                    <input type="text" id="locationField" placeholder="e.g., Chennai, Tamil Nadu">
+                </div>
+                <div class="form-group">
+                    <label>Profile Photo</label>
+                    <input type="file" id="photoInput" accept="image/*" onchange="handlePhotoUpload(event)" style="padding:6px 14px;">
+                </div>
+            </div>
+            <div class="form-group full-width">
+                <label>Profile Summary*</label>
+                <textarea id="profileSummary" placeholder="Brief summary of your professional background" rows="4"></textarea>
+                <button class="ai-gen-btn" onclick="generateAISummary()">✦ Generate AI Suggestions (3 options)</button>
+            </div>
+            <div class="step-actions">
+                <button class="btn-back" onclick="prevStep()">Back</button>
+                <button class="btn-draft" onclick="saveDraft()">💾 Save as draft</button>
+                <button class="btn-next" onclick="nextStep()">Next</button>
+            </div>
+        </div>
+
+        <!-- STEP 7: Choose Template -->
+        <div class="step-card" id="step-7">
+            <h3 class="step-label-seo">Step 7 of 7 – Final Resume Setup</h3>
+            <h2>Choose a Resume Template &amp; Finalize Your CV</h2>
+            <p class="step-sub">Select a professional resume template and generate your job-ready resume instantly.</p>
+            <div class="builder-template-selected">
+                <div>
+                    <span class="builder-template-kicker">SELECTED RESUME TEMPLATE</span>
+                    <strong id="selectedTemplateLabel">Template 1</strong>
+                    <p>Your selected template will open on the review page after processing.</p>
+                </div>
+                <button class="builder-template-change" onclick="toggleTemplateDropdown(event)">Change Template ▾</button>
+            </div>
+            <!-- Template Dropdown -->
+            <div class="template-dropdown" id="templateDropdown" style="display:none;">
+                <div class="template-dropdown-grid" id="templateDropdownGrid"></div>
+            </div>
+            <div class="photo-check">
+                <input type="checkbox" id="includePhoto" checked>
+                <label for="includePhoto">Include Profile Photo in Resume</label>
+            </div>
+            <div class="step-actions">
+                <button class="btn-back" onclick="prevStep()">Back</button>
+                <button class="btn-draft" onclick="saveDraft()">💾 Save as draft</button>
+                <button class="btn-process" onclick="processCV()">Generate My Resume Now</button>
+            </div>
+        </div>
+
+    </div><!-- end step-container -->
+</div>
+
+<!-- PROCESSING MODAL -->
+<div class="processing-overlay" id="processingOverlay" style="display:none;">
+    <div class="processing-modal">
+        <h3>Processing Your CV</h3>
+        <div class="spin-icon">🔄</div>
+        <p style="color:#6b7280;font-size:14px;margin-top:12px;">Building your professional resume...</p>
+    </div>
+</div>
+
+<!-- AI SUMMARY MODAL — 3 options -->
+<div class="modal-overlay" id="aiSummaryModal" style="display:none;">
+    <div class="ai-summary-modal">
+        <h3>Profile Summary</h3>
+        <p class="ai-modal-sub">Choose one of the AI-generated summaries below</p>
+        <div id="aiSummaryOptions"></div>
+        <div class="ai-modal-actions">
+            <button class="btn-cancel-modal" onclick="closeAISummaryModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- UPLOAD CV PARSING MODAL -->
+<div class="modal-overlay" id="uploadParseModal" style="display:none;">
+    <div class="upload-parse-modal">
+        <h3>📄 CV Uploaded Successfully</h3>
+        <p>We found the following information from your CV. Review and apply:</p>
+        <div id="parsedDataPreview" class="parsed-preview"></div>
+        <div class="ai-modal-actions">
+            <button class="btn-cancel-modal" onclick="document.getElementById('uploadParseModal').style.display='none'">Cancel</button>
+            <button class="btn-apply-cv" onclick="applyParsedData()">✓ Apply & Open Review</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== FULL SITE FOOTER (matches index.html) ===================== -->
+<footer class="footer">
+    <div class="footer-container">
+
+        <!-- BRAND COL -->
+        <div class="footer-col footer-brand-col">
+            <div class="footer-logo">
+                <img src="/images/logo.png" alt="VetriSmartCV" style="height:40px;width:auto;flex-shrink:0;">
+                
+            </div>
+            <p>Build job-winning resumes in minutes with AI-powered suggestions, ATS-friendly templates, and instant downloads.</p>
+            <div class="footer-socials">
+                <a href="https://www.instagram.com/vetriitsystems" target="_blank" title="Instagram" class="social-instagram">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                </a>
+                <a href="https://www.linkedin.com" target="_blank" title="LinkedIn" class="social-linkedin">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                </a>
+                <a href="https://twitter.com" target="_blank" title="Twitter / X" class="social-twitter">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+                <a href="https://www.youtube.com" target="_blank" title="YouTube" class="social-youtube">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.97C18.88 4 12 4 12 4s-6.88 0-8.59.45A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 0 0 1.95-1.97A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#fff"/></svg>
+                </a>
+                <a href="https://github.com" target="_blank" title="GitHub" class="social-github">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7a3.37 3.37 0 0 0-.94 2.58V22"/></svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- PRODUCT -->
+        <div class="footer-col">
+            <h3>Product</h3>
+            <ul>
+                <li><a href="/builder"><span class="link-icon">✏️</span> Resume Builder</a></li>
+                <li><a href="/template"><span class="link-icon">📄</span> Templates</a></li>
+                <li><a href="/pricing"><span class="link-icon">💎</span> Pricing</a></li>
+                <li><a href="/builder"><span class="link-icon">🤖</span> AI Suggestions</a></li>
+                <li><a href="/builder"><span class="link-icon">⬇️</span> PDF Download</a></li>
+            </ul>
+        </div>
+
+        <!-- SUPPORT -->
+        <div class="footer-col">
+            <h3>Support</h3>
+            <ul>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('help')"><span class="link-icon">❓</span> Help Center</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('privacy')"><span class="link-icon">🔒</span> Privacy Policy</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('terms')"><span class="link-icon">📋</span> Terms of Service</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('cookies')"><span class="link-icon">🍪</span> Cookie Policy</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('contact')"><span class="link-icon">💬</span> Contact Us</a></li>
+            </ul>
+        </div>
+
+        <!-- CONTACT -->
+        <div class="footer-col">
+            <h3>Contact</h3>
+            <div class="footer-contact-item">
+                <div class="contact-icon">📞</div>
+                <span>+91-1234567890</span>
+            </div>
+            <div class="footer-contact-item">
+                <div class="contact-icon">✉️</div>
+                <a href="/cdn-cgi/l/email-protection#17647a766563746157707a767e7b3974787a"><span class="__cf_email__" data-cfemail="c7b4aaa6b5b3a4b187a0aaa6aeabe9a4a8aa">[email&#160;protected]</span></a>
+            </div>
+            <div class="footer-contact-item">
+                <div class="contact-icon">📍</div>
+                <span>Chennai, Tamil Nadu, India</span>
+            </div>
+            <div class="footer-contact-item">
+                <div class="contact-icon">🕐</div>
+                <span>Mon–Fri, 9am–6pm IST</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- BADGE ROW -->
+    <div class="footer-badge-row">
+        <span class="footer-badge"><span class="badge-dot"></span> Service Active</span>
+        <span class="footer-badge">🤖 AI-Powered</span>
+        <span class="footer-badge">✅ ATS-Friendly</span>
+        <span class="footer-badge">⬇️ Instant PDF</span>
+        <span class="footer-badge">🔒 Secure &amp; Private</span>
+    </div>
+
+    <div class="footer-bottom">
+        <span>© 2026 VetriSmartCV. All rights reserved.</span>
+        <div class="footer-bottom-links">
+            <a href="javascript:void(0)" onclick="openFooterModal('privacy')">Privacy</a>
+            <a href="javascript:void(0)" onclick="openFooterModal('terms')">Terms</a>
+            <a href="javascript:void(0)" onclick="openFooterModal('cookies')">Cookies</a>
+        </div>
+    </div>
+</footer>
+
+<!-- ===================== FOOTER MODALS ===================== -->
+<div id="footerModalOverlay" onclick="closeFooterModal()" style="display:none;position:fixed;inset:0;background:rgba(10,8,30,0.65);backdrop-filter:blur(4px);z-index:10000;"></div>
+<div id="footerModalBox" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;width:min(680px,93vw);max-height:88vh;background:#fff;border-radius:24px;box-shadow:0 32px 80px rgba(0,0,0,0.25);overflow:hidden;flex-direction:column;">
+    <div id="footerModalHeader" style="padding:24px 28px 20px;border-bottom:1px solid #f0f0f5;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div id="footerModalIcon" style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#6c3fc9,#a855f7);display:flex;align-items:center;justify-content:center;font-size:18px;"></div>
+            <h2 id="footerModalTitle" style="margin:0;font-size:1.25rem;font-weight:800;color:#1a1a2e;"></h2>
+        </div>
+        <button onclick="closeFooterModal()" style="background:none;border:none;cursor:pointer;width:36px;height:36px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:18px;color:#6b7280;transition:background 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">✕</button>
+    </div>
+    <div id="footerModalContent" style="padding:28px;overflow-y:auto;flex:1;font-size:14px;line-height:1.75;color:#374151;"></div>
+</div>
+
+<style>
+.social-instagram:hover { background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888) !important; border-color: transparent !important; }
+.social-linkedin:hover   { background: #0077b5 !important; border-color: transparent !important; }
+.social-twitter:hover    { background: #000 !important; border-color: transparent !important; }
+.social-youtube:hover    { background: #ff0000 !important; border-color: transparent !important; }
+.social-github:hover     { background: #333 !important; border-color: transparent !important; }
+.footer-modal-section    { margin-bottom: 22px; }
+.footer-modal-section h4 { font-size: 15px; font-weight: 700; color: #1a1a2e; margin: 0 0 8px; }
+.footer-modal-section p  { margin: 0 0 8px; }
+.footer-modal-section ul { margin: 6px 0 0 18px; padding: 0; }
+.footer-modal-section ul li { margin-bottom: 5px; }
+.contact-form-grid    { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.contact-form-input   { padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; width: 100%; box-sizing: border-box; transition: border 0.2s; }
+.contact-form-input:focus { border-color: #7c3aed; }
+.contact-form-textarea { padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; width: 100%; box-sizing: border-box; resize: vertical; transition: border 0.2s; }
+.contact-form-textarea:focus { border-color: #7c3aed; }
+.faq-item { border: 1px solid #f0f0f5; border-radius: 10px; margin-bottom: 8px; overflow: hidden; cursor: pointer; }
+.faq-q { padding: 12px 16px; font-weight: 600; font-size: 14px; color: #1a1a2e; display: flex; justify-content: space-between; align-items: center; }
+.faq-a { display: none; padding: 0 16px 12px; font-size: 13px; color: #6b7280; line-height: 1.6; }
+.faq-item.open .faq-a { display: block; }
+.faq-item.open .faq-arrow { transform: rotate(180deg); }
+.faq-arrow { transition: transform 0.2s; font-size: 12px; color: #9ca3af; }
+.contact-submit-btn { margin-top: 14px; width: 100%; padding: 12px; background: linear-gradient(135deg,#6c3fc9,#a855f7); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+.contact-submit-btn:hover { opacity: 0.9; }
+</style>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+const footerModalContents = {
+    help: {
+        icon: '❓',
+        title: 'Help Center',
+        html: `
+        <div class="footer-modal-section">
+            <h4>Frequently Asked Questions</h4>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">How do I create my first resume? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Click "Create My Resume" on the homepage, choose a template, then fill in your details step by step. Our AI will guide you through each section — job title, skills, education, and personal info.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">Can I download my resume as PDF? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Yes! On the Review page, click the "Download" button and choose PDF format. Free users get one PDF download. Pro and Premium users get unlimited downloads.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">What does AI Suggestions do? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Our AI analyzes your job title and experience to suggest relevant skills and generate 3 professional profile summary options tailored to your role. Simply click to apply the one you like.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">Is my data safe? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Absolutely. Your resume data is stored securely and never shared with third parties. Only you can access your resumes when logged in.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">How do I upgrade my plan? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Visit the Pricing page from the navigation menu. Choose a plan that suits you and complete the payment. Your account upgrades instantly.</div>
+            </div>
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-q">Can I edit my resume after saving? <span class="faq-arrow">▼</span></div>
+                <div class="faq-a">Yes! All saved resumes appear on your Dashboard. Click "Edit" on any resume card to return to the Review page where you can edit any section, change the template, or update design settings.</div>
+            </div>
+        </div>
+        <div class="footer-modal-section" style="background:#f0f7ff;padding:16px;border-radius:12px;">
+            <h4>Still need help?</h4>
+            <p style="margin:0;">Email us at <a href="mailto:smartcv@gmail.com" style="color:#6c3fc9;font-weight:600;">smartcv@gmail.com</a> or use the <a href="javascript:void(0)" onclick="openFooterModal('contact')" style="color:#6c3fc9;font-weight:600;">Contact Us</a> form and we'll respond within 24 hours.</p>
+        </div>`
+    },
+    privacy: {
+        icon: '🔒',
+        title: 'Privacy Policy',
+        html: `
+        <p style="color:#9ca3af;font-size:12px;margin-bottom:20px;">Last updated: April 2026</p>
+        <div class="footer-modal-section"><h4>1. Information We Collect</h4><p>When you use VetriSmartCV, we collect account information (name, email, hashed password), resume data you enter, optional profile photos, and usage data to improve our service.</p></div>
+        <div class="footer-modal-section"><h4>2. How We Use Your Information</h4><p>To generate and display your resume, save resumes to your dashboard, send account-related emails, and improve AI suggestions and template quality.</p></div>
+        <div class="footer-modal-section"><h4>3. Data Storage &amp; Security</h4><p>All data is stored on secured servers with industry-standard encryption for data in transit (HTTPS) and at rest. Passwords are hashed and never stored in plain text.</p></div>
+        <div class="footer-modal-section"><h4>4. Data Sharing</h4><p>We <strong>never sell or share</strong> your personal data with advertisers or third parties. Your data belongs to you.</p></div>
+        <div class="footer-modal-section"><h4>5. Your Rights</h4><p>You can access, delete, correct, or export your data at any time through your account settings.</p></div>
+        <div class="footer-modal-section"><h4>6. Contact</h4><p>For privacy inquiries, email <a href="mailto:smartcv@gmail.com" style="color:#6c3fc9;font-weight:600;">smartcv@gmail.com</a> with subject "Privacy Request".</p></div>`
+    },
+    terms: {
+        icon: '📋',
+        title: 'Terms of Service',
+        html: `
+        <p style="color:#9ca3af;font-size:12px;margin-bottom:20px;">Effective: April 2026 · By using VetriSmartCV, you agree to these terms.</p>
+        <div class="footer-modal-section"><h4>1. Acceptance of Terms</h4><p>By accessing or using VetriSmartCV, you agree to be bound by these Terms of Service.</p></div>
+        <div class="footer-modal-section"><h4>2. Account Responsibility</h4><p>You are responsible for maintaining the confidentiality of your login credentials and all activities under your account.</p></div>
+        <div class="footer-modal-section"><h4>3. Acceptable Use</h4><p>You agree not to upload false content, attempt to hack or scrape our platform, use the Service for unlawful purposes, or share credentials.</p></div>
+        <div class="footer-modal-section"><h4>4. Content Ownership</h4><p>You retain full ownership of all resume content you create. We make no claim of ownership over your resume data.</p></div>
+        <div class="footer-modal-section"><h4>5. Plans &amp; Payments</h4><p>Free plan users are limited to 1 active resume and 1 PDF download. Pro and Premium plans are billed as described on the Pricing page. All payments are non-refundable except as required by law.</p></div>
+        <div class="footer-modal-section"><h4>6. Limitation of Liability</h4><p>VetriSmartCV is provided "as is." We do not guarantee employment outcomes. Our liability is limited to the amount paid in the preceding 3 months.</p></div>`
+    },
+    cookies: {
+        icon: '🍪',
+        title: 'Cookie Policy',
+        html: `
+        <p style="color:#9ca3af;font-size:12px;margin-bottom:20px;">Last updated: April 2026</p>
+        <div class="footer-modal-section"><h4>What Are Cookies?</h4><p>Cookies are small text files placed on your device to remember your preferences and login status.</p></div>
+        <div class="footer-modal-section"><h4>Cookies We Use</h4><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f9fafb;"><th style="padding:10px 12px;text-align:left;border:1px solid #e5e7eb;font-weight:700;color:#374151;">Cookie</th><th style="padding:10px 12px;text-align:left;border:1px solid #e5e7eb;font-weight:700;color:#374151;">Purpose</th><th style="padding:10px 12px;text-align:left;border:1px solid #e5e7eb;font-weight:700;color:#374151;">Duration</th></tr></thead><tbody><tr><td style="padding:9px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:12px;">JSESSIONID</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">Keeps you logged in</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">Session</td></tr><tr style="background:#fafafa;"><td style="padding:9px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:12px;">resume_draft</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">Saves resume progress</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">7 days</td></tr><tr><td style="padding:9px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:12px;">user_pref</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">Remembers template preference</td><td style="padding:9px 12px;border:1px solid #e5e7eb;">30 days</td></tr></tbody></table></div></div>
+        <div class="footer-modal-section"><h4>No Tracking Cookies</h4><p>We do not use advertising cookies, cross-site tracking, or third-party analytics cookies.</p></div>
+        <div class="footer-modal-section"><h4>Managing Cookies</h4><p>You can disable cookies in your browser settings. Disabling session cookies will log you out.</p></div>`
+    },
+    contact: {
+        icon: '💬',
+        title: 'Contact Us',
+        html: `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;">
+            <div style="background:#f8f5ff;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📧</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Email</div><a href="mailto:smartcv@gmail.com" style="font-size:13px;color:#6c3fc9;text-decoration:none;font-weight:600;">smartcv@gmail.com</a></div>
+            <div style="background:#f0fdf4;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📞</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Phone</div><span style="font-size:13px;color:#374151;font-weight:600;">+91-1234567890</span></div>
+            <div style="background:#fff7ed;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📍</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Location</div><span style="font-size:13px;color:#374151;">Chennai, Tamil Nadu, India</span></div>
+            <div style="background:#f0f9ff;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">🕐</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Hours</div><span style="font-size:13px;color:#374151;">Mon–Fri, 9am–6pm IST</span></div>
+        </div>
+        <div style="border-top:1px solid #f0f0f5;padding-top:20px;">
+            <h4 style="font-size:15px;font-weight:700;color:#1a1a2e;margin:0 0 16px;">Send Us a Message</h4>
+            <div id="contactFormWrap">
+                <div class="contact-form-grid">
+                    <input class="contact-form-input" type="text" id="cf_name" placeholder="Your Name">
+                    <input class="contact-form-input" type="email" id="cf_email" placeholder="Your Email">
+                </div>
+                <input class="contact-form-input" type="text" id="cf_subject" placeholder="Subject" style="margin-bottom:14px;">
+                <textarea class="contact-form-textarea" id="cf_message" rows="4" placeholder="Your message..."></textarea>
+                <button class="contact-submit-btn" onclick="submitContactForm()">📨 Send Message</button>
+            </div>
+            <div id="contactFormSuccess" style="display:none;text-align:center;padding:30px 20px;">
+                <div style="font-size:3rem;margin-bottom:12px;">✅</div>
+                <h4 style="font-size:1.1rem;color:#1a1a2e;margin:0 0 6px;">Message Sent!</h4>
+                <p style="color:#6b7280;margin:0;font-size:14px;">Thank you for reaching out. We'll get back to you within 24 hours.</p>
+            </div>
+        </div>`
+    }
+};
+
+function openFooterModal(type) {
+    const content = footerModalContents[type];
+    if (!content) return;
+    document.getElementById('footerModalIcon').textContent  = content.icon;
+    document.getElementById('footerModalTitle').textContent = content.title;
+    document.getElementById('footerModalContent').innerHTML = content.html;
+    document.getElementById('footerModalOverlay').style.display = 'block';
+    const box = document.getElementById('footerModalBox');
+    box.style.display = 'flex';
+    if (type === 'contact') {
+        const wrap = document.getElementById('contactFormWrap');
+        const succ = document.getElementById('contactFormSuccess');
+        if (wrap) wrap.style.display = 'block';
+        if (succ) succ.style.display = 'none';
+    }
+    box.style.opacity = '0';
+    box.style.transform = 'translate(-50%, -46%)';
+    requestAnimationFrame(() => {
+        box.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+        box.style.opacity = '1';
+        box.style.transform = 'translate(-50%, -50%)';
+    });
+}
+
+function closeFooterModal() {
+    document.getElementById('footerModalOverlay').style.display = 'none';
+    document.getElementById('footerModalBox').style.display     = 'none';
+}
+
+function toggleFaq(el) {
+    el.classList.toggle('open');
+}
+
+function submitContactForm() {
+    const name    = document.getElementById('cf_name')?.value.trim();
+    const email   = document.getElementById('cf_email')?.value.trim();
+    const subject = document.getElementById('cf_subject')?.value.trim();
+    const message = document.getElementById('cf_message')?.value.trim();
+    if (!name || !email || !subject || !message) {
+        alert('Please fill in all fields before sending.');
+        return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('Please enter a valid email address.');
+        return;
+    }
+    document.getElementById('contactFormWrap').style.display    = 'none';
+    document.getElementById('contactFormSuccess').style.display = 'block';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFooterModal(); });
+</script>
+<script src="/js/builder.js"></script>
