@@ -18,33 +18,53 @@ public class UserService {
     /* ---- REGISTER ---- */
     public Map<String, Object> register(String name, String email, String password) {
         Map<String, Object> result = new HashMap<>();
+        String normalizedName = safeTrim(name);
+        String normalizedEmail = normalizeEmail(email);
 
-        if (userRepository.existsByEmail(email)) {
+        if (normalizedName.isBlank() || normalizedEmail.isBlank() || password == null || password.isBlank()) {
+            result.put("success", false);
+            result.put("message", "All fields required.");
+            return result;
+        }
+
+        if (userRepository.existsByEmail(normalizedEmail)) {
             result.put("success", false);
             result.put("message", "Email already registered.");
             return result;
         }
 
-        User user = User.builder()
-                .name(name)
-                .email(email)
-                .password(hashPassword(password))
-                .provider("LOCAL")
-                .plan("FREE")
-                .resumeDownloads(0)
-                .build();
+        try {
+            User user = User.builder()
+                    .name(normalizedName)
+                    .email(normalizedEmail)
+                    .password(hashPassword(password))
+                    .provider("LOCAL")
+                    .plan("FREE")
+                    .resumeDownloads(0)
+                    .build();
 
-        userRepository.save(user);
-        result.put("success", true);
-        result.put("user", safeUser(user));
+            userRepository.save(user);
+            result.put("success", true);
+            result.put("user", safeUser(user));
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "Could not create account. Please try again.");
+        }
         return result;
     }
 
     /* ---- LOGIN ---- */
     public Map<String, Object> login(String email, String password) {
         Map<String, Object> result = new HashMap<>();
+        String normalizedEmail = normalizeEmail(email);
 
-        Optional<User> opt = userRepository.findByEmail(email);
+        if (normalizedEmail.isBlank() || password == null || password.isBlank()) {
+            result.put("success", false);
+            result.put("message", "Email and password are required.");
+            return result;
+        }
+
+        Optional<User> opt = userRepository.findByEmail(normalizedEmail);
         if (opt.isEmpty()) {
             result.put("success", false);
             result.put("message", "No account found with this email.");
@@ -52,6 +72,11 @@ public class UserService {
         }
 
         User user = opt.get();
+        if (!"LOCAL".equalsIgnoreCase(user.getProvider()) && (user.getPassword() == null || user.getPassword().isBlank())) {
+            result.put("success", false);
+            result.put("message", "This account uses " + user.getProvider() + " login. Please sign in with " + user.getProvider() + ".");
+            return result;
+        }
         if (!user.getPassword().equals(hashPassword(password))) {
             result.put("success", false);
             result.put("message", "Incorrect password.");
@@ -67,19 +92,24 @@ public class UserService {
     public User oauthLoginOrRegister(String provider, String providerId, String name, String email) {
         Optional<User> existing = userRepository.findByProviderAndProviderId(provider, providerId);
         if (existing.isPresent()) return existing.get();
+        String normalizedEmail = normalizeEmail(email);
+        String normalizedName = safeTrim(name);
 
         // Check if email already exists
-        Optional<User> byEmail = userRepository.findByEmail(email);
+        Optional<User> byEmail = userRepository.findByEmail(normalizedEmail);
         if (byEmail.isPresent()) {
             User u = byEmail.get();
             u.setProvider(provider);
             u.setProviderId(providerId);
+            if ((u.getName() == null || u.getName().isBlank()) && !normalizedName.isBlank()) {
+                u.setName(normalizedName);
+            }
             return userRepository.save(u);
         }
 
         User user = User.builder()
-                .name(name)
-                .email(email)
+                .name(normalizedName)
+                .email(normalizedEmail)
                 .provider(provider)
                 .providerId(providerId)
                 .plan("FREE")
@@ -133,5 +163,13 @@ public class UserService {
         } catch (Exception e) {
             throw new RuntimeException("Hash error", e);
         }
+    }
+
+    private String normalizeEmail(String email) {
+        return safeTrim(email).toLowerCase(Locale.ROOT);
+    }
+
+    private String safeTrim(String value) {
+        return value == null ? "" : value.trim();
     }
 }
