@@ -1,0 +1,8 @@
+target
+.git
+.github
+.vscode
+*.log
+README.md
+render.yaml
+RENDER_DEPLOY.md
