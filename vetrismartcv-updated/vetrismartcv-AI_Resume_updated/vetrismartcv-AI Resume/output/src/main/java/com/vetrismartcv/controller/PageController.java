@@ -28,29 +28,41 @@ public class PageController {
 
     /**
      * Inject session user info into every page model.
-     * Always re-reads the plan fresh from the DB so that upgrades
-     * are reflected immediately without requiring a new login.
+     * Re-reads the plan from the DB so upgrades are reflected quickly.
+     * Falls back safely if the session is stale or the DB read fails.
      */
     private void addSessionToModel(Model model, HttpSession session) {
-        Long userId  = (Long)   session.getAttribute("userId");
-        String name  = (String) session.getAttribute("userName");
+        Long userId = (Long) session.getAttribute("userId");
+        String name = (String) session.getAttribute("userName");
         boolean loggedIn = (userId != null);
 
         String plan = "FREE";
         if (loggedIn) {
-            // Always fetch fresh plan from DB — avoids stale session after upgrade
-            plan = userService.getById(userId)
-                       .map(u -> u.getPlan() != null ? u.getPlan().toUpperCase() : "FREE")
-                       .orElse("FREE");
-            // Keep session in sync
-            session.setAttribute("userPlan", plan);
+            try {
+                plan = userService.getById(userId)
+                        .map(u -> u.getPlan() != null ? u.getPlan().toUpperCase() : "FREE")
+                        .orElse("FREE");
+                session.setAttribute("userPlan", plan);
+            } catch (Exception ex) {
+                session.removeAttribute("userId");
+                session.removeAttribute("userName");
+                session.removeAttribute("userPlan");
+                userId = null;
+                name = null;
+                loggedIn = false;
+                plan = "FREE";
+            }
         }
 
-        model.addAttribute("loggedIn",    loggedIn);
-        model.addAttribute("userName",    loggedIn ? name : "");
-        model.addAttribute("userPlan",    plan);
-        model.addAttribute("userInitial", (loggedIn && name != null && !name.isEmpty())
-                           ? String.valueOf(name.charAt(0)).toUpperCase() : "?");
+        model.addAttribute("loggedIn", loggedIn);
+        model.addAttribute("userName", loggedIn ? name : "");
+        model.addAttribute("userPlan", plan);
+        model.addAttribute(
+                "userInitial",
+                (loggedIn && name != null && !name.isEmpty())
+                        ? String.valueOf(name.charAt(0)).toUpperCase()
+                        : "?"
+        );
     }
 
     @GetMapping("/")
