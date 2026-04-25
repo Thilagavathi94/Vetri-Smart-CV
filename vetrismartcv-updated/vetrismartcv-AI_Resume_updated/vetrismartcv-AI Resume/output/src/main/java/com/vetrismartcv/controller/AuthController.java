@@ -3,6 +3,8 @@ package com.vetrismartcv.controller;
 import com.vetrismartcv.model.User;
 import com.vetrismartcv.service.UserService;
 import jakarta.servlet.http.HttpSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +16,8 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "*")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
     private UserService userService;
@@ -32,15 +36,21 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "All fields required."));
         }
 
-        Map<String, Object> result = userService.register(name, email, password);
-        if (Boolean.TRUE.equals(result.get("success"))) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> userMap = (Map<String, Object>) result.get("user");
-            session.setAttribute("userId", userMap.get("id"));
-            session.setAttribute("userName", userMap.get("name"));
-            session.setAttribute("userPlan", userMap.get("plan"));
+        try {
+            Map<String, Object> result = userService.register(name, email, password);
+            if (Boolean.TRUE.equals(result.get("success"))) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> userMap = (Map<String, Object>) result.get("user");
+                session.setAttribute("userId", userMap.get("id"));
+                session.setAttribute("userName", userMap.get("name"));
+                session.setAttribute("userPlan", userMap.get("plan"));
+            }
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Registration request failed for email {}", email, e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("success", false, "message", "Server error while creating account. Please try again."));
         }
-        return ResponseEntity.ok(result);
     }
 
     /* ---- POST /api/auth/login ---- */
@@ -52,15 +62,21 @@ public class AuthController {
         String email = body.get("email");
         String password = body.get("password");
 
-        Map<String, Object> result = userService.login(email, password);
-        if (Boolean.TRUE.equals(result.get("success"))) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> userMap = (Map<String, Object>) result.get("user");
-            session.setAttribute("userId", userMap.get("id"));
-            session.setAttribute("userName", userMap.get("name"));
-            session.setAttribute("userPlan", userMap.get("plan"));
+        try {
+            Map<String, Object> result = userService.login(email, password);
+            if (Boolean.TRUE.equals(result.get("success"))) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> userMap = (Map<String, Object>) result.get("user");
+                session.setAttribute("userId", userMap.get("id"));
+                session.setAttribute("userName", userMap.get("name"));
+                session.setAttribute("userPlan", userMap.get("plan"));
+            }
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Login request failed for email {}", email, e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("success", false, "message", "Server error while signing in. Please try again."));
         }
-        return ResponseEntity.ok(result);
     }
 
     /* ---- POST /api/auth/logout ---- */
@@ -102,15 +118,21 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "OAuth data missing."));
         }
 
-        User user = userService.oauthLoginOrRegister(provider, providerId, name, email);
-        session.setAttribute("userId", user.getId());
-        session.setAttribute("userName", user.getName());
-        session.setAttribute("userPlan", user.getPlan());
+        try {
+            User user = userService.oauthLoginOrRegister(provider, providerId, name, email);
+            session.setAttribute("userId", user.getId());
+            session.setAttribute("userName", user.getName());
+            session.setAttribute("userPlan", user.getPlan());
 
-        Map<String, Object> resp = new HashMap<>();
-        resp.put("success", true);
-        resp.put("user", userService.safeUser(user));
-        return ResponseEntity.ok(resp);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("success", true);
+            resp.put("user", userService.safeUser(user));
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            log.error("OAuth request failed for provider {} and email {}", provider, email, e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("success", false, "message", "Server error while signing in with " + provider + "."));
+        }
     }
 
     /* ---- POST /api/auth/upgrade ---- */

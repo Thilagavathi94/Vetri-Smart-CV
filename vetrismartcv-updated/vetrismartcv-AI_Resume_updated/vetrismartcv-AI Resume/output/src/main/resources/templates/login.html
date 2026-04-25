@@ -7,23 +7,24 @@
     <link rel="stylesheet" href="/css/style.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
             background: #f0eefa;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: "Segoe UI", sans-serif;
         }
 
-        /* ── NAVBAR ── */
         .auth-nav {
             background: linear-gradient(135deg, #6c3fc9, #a855f7);
             padding: 14px 50px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 16px rgba(108,63,201,0.18);
+            box-shadow: 0 2px 16px rgba(108, 63, 201, 0.18);
         }
+
         .auth-nav .logo-text {
             color: #fff;
             font-size: 1.3rem;
@@ -31,8 +32,9 @@
             text-decoration: none;
             letter-spacing: -0.3px;
         }
+
         .auth-nav a.home-link {
-            color: rgba(255,255,255,0.88);
+            color: rgba(255, 255, 255, 0.88);
             font-size: 14px;
             text-decoration: none;
             display: flex;
@@ -40,15 +42,15 @@
             gap: 6px;
             padding: 7px 14px;
             border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.3);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             transition: all 0.2s;
         }
+
         .auth-nav a.home-link:hover {
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.15);
             color: #fff;
         }
 
-        /* ── CENTER ── */
         .auth-page {
             flex: 1;
             display: flex;
@@ -61,14 +63,13 @@
             display: flex;
             background: #fff;
             border-radius: 24px;
-            box-shadow: 0 12px 48px rgba(108,63,201,0.14);
+            box-shadow: 0 12px 48px rgba(108, 63, 201, 0.14);
             overflow: hidden;
             width: 100%;
             max-width: 840px;
             min-height: 520px;
         }
 
-        /* ── FORM SIDE ── */
         .auth-form-side {
             flex: 1;
             padding: 48px 44px;
@@ -90,11 +91,11 @@
             margin-bottom: 28px;
         }
 
-        /* ── FIELDS ── */
         .form-field {
             margin-bottom: 16px;
             position: relative;
         }
+
         .form-field label {
             display: block;
             font-size: 13px;
@@ -102,6 +103,7 @@
             color: #374151;
             margin-bottom: 6px;
         }
+
         .form-field input {
             width: 100%;
             padding: 12px 16px;
@@ -111,23 +113,25 @@
             outline: none;
             background: #f9fafb;
             transition: border-color 0.2s, background 0.2s;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: "Segoe UI", sans-serif;
         }
+
         .form-field input:focus {
             border-color: #7c3aed;
             background: #fff;
-            box-shadow: 0 0 0 3px rgba(124,58,237,0.08);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
         }
+
         .toggle-pw {
             position: absolute;
             right: 14px;
             top: 38px;
             cursor: pointer;
-            font-size: 17px;
-            color: #9ca3af;
+            font-size: 12px;
+            font-weight: 600;
+            color: #7c3aed;
             user-select: none;
         }
-        .toggle-pw:hover { color: #7c3aed; }
 
         .forgot-link {
             display: block;
@@ -139,9 +143,9 @@
             margin-bottom: 20px;
             font-weight: 600;
         }
+
         .forgot-link:hover { text-decoration: underline; }
 
-        /* ── MAIN BUTTON ── */
         .auth-btn {
             width: 100%;
             padding: 14px;
@@ -154,28 +158,13 @@
             cursor: pointer;
             transition: opacity 0.2s, transform 0.15s;
             margin-bottom: 14px;
-            font-family: 'Segoe UI', sans-serif;
-            position: relative;
-            overflow: hidden;
+            font-family: "Segoe UI", sans-serif;
         }
-        .auth-btn::before {
-            content: "";
-            position: absolute;
-            top: 0; left: -80%;
-            width: 60%; height: 100%;
-            background: linear-gradient(120deg, transparent, rgba(255,255,255,0.25), transparent);
-            transform: skewX(-20deg);
-        }
-        .auth-btn:hover::before { animation: btnShine 0.7s ease; }
-        @keyframes btnShine {
-            0%   { left: -80%; }
-            100% { left: 130%; }
-        }
+
         .auth-btn:hover { opacity: 0.93; transform: translateY(-1px); }
         .auth-btn:active { transform: translateY(0); }
         .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-        /* ── DIVIDER ── */
         .auth-divider {
             display: flex;
             align-items: center;
@@ -184,6 +173,7 @@
             font-size: 13px;
             margin: 4px 0 14px;
         }
+
         .auth-divider::before,
         .auth-divider::after {
             content: "";
@@ -192,12 +182,12 @@
             background: #e5e7eb;
         }
 
-        /* ── OAUTH ── */
         .oauth-row {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
         }
+
         .oauth-btn {
             flex: 1;
             padding: 11px;
@@ -213,52 +203,53 @@
             justify-content: center;
             gap: 8px;
             transition: background 0.2s, border-color 0.2s, transform 0.15s;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: "Segoe UI", sans-serif;
         }
+
         .oauth-btn:hover {
             background: #faf5ff;
             border-color: #7c3aed;
             transform: translateY(-1px);
         }
 
-        /* ── SWITCH LINK ── */
         .switch-link {
             text-align: center;
             font-size: 13px;
             color: #6b7280;
             margin-top: 2px;
         }
+
         .switch-link a {
             color: #7c3aed;
             font-weight: 600;
             text-decoration: none;
             cursor: pointer;
         }
+
         .switch-link a:hover { text-decoration: underline; }
 
-        /* ── MESSAGES ── */
-        .error-msg {
-            color: #ef4444;
-            font-size: 13px;
-            margin-top: 6px;
-            display: none;
-            background: #fef2f2;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border-left: 3px solid #ef4444;
-        }
+        .error-msg,
         .success-msg {
-            color: #16a34a;
             font-size: 13px;
             margin-top: 6px;
             display: none;
-            background: #f0fdf4;
             padding: 8px 12px;
             border-radius: 8px;
-            border-left: 3px solid #16a34a;
+            border-left: 3px solid;
         }
 
-        /* ── DECO SIDE ── */
+        .error-msg {
+            color: #ef4444;
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+
+        .success-msg {
+            color: #16a34a;
+            background: #f0fdf4;
+            border-left-color: #16a34a;
+        }
+
         .auth-deco-side {
             width: 340px;
             flex-shrink: 0;
@@ -272,15 +263,17 @@
         }
 
         .deco-orbs { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+
         .deco-orb {
             position: absolute;
             border-radius: 50%;
-            background: rgba(255,255,255,0.10);
+            background: rgba(255, 255, 255, 0.10);
         }
+
         .deco-orb:nth-child(1) { width: 220px; height: 220px; top: -70px; right: -70px; }
         .deco-orb:nth-child(2) { width: 130px; height: 130px; bottom: 30px; left: -40px; }
-        .deco-orb:nth-child(3) { width: 90px;  height: 90px;  top: 42%; right: 18px; }
-        .deco-orb:nth-child(4) { width: 60px;  height: 60px;  top: 20%; left: 20px; background: rgba(255,255,255,0.07); }
+        .deco-orb:nth-child(3) { width: 90px; height: 90px; top: 42%; right: 18px; }
+        .deco-orb:nth-child(4) { width: 60px; height: 60px; top: 20%; left: 20px; background: rgba(255, 255, 255, 0.07); }
 
         .deco-content {
             text-align: center;
@@ -292,14 +285,15 @@
         .deco-logo-icon {
             width: 60px;
             height: 60px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: 20px;
+            font-weight: 800;
             margin: 0 auto 20px;
-            border: 1.5px solid rgba(255,255,255,0.3);
+            border: 1.5px solid rgba(255, 255, 255, 0.3);
         }
 
         .deco-content h3 {
@@ -308,6 +302,7 @@
             margin-bottom: 10px;
             line-height: 1.3;
         }
+
         .deco-content > p {
             font-size: 13.5px;
             opacity: 0.82;
@@ -316,6 +311,7 @@
         }
 
         .deco-features { text-align: left; }
+
         .deco-feature {
             display: flex;
             align-items: center;
@@ -324,20 +320,21 @@
             margin-bottom: 12px;
             opacity: 0.92;
         }
+
         .deco-feature-icon {
             width: 30px;
             height: 30px;
             border-radius: 8px;
-            background: rgba(255,255,255,0.18);
+            background: rgba(255, 255, 255, 0.18);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 15px;
+            font-size: 12px;
+            font-weight: 700;
             flex-shrink: 0;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        /* ── FOOTER ── */
         .auth-page-footer {
             text-align: center;
             padding: 16px;
@@ -345,16 +342,15 @@
             font-size: 12px;
         }
 
-        /* ── FORM SLIDE ANIMATION ── */
         .form-panel {
             animation: fadeSlideIn 0.28s ease;
         }
+
         @keyframes fadeSlideIn {
             from { opacity: 0; transform: translateY(10px); }
-            to   { opacity: 1; transform: translateY(0); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* ── RESPONSIVE ── */
         @media (max-width: 700px) {
             .auth-deco-side { display: none; }
             .auth-form-side { padding: 32px 24px; }
@@ -363,23 +359,16 @@
     </style>
 </head>
 <body>
-
-<!-- NAVBAR -->
 <nav class="auth-nav">
     <a href="/" class="logo-text">VetriSmartCV</a>
-    <a href="/" class="home-link">← Back to Home</a>
+    <a href="/" class="home-link">&larr; Back to Home</a>
 </nav>
 
-<!-- AUTH PAGE -->
 <div class="auth-page">
     <div class="auth-card">
-
-        <!-- FORM SIDE -->
         <div class="auth-form-side">
-
-            <!-- LOGIN FORM -->
             <div id="loginForm" class="form-panel">
-                <h2>Welcome Back 👋</h2>
+                <h2>Welcome Back</h2>
                 <p class="auth-sub">Sign in to continue building your resume</p>
 
                 <div class="form-field">
@@ -389,7 +378,7 @@
                 <div class="form-field">
                     <label>Password</label>
                     <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password">
-                    <span class="toggle-pw" onclick="togglePw('loginPassword', this)">🙈</span>
+                    <span class="toggle-pw" onclick="togglePw('loginPassword', this)">Show</span>
                 </div>
                 <a href="#" class="forgot-link">Forgot Password?</a>
 
@@ -410,9 +399,8 @@
                 <div class="switch-link">Don't have an account? <a onclick="switchToSignup()">Sign up for free</a></div>
             </div>
 
-            <!-- SIGNUP FORM -->
             <div id="signupForm" style="display:none;">
-                <h2>Create Account ✨</h2>
+                <h2>Create Account</h2>
                 <p class="auth-sub">Join thousands of job seekers building better resumes</p>
 
                 <div class="form-field">
@@ -426,7 +414,7 @@
                 <div class="form-field">
                     <label>Password</label>
                     <input type="password" id="signupPassword" placeholder="Min. 6 characters" autocomplete="new-password">
-                    <span class="toggle-pw" onclick="togglePw('signupPassword', this)">🙈</span>
+                    <span class="toggle-pw" onclick="togglePw('signupPassword', this)">Show</span>
                 </div>
 
                 <button class="auth-btn" id="signupBtn" onclick="doSignup()">Create Account</button>
@@ -446,10 +434,8 @@
                 </div>
                 <div class="switch-link">Already have an account? <a onclick="switchToLogin()">Log In</a></div>
             </div>
-
         </div>
 
-        <!-- DECO SIDE -->
         <div class="auth-deco-side">
             <div class="deco-orbs">
                 <div class="deco-orb"></div>
@@ -458,58 +444,54 @@
                 <div class="deco-orb"></div>
             </div>
             <div class="deco-content">
-                <div class="deco-logo-icon">📄</div>
+                <div class="deco-logo-icon">CV</div>
                 <h3>Build Your Dream Resume</h3>
                 <p>AI-powered resume builder trusted by thousands of job seekers worldwide.</p>
                 <div class="deco-features">
                     <div class="deco-feature">
-                        <div class="deco-feature-icon">✨</div>
+                        <div class="deco-feature-icon">AI</div>
                         AI-generated summaries
                     </div>
                     <div class="deco-feature">
-                        <div class="deco-feature-icon">📄</div>
+                        <div class="deco-feature-icon">CV</div>
                         Professional templates
                     </div>
                     <div class="deco-feature">
-                        <div class="deco-feature-icon">⬇</div>
-                        PDF & Word download
+                        <div class="deco-feature-icon">DL</div>
+                        PDF and Word download
                     </div>
                     <div class="deco-feature">
-                        <div class="deco-feature-icon">📊</div>
+                        <div class="deco-feature-icon">ATS</div>
                         ATS-optimized formats
                     </div>
                     <div class="deco-feature">
-                        <div class="deco-feature-icon">🔒</div>
-                        Secure & private
+                        <div class="deco-feature-icon">OK</div>
+                        Secure and private
                     </div>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
-<div class="auth-page-footer">© 2026 VetriSmartCV. All rights reserved.</div>
+<div class="auth-page-footer">&copy; 2026 VetriSmartCV. All rights reserved.</div>
 
-<!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <script th:inline="javascript">
-// ── OAUTH CONFIG ──
-const GOOGLE_CLIENT_ID      = /*[[${googleClientId}]]*/ '';
-const LINKEDIN_CLIENT_ID    = /*[[${linkedinClientId}]]*/ '';
+const GOOGLE_CLIENT_ID = /*[[${googleClientId}]]*/ '';
+const LINKEDIN_CLIENT_ID = /*[[${linkedinClientId}]]*/ '';
 const LINKEDIN_REDIRECT_URI = window.location.origin + '/oauth/linkedin/callback';
 </script>
 
 <div id="googleBtnTarget" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:#fff;padding:24px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.18);"></div>
 
 <script>
-// ── CHECK LINKEDIN CALLBACK ──
 (function checkLinkedInCallback() {
     const params = new URLSearchParams(window.location.search);
-    const code   = params.get('code');
-    const state  = params.get('state');
-    const error  = params.get('error');
+    const code = params.get('code');
+    const state = params.get('state');
+    const error = params.get('error');
 
     if (error) {
         showOAuthError('LinkedIn sign-in was cancelled or failed.');
@@ -521,8 +503,8 @@ const LINKEDIN_REDIRECT_URI = window.location.origin + '/oauth/linkedin/callback
         sessionStorage.removeItem('li_state');
         history.replaceState({}, '', window.location.pathname);
         fetch('/oauth/linkedin/callback?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state))
-            .then(r => r.json())
-            .then(data => {
+            .then(readApiResponse)
+            .then((data) => {
                 if (data.success) {
                     const redirect = new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
                     window.location.href = redirect;
@@ -534,133 +516,166 @@ const LINKEDIN_REDIRECT_URI = window.location.origin + '/oauth/linkedin/callback
     }
 })();
 
-// ── SWITCH FORMS ──
 function switchToSignup() {
-    document.getElementById('loginForm').style.display  = 'none';
-    const sf = document.getElementById('signupForm');
-    sf.style.display = 'block';
-    sf.classList.remove('form-panel');
-    void sf.offsetWidth; // reflow
-    sf.classList.add('form-panel');
+    document.getElementById('loginForm').style.display = 'none';
+    const signupForm = document.getElementById('signupForm');
+    signupForm.style.display = 'block';
+    signupForm.classList.remove('form-panel');
+    void signupForm.offsetWidth;
+    signupForm.classList.add('form-panel');
     history.replaceState(null, '', '/register');
 }
 
 function switchToLogin() {
     document.getElementById('signupForm').style.display = 'none';
-    const lf = document.getElementById('loginForm');
-    lf.style.display = 'block';
-    lf.classList.remove('form-panel');
-    void lf.offsetWidth;
-    lf.classList.add('form-panel');
+    const loginForm = document.getElementById('loginForm');
+    loginForm.style.display = 'block';
+    loginForm.classList.remove('form-panel');
+    void loginForm.offsetWidth;
+    loginForm.classList.add('form-panel');
     history.replaceState(null, '', '/login');
 }
 
-// ── AUTO-SWITCH based on URL ──
-const _path = window.location.pathname;
-if (_path === '/signup' || _path === '/register') switchToSignup();
-
-// ── TOGGLE PASSWORD ──
-function togglePw(id, icon) {
-    const input = document.getElementById(id);
-    if (input.type === 'password') { input.type = 'text';     icon.textContent = '👁'; }
-    else                           { input.type = 'password'; icon.textContent = '🙈'; }
+const currentPath = window.location.pathname;
+if (currentPath === '/signup' || currentPath === '/register') {
+    switchToSignup();
 }
 
-// ── LOGIN ──
-async function doLogin() {
-    const email    = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const errEl    = document.getElementById('loginError');
-    const btn      = document.getElementById('loginBtn');
+function togglePw(id, toggle) {
+    const input = document.getElementById(id);
+    if (input.type === 'password') {
+        input.type = 'text';
+        toggle.textContent = 'Hide';
+    } else {
+        input.type = 'password';
+        toggle.textContent = 'Show';
+    }
+}
 
-    errEl.style.display = 'none';
+async function readApiResponse(response) {
+    const raw = await response.text();
+    if (!raw) {
+        return {
+            success: response.ok,
+            message: response.ok ? '' : 'Server returned an empty response.'
+        };
+    }
+
+    try {
+        const data = JSON.parse(raw);
+        return {
+            ...data,
+            success: typeof data.success === 'boolean' ? data.success : response.ok,
+            message: typeof data.message === 'string' ? data.message : ''
+        };
+    } catch {
+        return {
+            success: false,
+            message: raw.length > 200 ? 'Server error. Please try again.' : raw
+        };
+    }
+}
+
+async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorElement = document.getElementById('loginError');
+    const button = document.getElementById('loginBtn');
+
+    errorElement.style.display = 'none';
     if (!email || !password) {
-        errEl.textContent = 'Please fill in all fields.';
-        errEl.style.display = 'block';
+        errorElement.textContent = 'Please fill in all fields.';
+        errorElement.style.display = 'block';
         return;
     }
 
-    btn.disabled = true;
-    btn.textContent = 'Signing in...';
+    button.disabled = true;
+    button.textContent = 'Signing in...';
+
     try {
-        const res  = await fetch('/api/auth/login', {
+        const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
-        const data = await res.json();
+        const data = await readApiResponse(response);
         if (data.success) {
             const redirect = new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
             window.location.href = redirect;
-        } else {
-            errEl.textContent = data.message || 'Login failed. Please try again.';
-            errEl.style.display = 'block';
+            return;
         }
+
+        errorElement.textContent = data.message || 'Login failed. Please try again.';
+        errorElement.style.display = 'block';
     } catch {
-        errEl.textContent = 'Network error. Please try again.';
-        errEl.style.display = 'block';
+        errorElement.textContent = 'Network error. Please try again.';
+        errorElement.style.display = 'block';
     } finally {
-        btn.disabled = false;
-        btn.textContent = 'Log In';
+        button.disabled = false;
+        button.textContent = 'Log In';
     }
 }
 
-// ── SIGNUP ──
 async function doSignup() {
-    const name     = document.getElementById('signupName').value.trim();
-    const email    = document.getElementById('signupEmail').value.trim();
+    const name = document.getElementById('signupName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
     const password = document.getElementById('signupPassword').value;
-    const errEl    = document.getElementById('signupError');
-    const sucEl    = document.getElementById('signupSuccess');
-    const btn      = document.getElementById('signupBtn');
+    const errorElement = document.getElementById('signupError');
+    const successElement = document.getElementById('signupSuccess');
+    const button = document.getElementById('signupBtn');
 
-    errEl.style.display = 'none';
-    sucEl.style.display = 'none';
+    errorElement.style.display = 'none';
+    successElement.style.display = 'none';
 
     if (!name || !email || !password) {
-        errEl.textContent = 'All fields are required.';
-        errEl.style.display = 'block';
-        return;
-    }
-    if (password.length < 6) {
-        errEl.textContent = 'Password must be at least 6 characters.';
-        errEl.style.display = 'block';
+        errorElement.textContent = 'All fields are required.';
+        errorElement.style.display = 'block';
         return;
     }
 
-    btn.disabled = true;
-    btn.textContent = 'Creating account...';
+    if (password.length < 6) {
+        errorElement.textContent = 'Password must be at least 6 characters.';
+        errorElement.style.display = 'block';
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'Creating account...';
+
     try {
-        const res  = await fetch('/api/auth/register', {
+        const response = await fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, password })
         });
-        const data = await res.json();
+        const data = await readApiResponse(response);
         if (data.success) {
-            sucEl.textContent = '✓ Account created! Redirecting...';
-            sucEl.style.display = 'block';
+            successElement.textContent = 'Account created. Redirecting...';
+            successElement.style.display = 'block';
             setTimeout(() => {
                 const redirect = new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
                 window.location.href = redirect;
             }, 1200);
-        } else {
-            errEl.textContent = data.message || 'Registration failed.';
-            errEl.style.display = 'block';
+            return;
         }
+
+        errorElement.textContent = data.message || 'Registration failed.';
+        errorElement.style.display = 'block';
     } catch {
-        errEl.textContent = 'Network error. Please try again.';
-        errEl.style.display = 'block';
+        errorElement.textContent = 'Network error. Please try again.';
+        errorElement.style.display = 'block';
     } finally {
-        btn.disabled = false;
-        btn.textContent = 'Create Account';
+        button.disabled = false;
+        button.textContent = 'Create Account';
     }
 }
 
-// ── GOOGLE OAUTH ──
 function oauthLogin(provider) {
-    if (provider === 'GOOGLE')   initGoogleLogin();
-    else if (provider === 'LINKEDIN') initLinkedInLogin();
+    if (provider === 'GOOGLE') {
+        initGoogleLogin();
+    } else if (provider === 'LINKEDIN') {
+        initLinkedInLogin();
+    }
 }
 
 function initGoogleLogin() {
@@ -668,16 +683,19 @@ function initGoogleLogin() {
         showOAuthError('Google sign-in is not configured for this environment.');
         return;
     }
+
     if (typeof google === 'undefined' || !google.accounts) {
         showOAuthError('Google sign-in library not loaded. Check your internet connection.');
         return;
     }
+
     google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleCredential,
         auto_select: false,
         cancel_on_tap_outside: true
     });
+
     google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
             google.accounts.id.renderButton(
@@ -693,7 +711,7 @@ async function handleGoogleCredential(response) {
     try {
         const payload = JSON.parse(atob(response.credential.split('.')[1]));
         await sendOAuthToBackend('GOOGLE', payload.sub, payload.name || payload.email, payload.email);
-    } catch (e) {
+    } catch {
         showOAuthError('Google sign-in failed. Please try again.');
     }
 }
@@ -703,6 +721,7 @@ function initLinkedInLogin() {
         showOAuthError('LinkedIn sign-in is not configured for this environment.');
         return;
     }
+
     const state = Math.random().toString(36).substring(2);
     sessionStorage.setItem('li_state', state);
     const params = new URLSearchParams({
@@ -717,36 +736,39 @@ function initLinkedInLogin() {
 
 async function sendOAuthToBackend(provider, providerId, name, email) {
     try {
-        const res  = await fetch('/api/auth/oauth', {
+        const response = await fetch('/api/auth/oauth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ provider, providerId, name, email })
         });
-        const data = await res.json();
+        const data = await readApiResponse(response);
         if (data.success) {
             const redirect = new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
             window.location.href = redirect;
-        } else {
-            showOAuthError(data.message || `${provider} login failed.`);
+            return;
         }
-    } catch (e) {
+
+        showOAuthError(data.message || `${provider} login failed.`);
+    } catch {
         showOAuthError('Network error. Please try again.');
     }
 }
 
-function showOAuthError(msg) {
+function showOAuthError(message) {
     const loginVisible = document.getElementById('loginForm').style.display !== 'none';
-    const errId = loginVisible ? 'loginError' : 'signupError';
-    const el = document.getElementById(errId);
-    el.textContent = msg;
-    el.style.display = 'block';
+    const targetId = loginVisible ? 'loginError' : 'signupError';
+    const target = document.getElementById(targetId);
+    target.textContent = message;
+    target.style.display = 'block';
 }
 
-// ── ENTER KEY ──
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        if (document.getElementById('loginForm').style.display !== 'none') doLogin();
-        else doSignup();
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+        if (document.getElementById('loginForm').style.display !== 'none') {
+            doLogin();
+        } else {
+            doSignup();
+        }
     }
 });
 </script>
