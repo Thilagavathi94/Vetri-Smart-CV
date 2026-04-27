@@ -1447,17 +1447,186 @@ body {
     .footer-bottom    { padding: 16px 30px 24px; }
 }
 
+@media (max-width: 1024px) {
+    .navbar {
+        padding: 16px 28px;
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+    .nav-links {
+        position: static;
+        left: auto;
+        transform: none;
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .nav-actions {
+        margin-left: 0;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .job-container {
+        gap: 40px;
+    }
+    .job-left img {
+        width: min(100%, 360px);
+    }
+    .job-item,
+    .job-item:nth-child(1),
+    .job-item:nth-child(2),
+    .job-item:nth-child(3),
+    .job-item:nth-child(4),
+    .job-item:nth-child(5) {
+        width: min(100%, 440px);
+    }
+    .cta-container {
+        width: calc(100% - 40px);
+        padding: 32px;
+    }
+    .cta-content {
+        margin-left: 0;
+    }
+}
+
 @media (max-width: 768px) {
-    .navbar { padding: 20px; }
-    .nav-links { gap: 15px; }
+    .navbar {
+        padding: 14px 18px;
+        align-items: flex-start;
+    }
+    .logo img {
+        height: 38px;
+    }
+    .nav-links {
+        justify-content: flex-start;
+        gap: 8px;
+    }
+    .nav-links li a,
+    .nav-links a {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    .nav-actions {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+    .nav-login-btn,
+    .btn.orange,
+    .nav-create-btn,
+    .nav-logout-btn {
+        font-size: 13px;
+        padding: 9px 12px;
+    }
+    .hero-content {
+        padding: 36px 16px 44px;
+    }
     .hero h1 { font-size: 28px; }
+    .hero p { font-size: 15px; }
+    .buttons {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+    .buttons a,
+    .buttons .btn,
+    .buttons .cta {
+        width: min(280px, 100%);
+        margin: 0;
+    }
+    .moving-content span {
+        padding: 0 18px;
+        font-size: 13px;
+    }
+    .how-section,
+    .features,
+    .job-section,
+    .testimonial-section,
+    .template-section {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
     .how-container, .feature-row { flex-direction: column; gap: 30px; }
     .job-container { flex-direction: column; gap: 40px; }
+    .testimonial-box {
+        width: min(100%, 340px);
+    }
 }
 
 @media (max-width: 580px) {
+    .navbar {
+        padding: 12px 14px;
+    }
+    .logo {
+        width: 100%;
+    }
+    .nav-links {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .nav-links li {
+        width: 100%;
+    }
+    .nav-links li a,
+    .nav-links a {
+        display: block;
+        width: 100%;
+        text-align: center;
+    }
+    .nav-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .nav-login-wrap,
+    .nav-user-pill,
+    .nav-actions > a,
+    .nav-actions > button {
+        width: 100%;
+    }
+    .nav-login-btn,
+    .btn.orange,
+    .nav-create-btn,
+    .nav-logout-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .nav-dropdown {
+        left: 0;
+        right: 0;
+        width: 100%;
+    }
     .footer-container   { grid-template-columns: 1fr; padding: 0 24px; }
     .footer-bottom      { flex-direction: column; text-align: center; }
     .footer-badge-row   { padding: 14px 24px; }
     .contact-form-grid  { grid-template-columns: 1fr; }
+    .how-title,
+    .feature-title,
+    .job-section h2,
+    .template-section h2 {
+        font-size: 28px;
+    }
+    .job-item {
+        padding: 16px 18px 16px 52px;
+    }
+    .job-item p {
+        font-size: 14px;
+    }
+    .cta-container {
+        width: calc(100% - 24px);
+        padding: 24px 18px;
+        border-radius: 24px;
+    }
+    .cta-content h2 {
+        font-size: 24px;
+    }
+    .cta-btns {
+        flex-direction: column;
+    }
+    .cta-btns a {
+        width: 100%;
+        text-align: center;
+    }
 }

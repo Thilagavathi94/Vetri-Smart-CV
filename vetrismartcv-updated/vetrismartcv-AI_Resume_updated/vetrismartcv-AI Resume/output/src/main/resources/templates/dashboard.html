@@ -43,6 +43,7 @@
         .dash-nav .user-name { color: #fff; font-size: 14px; font-weight: 600; }
         .btn-logout { background: transparent; border: 1.5px solid rgba(255,255,255,0.4); color: #fff; border-radius: 8px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
         .btn-logout:hover { background: rgba(255,255,255,0.1); }
+        .dash-nav-actions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:flex-end; }
 
         /* PAGE */
         .dash-page { max-width: 1100px; margin: 0 auto; padding: 36px 24px 80px; }
@@ -171,10 +172,117 @@
         .upgrade-banner p { margin: 0; font-size: 13px; opacity: 0.9; }
         .btn-upgrade { background: #fff; color: #d97706; border: none; border-radius: 10px; padding: 10px 20px; font-weight: 700; font-size: 14px; cursor: pointer; }
 
-        @media (max-width: 700px) {
-            .dash-stats { grid-template-columns: 1fr 1fr; }
-            .welcome-banner { flex-direction: column; gap: 16px; }
-            .user-details-grid { grid-template-columns: 1fr; }
+        @media (max-width: 1024px) {
+            .dash-nav {
+                padding: 14px 24px;
+                flex-wrap: wrap;
+                gap: 14px;
+            }
+            .dash-nav .nav-links {
+                order: 3;
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 12px 18px;
+            }
+            .dash-nav-actions {
+                margin-left: auto;
+            }
+            .welcome-banner {
+                padding: 24px 28px;
+                gap: 18px;
+            }
+            .dash-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dash-nav {
+                padding: 14px 18px;
+            }
+            .dash-nav .logo-text {
+                font-size: 1.05rem;
+            }
+            .dash-nav .nav-links {
+                gap: 10px;
+            }
+            .dash-nav .nav-links a,
+            .btn-logout,
+            .dash-nav .user-name {
+                font-size: 13px;
+            }
+            .dash-page {
+                padding: 24px 16px 64px;
+            }
+            .welcome-banner {
+                flex-direction: column;
+                align-items: flex-start;
+                text-align: left;
+                padding: 22px 20px;
+            }
+            .welcome-banner h2 {
+                font-size: 1.25rem;
+            }
+            .dash-stats,
+            .user-details-grid {
+                grid-template-columns: 1fr;
+            }
+            .dash-section,
+            .stat-card {
+                padding: 20px 18px;
+            }
+            .dash-section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .upgrade-banner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 14px;
+                padding: 18px 20px;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .dash-nav {
+                align-items: stretch;
+            }
+            .dash-nav .nav-links {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .dash-nav .nav-links a {
+                display: block;
+                text-align: center;
+                width: 100%;
+                padding: 10px 14px;
+                background: rgba(255,255,255,0.10);
+                border-radius: 10px;
+            }
+            .dash-nav-actions {
+                width: 100%;
+                margin-left: 0;
+                justify-content: stretch;
+                flex-direction: column;
+            }
+            .dash-nav .user-pill,
+            .btn-logout,
+            .btn-create-resume,
+            .btn-upgrade,
+            .dash-section-header .rc-btn.primary {
+                width: 100%;
+                justify-content: center;
+                text-align: center;
+            }
+            .resume-card-actions {
+                flex-direction: column;
+            }
+            .rc-btn {
+                width: 100%;
+            }
         }
 
         
@@ -190,7 +298,7 @@
         <li><a href="/template">Templates</a></li>
         <li><a href="/pricing">Pricing</a></li>
     </ul>
-    <div style="display:flex;align-items:center;gap:12px;">
+    <div class="dash-nav-actions">
         <a href="/dashboard" class="user-pill">
             <div class="user-avatar" id="userAvatar" th:text="${userInitial}">?</div>
             <span class="user-name" id="navUserName" th:text="${userName}">User</span>

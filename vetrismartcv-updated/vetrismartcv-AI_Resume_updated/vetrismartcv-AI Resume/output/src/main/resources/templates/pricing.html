@@ -390,10 +390,129 @@
             margin-bottom: 14px;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 1024px) {
+            .navbar {
+                height: auto;
+                padding: 14px 24px;
+                flex-wrap: wrap;
+                gap: 14px;
+                align-items: flex-start;
+            }
+            .nav-links {
+                position: static;
+                left: auto;
+                transform: none;
+                width: 100%;
+                order: 3;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .nav-actions {
+                margin-left: 0;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+            }
             .cards-grid { grid-template-columns: 1fr; max-width: 420px; }
             .footer-inner { grid-template-columns: 1fr 1fr; }
             .cta-img-wrap { display: none; }
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 12px 16px;
+            }
+            .nav-links {
+                justify-content: flex-start;
+            }
+            .nav-links a {
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+            .nav-actions {
+                width: 100%;
+                justify-content: flex-start;
+                gap: 8px;
+            }
+            .pricing-hero {
+                padding: 48px 16px 36px;
+            }
+            .pricing-hero h1 {
+                font-size: 2rem;
+            }
+            .cards-section,
+            .compare-section,
+            .cta-section {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+            .compare-table-wrap {
+                overflow-x: auto;
+            }
+            table {
+                min-width: 720px;
+            }
+            .cta-box {
+                min-height: auto;
+            }
+            .cta-content {
+                padding: 28px 24px;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .nav-links {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .nav-links li,
+            .nav-links a {
+                width: 100%;
+            }
+            .nav-links a {
+                display: block;
+                text-align: center;
+            }
+            .nav-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .nav-login-wrap,
+            .nav-user-pill,
+            .nav-logout-btn,
+            .nav-create-btn {
+                width: 100%;
+            }
+            .nav-login-btn,
+            .nav-logout-btn,
+            .nav-create-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .nav-dropdown {
+                left: 0;
+                right: 0;
+                width: 100%;
+            }
+            .toggle-pill {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .toggle-btn {
+                flex: 1 1 140px;
+            }
+            .pricing-hero h1 {
+                font-size: 1.7rem;
+            }
+            .cta-btns {
+                flex-direction: column;
+            }
+            .cta-btn-white,
+            .cta-btn-orange {
+                width: 100%;
+                text-align: center;
+            }
         }
     </style>
     <script>
