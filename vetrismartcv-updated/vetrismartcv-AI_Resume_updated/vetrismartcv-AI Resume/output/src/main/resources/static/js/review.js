@@ -2531,24 +2531,128 @@ function toggleSection(name, show) {
     activeSections[name] = show;
     renderResume();
 }
+function normalizeSectionKey(name) {
+    return (name || '').toString().trim().toLowerCase();
+}
+function getReviewSectionIds(name) {
+    const key = normalizeSectionKey(name);
+    const map = {
+        profile: ['rv-section-profile'],
+        contact: ['rv-section-contact'],
+        certificates: ['rv-section-certificates'],
+        certifications: ['rv-section-certificates'],
+        experience: ['rv-experience-section', 'rv-section-experience'],
+        education: ['rv-edu-section'],
+        skills: ['rv-section-skills'],
+        projects: ['rv-projects-section'],
+        languages: ['rv-section-languages'],
+        tools: ['rv-section-tools'],
+        awards: ['rv-section-awards'],
+        interests: ['rv-section-interests'],
+        interest: ['rv-section-interests'],
+        portfolio: ['rv-section-portfolio']
+    };
+    if (map[key]) return map[key];
+    return ['rv-section-' + key.replace(/[^a-z0-9]+/gi, '-').toLowerCase()];
+}
 function addCustomSection() {
     const inp = document.getElementById('customSectionName');
     const name = inp ? inp.value.trim() : '';
     if (!name) { showToast('Enter a section name.', 'error'); return; }
+    const builtInSectionMap = {
+        certificates: 'certificates',
+        certifications: 'certificates',
+        languages: 'languages',
+        awards: 'awards',
+        interests: 'interests',
+        interest: 'interests',
+        portfolio: 'portfolio',
+        tools: 'tools'
+    };
+    const normalizedName = normalizeSectionKey(name);
+    const builtInKey = builtInSectionMap[normalizedName];
+    if (builtInKey) {
+        activeSections[builtInKey] = true;
+        // sync the checkbox if it exists
+        const existingCheckbox = document.querySelector(`#addSectionList input[type=checkbox][onchange*="'${builtInKey}'"]`);
+        if (existingCheckbox) existingCheckbox.checked = true;
+        renderResume();
+        if (inp) inp.value = '';
+        showToast('✓ Section added!');
+        closeAllSidePanels();
+        return;
+    }
+    // Custom section
     activeSections[name] = true;
     renderResume();
     if (inp) inp.value = '';
-    showToast('✓ Section added!');
-    // Also add a checkbox for the new custom section so user can toggle it
+    showToast('✓ Section "' + name + '" added!');
+    // Add a checkbox for the new custom section so user can toggle it off
     const list = document.getElementById('addSectionList');
-    if (list && !document.getElementById('sec-check-' + name)) {
+    const checkId = 'sec-check-' + normalizedName;
+    if (list && !document.getElementById(checkId)) {
         const lbl = document.createElement('label');
         lbl.className = 'section-check';
-        lbl.id = 'sec-check-' + name;
-        lbl.innerHTML = `<input type="checkbox" checked onchange="toggleSection('${name}', this.checked)"> ${name}`;
+        lbl.id = checkId;
+        lbl.innerHTML = `<input type="checkbox" checked onchange="toggleSection('${name}', this.checked)"> ${name} <span style="font-size:10px;color:#e57373;cursor:pointer;margin-left:auto;" onclick="deleteExtraSection('${name}')">🗑</span>`;
         list.appendChild(lbl);
     }
     closeAllSidePanels();
+}
+
+// ── Open a modal to edit extra/custom section content ──
+function openExtraSectionEdit(sectionName, contentKey) {
+    const current = resumeData[contentKey] || '';
+    const overlay = document.getElementById('inlineEditOverlay');
+    const titleEl = document.getElementById('editModalTitle');
+    const body    = document.getElementById('editModalBody');
+    if (!overlay || !body) return;
+    if (titleEl) titleEl.textContent = 'Edit: ' + sectionName.charAt(0).toUpperCase() + sectionName.slice(1);
+
+    body.innerHTML = `
+    <div class="ep-wrap" style="padding:0;">
+      <div class="ep-content" id="epContent" style="padding:20px;">
+        <div class="ep-section">
+          <h4 class="ep-section-title">${sectionName.charAt(0).toUpperCase()+sectionName.slice(1)}</h4>
+          <p class="ep-hint">Add any content for this section. Press Enter for new lines.</p>
+          <textarea class="ep-textarea" id="extraSectionTextarea" rows="8" placeholder="Enter content here...">${(current||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+          <div style="display:flex;gap:10px;margin-top:14px;">
+            <button class="ep-save-btn" style="flex:1;" onclick="saveExtraSectionContent('${sectionName}','${contentKey}')">💾 Save</button>
+            <button style="flex:0 0 auto;padding:10px 18px;border:1.5px solid #e57373;background:#fff;color:#e57373;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;" onclick="deleteExtraSection('${sectionName}');closeEditModal();">🗑 Delete Section</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+    overlay.style.display = 'flex';
+    setTimeout(() => { const ta = document.getElementById('extraSectionTextarea'); if (ta) ta.focus(); }, 120);
+}
+
+// ── Save content typed into extra section editor ──
+function saveExtraSectionContent(sectionName, contentKey) {
+    const ta = document.getElementById('extraSectionTextarea');
+    const val = ta ? ta.value.trim() : '';
+    resumeData[contentKey] = val;
+    persistField(contentKey, val);
+    renderResume();
+    closeEditModal();
+    showToast('✓ ' + sectionName + ' saved!');
+}
+
+// ── Delete an extra/custom section ──
+function deleteExtraSection(name) {
+    delete activeSections[name];
+    const normalizedName = normalizeSectionKey(name);
+    const contentKey = 'extra_' + normalizedName.replace(/[^a-z0-9]+/g, '_');
+    delete resumeData[contentKey];
+    // Remove its checkbox from the Add Section panel
+    const checkId = 'sec-check-' + normalizedName;
+    const lbl = document.getElementById(checkId);
+    if (lbl) lbl.remove();
+    // Uncheck built-in toggle if applicable
+    const existing = document.querySelector(`#addSectionList input[type=checkbox][onchange*="'${normalizedName}'"]`);
+    if (existing) existing.checked = false;
+    renderResume();
+    showToast('✓ Section "' + name + '" removed.');
 }
 
 // ============================================================
@@ -2778,12 +2882,13 @@ function finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, s
 
 function cleanEmptyReviewContent(doc, { edu = [], skills = [], projects = [], experience = [] } = {}) {
     if (!doc) return;
-    const hasProfile = !!(resumeData.profileSummary || '').trim();
-    const hasCerts = !!(resumeData.certifications || '').trim();
-    const hasAwards = !!(resumeData.awards || '').trim();
-    const hasLanguages = !!(resumeData.languages || '').trim();
-    const hasInterests = !!(resumeData.interests || '').trim();
-    const hasStandaloneTools = !!(resumeData.tools || '').trim();
+    const isEnabled = (...keys) => keys.some(key => activeSections[normalizeSectionKey(key)] === true);
+    const hasProfile = !!(resumeData.profileSummary || '').trim() || isEnabled('profile');
+    const hasCerts = !!(resumeData.certifications || '').trim() || isEnabled('certificates', 'certifications');
+    const hasAwards = !!(resumeData.awards || '').trim() || isEnabled('awards');
+    const hasLanguages = !!(resumeData.languages || '').trim() || isEnabled('languages');
+    const hasInterests = !!(resumeData.interests || '').trim() || isEnabled('interests', 'interest');
+    const hasStandaloneTools = !!(resumeData.tools || '').trim() || isEnabled('tools');
 
     const sectionData = {
         'profile': hasProfile,
@@ -2791,15 +2896,15 @@ function cleanEmptyReviewContent(doc, { edu = [], skills = [], projects = [], ex
         'professional summary': hasProfile,
         'summary': hasProfile,
         'about me': hasProfile,
-        'experience': experience.length > 0,
-        'work experience': experience.length > 0,
-        'career': experience.length > 0,
-        'career / experience': experience.length > 0,
-        'employment history': experience.length > 0,
-        'education': edu.length > 0,
-        'skills': skills.length > 0,
-        'technical skills': skills.length > 0,
-        'projects': projects.length > 0,
+        'experience': experience.length > 0 || isEnabled('experience'),
+        'work experience': experience.length > 0 || isEnabled('experience'),
+        'career': experience.length > 0 || isEnabled('experience'),
+        'career / experience': experience.length > 0 || isEnabled('experience'),
+        'employment history': experience.length > 0 || isEnabled('experience'),
+        'education': edu.length > 0 || isEnabled('education'),
+        'skills': skills.length > 0 || isEnabled('skills'),
+        'technical skills': skills.length > 0 || isEnabled('skills'),
+        'projects': projects.length > 0 || isEnabled('projects'),
         'certifications': hasCerts,
         'certificates': hasCerts,
         'awards': hasAwards,
@@ -2809,7 +2914,11 @@ function cleanEmptyReviewContent(doc, { edu = [], skills = [], projects = [], ex
         'tools': hasStandaloneTools,
         'tool': hasStandaloneTools,
         'interests': hasInterests,
-        'hobbies': hasInterests
+        'hobbies': hasInterests,
+        'portfolio': isEnabled('portfolio'),
+        'portfolio links': isEnabled('portfolio'),
+        'website': isEnabled('portfolio'),
+        'links': isEnabled('portfolio')
     };
 
     const normalize = (text) => (text || '')
@@ -2820,6 +2929,10 @@ function cleanEmptyReviewContent(doc, { edu = [], skills = [], projects = [], ex
         .replace(/\s+/g, ' ')
         .trim()
         .toLowerCase();
+
+    Object.entries(activeSections).forEach(([name, show]) => {
+        if (show) sectionData[normalize(name)] = true;
+    });
 
     Array.from(doc.querySelectorAll('div,h2,h3,h4')).forEach(heading => {
         if (!heading.isConnected || heading.closest('.rv-stb')) return;
@@ -5827,17 +5940,31 @@ function buildTraditionalTemplate({ resumeData: d, edu, skills, projects, experi
 }
 
 // ============================================================
-// EXTRA SECTIONS (custom)
+// EXTRA SECTIONS (custom / optional)
 // ============================================================
 function buildExtraSections(color, titleStyle = '') {
     let html = '';
+    const builtIn = ['experience','skills','education','projects','profile','contact','summary'];
     Object.entries(activeSections).forEach(([name, show]) => {
         if (!show) return;
+        const key = (name || '').toLowerCase().trim();
+        if (builtIn.includes(key)) return; // skip core sections — they're rendered by template directly
+        const contentKey = 'extra_' + key.replace(/[^a-z0-9]+/g, '_');
+        const savedContent = resumeData[contentKey] || '';
+        const displayContent = savedContent
+            ? `<div style="font-size:11px;color:#444;line-height:1.7;white-space:pre-wrap;">${savedContent}</div>`
+            : `<em style="color:#9ca3af;font-size:11px;">Click ✏ to add content</em>`;
         html += `
-            <div class="section-block" id="rv-section-${name}">
-                <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:${color};border-bottom:2px solid ${color};padding-bottom:3px;margin-bottom:10px;margin-top:16px;${titleStyle}">${name.charAt(0).toUpperCase()+name.slice(1)}</div>
-                <div class="editable-field extra-section-content" ${editBtn('extra_' + name, name, '')}>
-                    <em style="color:#9ca3af;font-size:12px;">Click to add ${name} content</em> <span class="edit-pen">✏</span>
+            <div class="section-block extra-user-section" id="rv-section-${key.replace(/[^a-z0-9]+/g,'-')}" style="position:relative;">
+                <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:${color};border-bottom:2px solid ${color};padding-bottom:3px;margin-bottom:10px;margin-top:16px;${titleStyle};display:flex;align-items:center;justify-content:space-between;">
+                    <span>${name.charAt(0).toUpperCase()+name.slice(1)}</span>
+                    <span style="display:flex;gap:6px;">
+                        <button title="Edit ${name}" style="background:none;border:1px solid ${color};color:${color};border-radius:5px;font-size:10px;cursor:pointer;padding:2px 7px;" onclick="openExtraSectionEdit('${name}','${contentKey}')">✏ Edit</button>
+                        <button title="Delete ${name}" style="background:none;border:1px solid #e57373;color:#e57373;border-radius:5px;font-size:10px;cursor:pointer;padding:2px 7px;" onclick="deleteExtraSection('${name}')">🗑 Delete</button>
+                    </span>
+                </div>
+                <div class="extra-section-content" id="content-${key.replace(/[^a-z0-9]+/g,'-')}" style="cursor:pointer;" onclick="openExtraSectionEdit('${name}','${contentKey}')">
+                    ${displayContent}
                 </div>
             </div>`;
     });
@@ -5846,8 +5973,10 @@ function buildExtraSections(color, titleStyle = '') {
 
 function applyActiveSections() {
     Object.entries(activeSections).forEach(([name, show]) => {
-        const el = document.getElementById('rv-section-' + name);
-        if (el) el.style.display = show ? '' : 'none';
+        getReviewSectionIds(name).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = show ? '' : 'none';
+        });
     });
 }
 
@@ -6277,9 +6406,15 @@ function saveSkillsTab() {
 
 // ── Education entries ──
 function addEduEntry() {
-    try{_epEdu=JSON.parse(resumeData.educationJson||'[]');}catch{_epEdu=[];}
-    _epEdu.push({degree:'',school:'',year:'',cgpa:''});
-    resumeData.educationJson = JSON.stringify(_epEdu);
+    const cards = document.querySelectorAll('#epEduList .ep-card');
+    const current = [];
+    cards.forEach(card => {
+        const inputs = card.querySelectorAll('input');
+        current.push({ degree:inputs[0]?.value||'', school:inputs[1]?.value||'', year:inputs[2]?.value||'', cgpa:inputs[3]?.value||'' });
+    });
+    current.push({degree:'',school:'',year:'',cgpa:''});
+    resumeData.educationJson = JSON.stringify(current);
+    _epEdu = current;
     const content = document.getElementById('epContent');
     if (content) content.innerHTML = buildTabContent('education');
 }
@@ -6305,9 +6440,16 @@ function saveEducationTab() {
 
 // ── Experience entries ──
 function addExpEntry() {
-    try{_epExp=JSON.parse(resumeData.experienceJson||'[]');}catch{_epExp=[];}
-    _epExp.push({jobTitle:'',company:'',startDate:'',endDate:'Present',location:'',description:''});
-    resumeData.experienceJson = JSON.stringify(_epExp);
+    const cards = document.querySelectorAll('#epExpList .ep-card');
+    const current = [];
+    cards.forEach(card => {
+        const inputs = card.querySelectorAll('input');
+        const ta = card.querySelector('textarea');
+        current.push({ jobTitle:inputs[0]?.value||'', company:inputs[1]?.value||'', startDate:inputs[2]?.value||'', endDate:inputs[3]?.value||'Present', location:inputs[4]?.value||'', description:ta?.value||'' });
+    });
+    current.push({jobTitle:'',company:'',startDate:'',endDate:'Present',location:'',description:''});
+    resumeData.experienceJson = JSON.stringify(current);
+    _epExp = current;
     const content = document.getElementById('epContent');
     if (content) content.innerHTML = buildTabContent('experience');
 }
@@ -6341,9 +6483,17 @@ function saveExperienceTab() {
 
 // ── Project entries ──
 function addProjEntry() {
-    try{_epProj=JSON.parse(resumeData.projectsJson||'[]');}catch{_epProj=[];}
-    _epProj.push({title:'',tools:'',year:'',url:'',description:''});
-    resumeData.projectsJson = JSON.stringify(_epProj);
+    // First collect whatever is currently typed in the form so we don't lose it
+    const cards = document.querySelectorAll('#epProjList .ep-card');
+    const current = [];
+    cards.forEach(card => {
+        const inputs = card.querySelectorAll('input');
+        const ta = card.querySelector('textarea');
+        current.push({ title:inputs[0]?.value||'', tools:inputs[1]?.value||'', year:inputs[2]?.value||'', url:inputs[3]?.value||'', description:ta?.value||'' });
+    });
+    current.push({title:'',tools:'',year:'',url:'',description:''});
+    resumeData.projectsJson = JSON.stringify(current);
+    _epProj = current;
     const content = document.getElementById('epContent');
     if (content) content.innerHTML = buildTabContent('projects');
 }
@@ -6358,12 +6508,17 @@ function removeProjEntry(i) {
 function saveProjectsTab() {
     const cards = document.querySelectorAll('#epProjList .ep-card');
     const arr = [];
-    cards.forEach(card => {
+    cards.forEach((card, idx) => {
         const inputs = card.querySelectorAll('input');
         const ta = card.querySelector('textarea');
-        arr.push({ title:inputs[0]?.value.trim()||'', tools:inputs[1]?.value.trim()||'', year:inputs[2]?.value.trim()||'', url:inputs[3]?.value.trim()||'', description:ta?.value.trim()||'' });
+        const title = inputs[0]?.value.trim() || '';
+        const tools = inputs[1]?.value.trim() || '';
+        const year  = inputs[2]?.value.trim() || '';
+        const url   = inputs[3]?.value.trim() || '';
+        const desc  = ta?.value.trim() || '';
+        if (title) arr.push({ title, tools, year, url, description: desc });
     });
-    resumeData.projectsJson = JSON.stringify(arr.filter(p=>p.title));
+    resumeData.projectsJson = JSON.stringify(arr);
     persistField('projectsJson', resumeData.projectsJson);
     renderResume(); closeEditModal(); showToast('✓ Projects saved!');
 }
@@ -7593,12 +7748,26 @@ function buildMarinaTemplate(ctx) {
 function buildExtraSectionsHTML(ctx, accent, titleStyle) {
     let html = '';
     const color = accent;
+    const builtIn = ['experience','skills','education','projects','profile','contact','summary'];
     Object.entries(activeSections).forEach(([name, show]) => {
         if (!show) return;
-        html += `<div class="section-block" id="rv-section-${name}">
-            <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:${color};border-bottom:2px solid ${color};padding-bottom:3px;margin-bottom:10px;margin-top:16px;${titleStyle}">${name.charAt(0).toUpperCase()+name.slice(1)}</div>
-            <div class="editable-field extra-section-content" onclick="openEditModal('extra_${name}','${name}','')">
-                <em style="color:#9ca3af;font-size:12px;">Click to add ${name} content</em> <span class="edit-pen">✏</span>
+        const key = (name || '').toLowerCase().trim();
+        if (builtIn.includes(key)) return;
+        const contentKey = 'extra_' + key.replace(/[^a-z0-9]+/g, '_');
+        const savedContent = (ctx.resumeData || {})[contentKey] || resumeData[contentKey] || '';
+        const displayContent = savedContent
+            ? `<div style="font-size:11px;color:#444;line-height:1.7;white-space:pre-wrap;">${savedContent}</div>`
+            : `<em style="color:#9ca3af;font-size:11px;">Click ✏ to add content</em>`;
+        html += `<div class="section-block extra-user-section" id="rv-section-${key.replace(/[^a-z0-9]+/g,'-')}" style="position:relative;">
+            <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:${color};border-bottom:2px solid ${color};padding-bottom:3px;margin-bottom:10px;margin-top:16px;${titleStyle};display:flex;align-items:center;justify-content:space-between;">
+                <span>${name.charAt(0).toUpperCase()+name.slice(1)}</span>
+                <span style="display:flex;gap:6px;">
+                    <button title="Edit ${name}" style="background:none;border:1px solid ${color};color:${color};border-radius:5px;font-size:10px;cursor:pointer;padding:2px 7px;" onclick="openExtraSectionEdit('${name}','${contentKey}')">✏ Edit</button>
+                    <button title="Delete ${name}" style="background:none;border:1px solid #e57373;color:#e57373;border-radius:5px;font-size:10px;cursor:pointer;padding:2px 7px;" onclick="deleteExtraSection('${name}')">🗑 Delete</button>
+                </span>
+            </div>
+            <div class="extra-section-content" style="cursor:pointer;" onclick="openExtraSectionEdit('${name}','${contentKey}')">
+                ${displayContent}
             </div>
         </div>`;
     });

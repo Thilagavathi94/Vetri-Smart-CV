@@ -232,41 +232,27 @@
         <button class="side-panel-close" onclick="toggleSidePanel('addsection')">✕</button>
     </div>
     <div class="side-panel-body">
+        <p style="font-size:11px;color:#9ca3af;margin:0 0 12px;padding:0 4px;">Toggle optional sections on/off. Core sections (Experience, Skills, Education, Projects) are always editable from the resume directly.</p>
         <div class="add-section-list" id="addSectionList">
             <label class="section-check">
-                <input type="checkbox" checked disabled> Personal Details
+                <input type="checkbox" onchange="toggleSection('languages', this.checked)"> 🌐 Languages
             </label>
             <label class="section-check">
-                <input type="checkbox" onchange="toggleSection('certificates', this.checked)"> Certificates
+                <input type="checkbox" onchange="toggleSection('certificates', this.checked)"> 📜 Certificates
             </label>
             <label class="section-check">
-                <input type="checkbox" onchange="toggleSection('experience', this.checked)"> Experience
+                <input type="checkbox" onchange="toggleSection('awards', this.checked)"> 🏆 Awards
             </label>
             <label class="section-check">
-                <input type="checkbox" onchange="toggleSection('skills', this.checked)"> Skills
+                <input type="checkbox" onchange="toggleSection('interests', this.checked)"> ❤️ Interests
             </label>
             <label class="section-check">
-                <input type="checkbox" onchange="toggleSection('education', this.checked)"> Education
-            </label>
-            <label class="section-check">
-                <input type="checkbox" onchange="toggleSection('projects', this.checked)"> Projects
-            </label>
-            <label class="section-check">
-                <input type="checkbox" onchange="toggleSection('languages', this.checked)"> Languages
-            </label>
-            <label class="section-check">
-                <input type="checkbox" onchange="toggleSection('awards', this.checked)"> Awards
-            </label>
-            <label class="section-check">
-                <input type="checkbox" onchange="toggleSection('interests', this.checked)"> Interest
-            </label>
-            <label class="section-check">
-                <input type="checkbox" onchange="toggleSection('portfolio', this.checked)"> Portfolio, Websites, Profile links
+                <input type="checkbox" onchange="toggleSection('portfolio', this.checked)"> 🔗 Portfolio / Websites
             </label>
         </div>
         <div class="add-own-section">
-            <h4>Add your Own</h4>
-            <input type="text" id="customSectionName" placeholder="e.g., Hobbies">
+            <h4>Add Custom Section</h4>
+            <input type="text" id="customSectionName" placeholder="e.g., Hobbies, Volunteer Work">
         </div>
         <div class="add-section-btns">
             <button class="btn-cancel-sec" onclick="toggleSidePanel('addsection')">Cancel</button>
