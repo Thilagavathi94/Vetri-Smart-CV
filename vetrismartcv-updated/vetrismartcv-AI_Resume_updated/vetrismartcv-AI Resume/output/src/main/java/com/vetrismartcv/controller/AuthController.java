@@ -22,6 +22,23 @@ public class AuthController {
     @Autowired
     private UserService userService;
 
+    private Map<String, Object> buildSessionResponse(HttpSession session) {
+        Map<String, Object> resp = new HashMap<>();
+        Long userId = (Long) session.getAttribute("userId");
+        int timeoutSeconds = Math.max(session.getMaxInactiveInterval(), 0);
+
+        resp.put("loggedIn", userId != null);
+        resp.put("sessionTimeoutSeconds", timeoutSeconds);
+        resp.put("serverTime", System.currentTimeMillis());
+        resp.put("warningThresholdSeconds", Math.min(120, Math.max(30, timeoutSeconds / 12)));
+
+        if (userId != null) {
+            userService.getById(userId).ifPresent(u -> resp.put("user", userService.safeUser(u)));
+        }
+
+        return resp;
+    }
+
     /* ---- POST /api/auth/register ---- */
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(
@@ -89,17 +106,7 @@ public class AuthController {
     /* ---- GET /api/auth/session ---- */
     @GetMapping("/session")
     public ResponseEntity<Map<String, Object>> getSession(HttpSession session) {
-        Long userId = (Long) session.getAttribute("userId");
-        Map<String, Object> resp = new HashMap<>();
-        if (userId != null) {
-            resp.put("loggedIn", true);
-            userService.getById(userId).ifPresent(u -> {
-                resp.put("user", userService.safeUser(u));
-            });
-        } else {
-            resp.put("loggedIn", false);
-        }
-        return ResponseEntity.ok(resp);
+        return ResponseEntity.ok(buildSessionResponse(session));
     }
 
     /* ---- POST /api/auth/oauth ---- */
@@ -133,6 +140,33 @@ public class AuthController {
             return ResponseEntity.internalServerError()
                     .body(Map.of("success", false, "message", "Server error while signing in with " + provider + "."));
         }
+    }
+
+    /* ---- POST /api/auth/forgot-password ---- */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, Object>> forgotPassword(
+            @RequestBody Map<String, String> body) {
+
+        String email = body.get("email");
+
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "Email address is required."));
+        }
+
+        try {
+            // Always return success to avoid leaking which emails are registered.
+            // The service handles checking if the user exists and sending the email.
+            userService.initiatePasswordReset(email.trim().toLowerCase());
+        } catch (Exception e) {
+            log.error("Password reset initiation failed for email {}", email, e);
+            // Still return success to avoid email enumeration
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "If an account with that email exists, a reset link has been sent."
+        ));
     }
 
     /* ---- POST /api/auth/upgrade ---- */

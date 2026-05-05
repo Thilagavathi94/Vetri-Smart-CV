@@ -8,6 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class PageController {
@@ -18,12 +19,20 @@ public class PageController {
     @Value("${oauth.google.client-id:}")
     private String googleClientId;
 
+    @Value("${oauth.google.redirect-uri:}")
+    private String googleRedirectUri;
+
     @Value("${oauth.linkedin.client-id:}")
     private String linkedinClientId;
 
+    @Value("${oauth.linkedin.redirect-uri:}")
+    private String linkedinRedirectUri;
+
     private void addLoginConfig(Model model) {
         model.addAttribute("googleClientId", googleClientId);
+        model.addAttribute("googleRedirectUri", googleRedirectUri);
         model.addAttribute("linkedinClientId", linkedinClientId);
+        model.addAttribute("linkedinRedirectUri", linkedinRedirectUri);
     }
 
     /**
@@ -71,8 +80,26 @@ public class PageController {
         return "index";
     }
 
+    // D_022 FIX: Guard /builder — unauthenticated users must login first,
+    // then be redirected back to the builder with their chosen template.
     @GetMapping("/builder")
-    public String builder(Model model, HttpSession session) {
+    public String builder(Model model, HttpSession session,
+                          @RequestParam(required = false) String template,
+                          @RequestParam(required = false) Long resumeId) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            StringBuilder redirect = new StringBuilder("/builder");
+            boolean hasParam = false;
+            if (template != null && !template.isBlank()) {
+                redirect.append("?template=").append(template);
+                hasParam = true;
+            }
+            if (resumeId != null) {
+                redirect.append(hasParam ? "&" : "?").append("resumeId=").append(resumeId);
+            }
+            return "redirect:/login?redirect=" +
+                    java.net.URLEncoder.encode(redirect.toString(), java.nio.charset.StandardCharsets.UTF_8);
+        }
         addSessionToModel(model, session);
         return "builder";
     }
@@ -101,8 +128,13 @@ public class PageController {
         return "login";
     }
 
+    // D_022 FIX: Guard /dashboard — must be logged in
     @GetMapping("/dashboard")
     public String dashboard(Model model, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return "redirect:/login?redirect=/dashboard";
+        }
         addSessionToModel(model, session);
         return "dashboard";
     }
@@ -129,5 +161,10 @@ public class PageController {
     public String registerPage(Model model) {
         addLoginConfig(model);
         return "login";
+    }
+
+    @GetMapping("/forgot-password")
+    public String forgotPassword(Model model) {
+        return "forgot-password";
     }
 }

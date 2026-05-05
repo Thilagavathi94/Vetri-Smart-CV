@@ -1,4 +1,4 @@
-/* =============================================
+﻿/* =============================================
    REVIEW.JS — VetriSmartCV
    3 templates: robert (dark maroon), olivia (green two-col), mary (minimal)
    ============================================= */
@@ -140,6 +140,37 @@ function resolveExactTemplateId(templateId) {
     return legacyExactMap[normalized] || normalized;
 }
 
+function normalizeReviewRenderArtifacts(root) {
+    if (!root) return;
+
+    const replacements = [
+        [/✉|📧/g, '\u2709'],
+        [/📞|📱|☎/g, '\u260E'],
+        [/📍|🏠/g, '\u{1F4CD}'],
+        [/🔗/g, '\u{1F517}'],
+        [/🌐/g, '\u{1F310}'],
+        [/👤/g, '\u{1F464}'],
+        [/•/g, '\u2022'],
+        [/–/g, '\u2013'],
+        [/—/g, '\u2014'],
+        [/·/g, '\u00B7']
+    ];
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+        let text = node.nodeValue || '';
+        let updated = text;
+        replacements.forEach(([pattern, value]) => {
+            updated = updated.replace(pattern, value);
+        });
+        if (updated !== text) {
+            node.nodeValue = updated;
+        }
+        node = walker.nextNode();
+    }
+}
+
 function isUsableRenderedResume(doc, ctx, isExact = false) {
     if (!doc || !doc.isConnected) return false;
     const text = (doc.textContent || '').replace(/\s+/g, ' ').trim();
@@ -258,6 +289,20 @@ async function checkSession() {
             }
             const logoutBtn = document.getElementById('navLogoutBtn');
             if (logoutBtn) logoutBtn.style.display = 'inline-block';
+
+            if (window.VetriSessionMonitor) {
+                window.VetriSessionMonitor.start({
+                    loggedIn: true,
+                    user: data.user,
+                    sessionTimeoutSeconds: data.sessionTimeoutSeconds,
+                    warningThresholdSeconds: data.warningThresholdSeconds,
+                    warningMessage: 'Your session will expire soon. Save your changes or continue editing to stay signed in.',
+                    expiredMessage: 'Your session has expired. Please log in again.',
+                    getRedirectUrl: () => buildReviewRedirectUrl(false)
+                });
+            }
+        } else if (window.VetriSessionMonitor) {
+            window.VetriSessionMonitor.stop();
         }
 
         // Apply plan gates (color=all, font/spacing=premium only)
@@ -2422,7 +2467,7 @@ function updatePlanBadge() {
     }
 
     if (userPlan === 'PRO') {
-        label.textContent = '🛡️ Pro Plan';
+        label.textContent = '🛡ï¸ Pro Plan';
         bar.className = 'plan-badge-bar plan-pro';
         if (link) { link.textContent = 'Go Premium ↗'; link.href = '/pricing'; }
     } else if (userPlan === 'PREMIUM') {
@@ -2460,7 +2505,7 @@ function showPremiumUpgradeAlert(feature) {
     }
     const existing = document.getElementById('premiumUpgradeModal');
     if (existing) existing.remove();
-    const featureList = ['🎨 All color themes','🔤 8 Font families','📏 Font size control','↕ Section spacing','🔡 Letter spacing','📐 Line spacing','🖼 Photo size control','📄 All Pro templates','⬇ Unlimited downloads'];
+    const featureList = ['🎨 All color themes','🔤 8 Font families','📍 Font size control','↕ Section spacing','🔡 Letter spacing','📍 Line spacing','📼 Photo size control','📍„ All Pro templates','⬇ Unlimited downloads'];
     const modal = document.createElement('div');
     modal.id = 'premiumUpgradeModal';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:999999;padding:20px;';
@@ -2502,7 +2547,7 @@ function showUpgradeBanner(plan) {
     if (existing) existing.remove();
     const banner = document.createElement('div');
     banner.id = 'upgradeBanner';
-    const planLabel = plan === 'PREMIUM' ? '🏆 Premium' : '🛡️ Pro';
+    const planLabel = plan === 'PREMIUM' ? '🏆 Premium' : '🛡ï¸ Pro';
     banner.style.cssText = `position:fixed;top:70px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:14px 28px;border-radius:14px;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:flex;align-items:center;gap:10px;`;
     banner.innerHTML = `<span style="font-size:20px;">🎉</span> Welcome to ${planLabel}! All features are now unlocked. <button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.25);border:none;color:#fff;font-size:16px;cursor:pointer;padding:2px 8px;border-radius:8px;margin-left:8px;">✕</button>`;
     document.body.appendChild(banner);
@@ -2703,6 +2748,7 @@ function renderResume() {
     }
 
     if (exactRendered) {
+        normalizeReviewRenderArtifacts(doc);
         if (isUsableRenderedResume(doc, ctx, true)) {
             finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, skipCleanup: true, renderSeq });
             return;
@@ -2853,6 +2899,7 @@ function renderResume() {
         doc.innerHTML = buildOliviaTemplate(ctx);
     }
 
+    normalizeReviewRenderArtifacts(doc);
     finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, renderSeq });
 }
 
@@ -2979,7 +3026,7 @@ function buildTemplate25Template({ resumeData: d, edu, skills, projects, experie
     const contactItems = [
         phone    && `<div class="t25-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>`,
         email    && `<div class="t25-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>`,
-        addr     && `<div class="t25-contact-item editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>`,
+        addr     && `<div class="t25-contact-item editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>`,
         linkedin && `<div class="t25-contact-item editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',linkedin)}>🔗 ${linkedin} <span class="edit-pen">✏</span></div>`,
         website  && `<div class="t25-contact-item editable-field" style="cursor:pointer;" ${editBtn('website','Website',website)}>🌐 ${website} <span class="edit-pen">✏</span></div>`,
     ].filter(Boolean).join('');
@@ -3062,10 +3109,10 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
   <div class="t1-body">
     <div class="t1-left">
       <div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};">Contact</div>
-      ${email?`<div class="t1-field editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}><div class="t1-field-label" style="color:${accent};">Email</div><div class="t1-field-val">✉ ${email} <span class="edit-pen">✏</span></div></div>`:''}
-      ${phone?`<div class="t1-field editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}><div class="t1-field-label" style="color:${accent};">Phone</div><div class="t1-field-val">📞 ${phone} <span class="edit-pen">✏</span></div></div>`:''}
-      ${addr?`<div class="t1-field editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}><div class="t1-field-label" style="color:${accent};">Location</div><div class="t1-field-val">📍 ${addr} <span class="edit-pen">✏</span></div></div>`:''}
-      ${d.linkedin?`<div class="t1-field editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}><div class="t1-field-label" style="color:${accent};">LinkedIn</div><div class="t1-field-val">🔗 ${d.linkedin} <span class="edit-pen">✏</span></div></div>`:''}
+      ${email?`<div class="t1-field editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}><div class="t1-field-label" style="color:${accent};">Email</div><div class="t1-field-val">&#9993; ${email} <span class="edit-pen">&#9997;</span></div></div>`:''}
+      ${phone?`<div class="t1-field editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}><div class="t1-field-label" style="color:${accent};">Phone</div><div class="t1-field-val">&#9742; ${phone} <span class="edit-pen">&#9997;</span></div></div>`:''}
+      ${addr?`<div class="t1-field editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}><div class="t1-field-label" style="color:${accent};">Location</div><div class="t1-field-val">&#128205; ${addr} <span class="edit-pen">&#9997;</span></div></div>`:''}
+      ${d.linkedin?`<div class="t1-field editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}><div class="t1-field-label" style="color:${accent};">LinkedIn</div><div class="t1-field-val">&#128279; ${d.linkedin} <span class="edit-pen">&#9997;</span></div></div>`:''}
       <div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Skills</div>
       <div class="editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>${skillsHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
       <div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Education</div>
@@ -3096,7 +3143,7 @@ function buildTemplate2Template({ resumeData: d, edu, skills, projects, experien
     const summary= d.profileSummary || '';
     const photoHTML = d.profilePhotoData
         ? `<img src="${d.profilePhotoData}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div style="width:100%;height:100%;background:linear-gradient(135deg,${accent},${accent}88);display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>👤</div>`;
+        : `<div style="width:100%;height:100%;background:linear-gradient(135deg,${accent},${accent}88);display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>&#128100;</div>`;
     const eduHTML = edu.length
         ? edu.map(e=>`<div class="t2-course"><div class="t2-course-name">${e.degree||''}</div><div class="t2-course-uni">${e.school||e.university||''}</div><div class="t2-course-years">${e.year||''}</div></div>`).join('')
         : `<div style="font-size:10px;color:#9ca3af;cursor:pointer;" ${editBtn('educationJson','Education','')}>Add education ✏</div>`;
@@ -3110,7 +3157,7 @@ function buildTemplate2Template({ resumeData: d, edu, skills, projects, experien
   <div class="t2-left">
     <div class="t2-name editable-field" style="cursor:pointer;" ${editBtn('fullName','Full Name',name)}>${name} <span class="edit-pen">✏</span></div>
     <div class="t2-roles"><div class="t2-role-badge editable-field" style="cursor:pointer;" ${editBtn('jobTitle','Job Title',title)}>${title} <span class="edit-pen">✏</span></div></div>
-    ${addr?`<div class="t2-location editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>`:''}
+    ${addr?`<div class="t2-location editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}>&#128205; ${addr} <span class="edit-pen">&#9997;</span></div>`:''}
     <div class="t2-section-title" style="border-bottom-color:${accent};color:${accent};">Education</div>
     <div class="section-block editable-field" ${editBtn('educationJson','Education','')}>${eduHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
     <div class="t2-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Skills</div>
@@ -3121,10 +3168,10 @@ function buildTemplate2Template({ resumeData: d, edu, skills, projects, experien
     <div class="t2-photo-contact">
       <div class="t2-photo">${photoHTML}</div>
       <div class="t2-contact-list">
-        ${email?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}><span class="t2-contact-icon">✉</span> ${email} <span class="edit-pen">✏</span></div>`:''}
-        ${phone?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}><span class="t2-contact-icon">📞</span> ${phone} <span class="edit-pen">✏</span></div>`:''}
-        ${d.linkedin?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}><span class="t2-contact-icon">🔗</span> ${d.linkedin} <span class="edit-pen">✏</span></div>`:''}
-        ${d.website?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('website','Website',d.website||'')}><span class="t2-contact-icon">🌐</span> ${d.website} <span class="edit-pen">✏</span></div>`:''}
+        ${email?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}><span class="t2-contact-icon">&#9993;</span> ${email} <span class="edit-pen">&#9997;</span></div>`:''}
+        ${phone?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}><span class="t2-contact-icon">&#9742;</span> ${phone} <span class="edit-pen">&#9997;</span></div>`:''}
+        ${d.linkedin?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}><span class="t2-contact-icon">&#128279;</span> ${d.linkedin} <span class="edit-pen">&#9997;</span></div>`:''}
+        ${d.website?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('website','Website',d.website||'')}><span class="t2-contact-icon">&#127760;</span> ${d.website} <span class="edit-pen">&#9997;</span></div>`:''}
       </div>
     </div>
     ${summary?`<div class="t2-section-title-r" style="border-bottom-color:${accent};color:${accent};">Profile</div><div class="t2-profile-text editable-field" style="cursor:pointer;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
@@ -3149,7 +3196,7 @@ function buildTemplate3Template({ resumeData: d, edu, skills, projects, experien
     const summary= d.profileSummary || '';
     const photoHTML = d.profilePhotoData
         ? `<img src="${d.profilePhotoData}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t3-photo-placeholder" style="background:linear-gradient(135deg,${accent},${accent}88);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>👤</div>`;
+        : `<div class="t3-photo-placeholder" style="background:linear-gradient(135deg,${accent},${accent}88);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>&#128100;</div>`;
     const expHTML = experience.length
         ? experience.map(e=>`<div class="t3-job"><div class="t3-job-head"><div><div class="t3-job-title">${e.jobTitle||e.role||e.title||''}</div><div class="t3-job-at" style="color:${accent};">${e.company||''}</div></div><div class="t3-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div></div>${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t3-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
@@ -3162,10 +3209,10 @@ function buildTemplate3Template({ resumeData: d, edu, skills, projects, experien
     <div class="t3-photo">${photoHTML}</div>
     <div class="t3-left-body">
       <div class="t3-left-title" style="color:#999;">Contact</div>
-      ${email?`<div class="t3-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>`:''}
-      ${phone?`<div class="t3-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>`:''}
-      ${addr?`<div class="t3-contact-item editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>`:''}
-      ${d.linkedin?`<div class="t3-contact-item editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}>🔗 ${d.linkedin} <span class="edit-pen">✏</span></div>`:''}
+      ${email?`<div class="t3-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>&#9993; ${email} <span class="edit-pen">&#9997;</span></div>`:''}
+      ${phone?`<div class="t3-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>&#9742; ${phone} <span class="edit-pen">&#9997;</span></div>`:''}
+      ${addr?`<div class="t3-contact-item editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}>&#128205; ${addr} <span class="edit-pen">&#9997;</span></div>`:''}
+      ${d.linkedin?`<div class="t3-contact-item editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}>&#128279; ${d.linkedin} <span class="edit-pen">&#9997;</span></div>`:''}
       <div class="t3-left-title" style="color:#999;">Skills</div>
       <div class="editable-field" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>
         ${skills.length?skills.map(s=>`<div class="t3-skill-item">${s.name||s}</div>`).join(''):`<div style="font-size:10px;color:#9ca3af;cursor:pointer;">Add skills ✏</div>`}
@@ -3200,7 +3247,7 @@ function buildTemplate4Template({ resumeData: d, edu, skills, projects, experien
     const summary= d.profileSummary || '';
     const photoHTML = d.profilePhotoData
         ? `<img src="${d.profilePhotoData}" style="width:100%;height:100%;object-fit:cover;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t4-photo-placeholder" style="background:${accent};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:3rem;" ${editBtn('profilePhoto','Profile Photo','')}>👤</div>`;
+        : `<div class="t4-photo-placeholder" style="background:${accent};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:3rem;" ${editBtn('profilePhoto','Profile Photo','')}>&#128100;</div>`;
     const expHTML = experience.length
         ? experience.map(e=>`<div class="t4-job"><div class="t4-job-head"><span class="t4-job-title">${e.jobTitle||e.role||e.title||''}</span><span class="t4-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</span></div><div style="font-size:10px;color:#777;">${e.company||''}</div><div class="t4-job-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')
         : `<div style="font-size:10px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
@@ -3254,7 +3301,7 @@ function buildTemplate5Template({ resumeData: d, edu, skills, projects, experien
     const summary= d.profileSummary || '';
     const photoHTML = d.profilePhotoData
         ? `<img src="${d.profilePhotoData}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:4rem;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>👤</div>`;
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:4rem;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>&#128100;</div>`;
     const nameParts = name.split(' ');
     const expHTML = experience.length
         ? experience.map(e=>`<div class="t5-job"><div class="t5-job-head"><span class="t5-job-title">${e.jobTitle||e.role||e.title||''}</span><span class="t5-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</span></div><div class="t5-job-company">${e.company||''}</div><div class="t5-job-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')
@@ -3273,10 +3320,10 @@ function buildTemplate5Template({ resumeData: d, edu, skills, projects, experien
   <div class="t5-body">
     <div class="t5-left">
       <div class="t5-section-title" style="color:${accent};">Contact</div>
-      ${email?`<div class="t5-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>`:''}
-      ${phone?`<div class="t5-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>`:''}
-      ${d.address?`<div class="t5-contact-item editable-field" style="cursor:pointer;" ${editBtn('address','Address',d.address||'')}>📍 ${d.address} <span class="edit-pen">✏</span></div>`:''}
-      ${d.linkedin?`<div class="t5-contact-item editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}>🔗 ${d.linkedin} <span class="edit-pen">✏</span></div>`:''}
+      ${email?`<div class="t5-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>&#9993; ${email} <span class="edit-pen">&#9997;</span></div>`:''}
+      ${phone?`<div class="t5-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>&#9742; ${phone} <span class="edit-pen">&#9997;</span></div>`:''}
+      ${d.address?`<div class="t5-contact-item editable-field" style="cursor:pointer;" ${editBtn('address','Address',d.address||'')}>&#128205; ${d.address} <span class="edit-pen">&#9997;</span></div>`:''}
+      ${d.linkedin?`<div class="t5-contact-item editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}>&#128279; ${d.linkedin} <span class="edit-pen">&#9997;</span></div>`:''}
       <div class="t5-section-title" style="margin-top:14px;color:${accent};">Skills</div>
       <div class="editable-field" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>
         ${skills.length?skills.map(s=>`<div class="t5-skill-item">${s.name||s}</div>`).join(''):`<div class="t5-skill-item" style="color:#9ca3af;">Add skills ✏</div>`}
@@ -3308,7 +3355,7 @@ function buildTemplate6Template({ resumeData: d, edu, skills, projects, experien
     const nameParts = name.split(' ');
     const photoHTML = d.profilePhotoData
         ? `<img src="${d.profilePhotoData}" style="width:90px;height:90px;border-radius:50%;border:3px solid ${accent};object-fit:cover;cursor:pointer;display:block;margin:24px auto 0;" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t6-avatar" style="border-color:${accent};background:linear-gradient(135deg,${accent},${accent}88);cursor:pointer;margin:24px auto 0;" ${editBtn('profilePhoto','Profile Photo','')}>👤</div>`;
+        : `<div class="t6-avatar" style="border-color:${accent};background:linear-gradient(135deg,${accent},${accent}88);cursor:pointer;margin:24px auto 0;" ${editBtn('profilePhoto','Profile Photo','')}>&#128100;</div>`;
     const skillBarsHTML = skills.length
         ? skills.map(s=>{const pct=typeof s.level==='number'?s.level:80;return`<div class="t6-skill-bar"><div class="t6-skill-name">${s.name||s}</div><div class="t6-skill-track"><div class="t6-skill-fill" style="width:${pct}%;background:linear-gradient(90deg,${accent},${accent}aa);"></div></div></div>`;}).join('')
         : `<div style="font-size:10px;color:rgba(255,255,255,0.5);cursor:pointer;" ${editBtn('skillsJson','Skills','')}>Add skills ✏</div>`;
@@ -3335,10 +3382,10 @@ function buildTemplate6Template({ resumeData: d, edu, skills, projects, experien
       <div class="t6-name editable-field" style="cursor:pointer;" ${editBtn('fullName','Full Name',name)}><span style="color:${accent};">${nameParts[0]||name}</span>${nameParts.length>1?' '+nameParts.slice(1).join(' '):''} <span class="edit-pen">✏</span></div>
       <div class="t6-role editable-field" style="cursor:pointer;" ${editBtn('jobTitle','Job Title',title)}>${title} <span class="edit-pen">✏</span></div>
       <div class="t6-contacts">
-        ${email?`<div class="t6-contact editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>`:''}
-        ${phone?`<div class="t6-contact editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>`:''}
-        ${addr?`<div class="t6-contact editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>`:''}
-        ${d.website?`<div class="t6-contact editable-field" style="cursor:pointer;" ${editBtn('website','Website',d.website||'')}>🌐 ${d.website} <span class="edit-pen">✏</span></div>`:''}
+        ${email?`<div class="t6-contact editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>&#9993; ${email} <span class="edit-pen">&#9997;</span></div>`:''}
+        ${phone?`<div class="t6-contact editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>&#9742; ${phone} <span class="edit-pen">&#9997;</span></div>`:''}
+        ${addr?`<div class="t6-contact editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}>&#128205; ${addr} <span class="edit-pen">&#9997;</span></div>`:''}
+        ${d.website?`<div class="t6-contact editable-field" style="cursor:pointer;" ${editBtn('website','Website',d.website||'')}>&#127760; ${d.website} <span class="edit-pen">&#9997;</span></div>`:''}
       </div>
     </div>
     <div class="t6-right-body">
@@ -3366,7 +3413,7 @@ function buildTemplate7Template({ resumeData: d, edu, skills, projects, experien
     const nameParts = name.split(' ');
     const photoHTML = d.profilePhotoData
         ? `<img src="${d.profilePhotoData}" style="width:70px;height:70px;border-radius:50%;object-fit:cover;border:3px solid ${accent}aa;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t7-avatar-ph" style="background:linear-gradient(135deg,${accent},${accent}88);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>👤</div>`;
+        : `<div class="t7-avatar-ph" style="background:linear-gradient(135deg,${accent},${accent}88);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>&#128100;</div>`;
     const skillBarsHTML = skills.length
         ? skills.map(s=>{const pct=typeof s.level==='number'?s.level:80;return`<div class="t7-skill-bar"><div class="t7-skill-name">${s.name||s}</div><div class="t7-skill-track"><div class="t7-skill-fill" style="width:${pct}%;background:linear-gradient(90deg,${accent},${accent}aa);"></div></div></div>`;}).join('')
         : `<div style="font-size:10px;color:rgba(255,255,255,0.4);cursor:pointer;" ${editBtn('skillsJson','Skills','')}>Add skills ✏</div>`;
@@ -3377,9 +3424,9 @@ function buildTemplate7Template({ resumeData: d, edu, skills, projects, experien
   <div class="t7-header" style="background:linear-gradient(135deg,${accent}dd 0%,${accent} 100%);">
     <div class="t7-header-blob"></div>
     <div class="t7-header-top">
-      ${email?`<div class="t7-header-contact editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>`:''}
-      ${phone?`<div class="t7-header-contact editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>`:''}
-      ${website?`<div class="t7-header-contact editable-field" style="cursor:pointer;" ${editBtn('website','Website',website)}>🌐 ${website} <span class="edit-pen">✏</span></div>`:''}
+      ${email?`<div class="t7-header-contact editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>&#9993; ${email} <span class="edit-pen">&#9997;</span></div>`:''}
+      ${phone?`<div class="t7-header-contact editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>&#9742; ${phone} <span class="edit-pen">&#9997;</span></div>`:''}
+      ${website?`<div class="t7-header-contact editable-field" style="cursor:pointer;" ${editBtn('website','Website',website)}>&#127760; ${website} <span class="edit-pen">&#9997;</span></div>`:''}
     </div>
     <div class="t7-header-main">
       <div class="t7-avatar">${photoHTML}</div>
@@ -3440,7 +3487,7 @@ function buildTemplate8Template({ resumeData: d, edu, skills, projects, experien
       <div class="t8-header-contacts">
         ${email?`<div class="t8-hc editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>`:''}
         ${phone?`<div class="t8-hc editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>`:''}
-        ${addr?`<div class="t8-hc editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>`:''}
+        ${addr?`<div class="t8-hc editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>`:''}
       </div>
     </div>
   </div>
@@ -3607,7 +3654,7 @@ function buildNumberedTemplate({ resumeData: d, edu, skills, projects, experienc
     const contactHTML = [
         phone    && `<div style="margin-bottom:5px;font-size:10px;cursor:pointer;color:${sbText};display:flex;align-items:center;gap:5px;" class="editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>`,
         email    && `<div style="margin-bottom:5px;font-size:10px;cursor:pointer;color:${sbText};display:flex;align-items:center;gap:5px;word-break:break-all;" class="editable-field" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>`,
-        addr     && `<div style="margin-bottom:5px;font-size:10px;cursor:pointer;color:${sbText};display:flex;align-items:flex-start;gap:5px;" class="editable-field" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>`,
+        addr     && `<div style="margin-bottom:5px;font-size:10px;cursor:pointer;color:${sbText};display:flex;align-items:flex-start;gap:5px;" class="editable-field" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>`,
         linkedin && `<div style="margin-bottom:5px;font-size:10px;cursor:pointer;color:${sbText};word-break:break-all;" class="editable-field" ${editBtn('linkedin','LinkedIn',linkedin)}>🔗 ${linkedin} <span class="edit-pen">✏</span></div>`,
         website  && `<div style="margin-bottom:5px;font-size:10px;cursor:pointer;color:${sbText};word-break:break-all;" class="editable-field" ${editBtn('website','Website',website)}>🌐 ${website} <span class="edit-pen">✏</span></div>`,
     ].filter(Boolean).join('');
@@ -3777,7 +3824,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
         <div style="width:100%;font-size:10px;color:${sidebarText};line-height:2;">
           ${phone    ? `<div class="editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',d.phone||'')}>📞 ${phone} <span class="edit-pen">✏</span></div>` : ''}
           ${email    ? `<div class="editable-field" style="cursor:pointer;word-break:break-all;" ${editBtn('email','Email',d.email||'')}>✉ ${email} <span class="edit-pen">✏</span></div>` : ''}
-          ${addr     ? `<div class="editable-field" style="cursor:pointer;" ${editBtn('address','Address',d.address||'')}>📍 ${addr} <span class="edit-pen">✏</span></div>` : ''}
+          ${addr     ? `<div class="editable-field" style="cursor:pointer;" ${editBtn('address','Address',d.address||'')}>📍 ${addr} <span class="edit-pen">✏</span></div>` : ''}
           ${linkedin ? `<div class="editable-field" style="cursor:pointer;word-break:break-all;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}>🔗 ${linkedin} <span class="edit-pen">✏</span></div>` : ''}
           ${website  ? `<div class="editable-field" style="cursor:pointer;word-break:break-all;" ${editBtn('website','Website',d.website||'')}>🌐 ${website} <span class="edit-pen">✏</span></div>` : ''}
           ${!phone && !email && !addr ? `<div style="font-size:10px;color:${sidebarMuted};cursor:pointer;" ${editBtn('phone','Phone','')}>Add contact ✏</div>` : ''}
@@ -3849,7 +3896,7 @@ function buildTemplate32Template({ resumeData: d, edu, skills, projects, experie
     <div class="t32-sec-title-l">Contact</div>
     ${phone?`<div class="t32-contact-item editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone}</div>`:''}
     ${email?`<div class="t32-contact-item editable-field" ${editBtn('email','Email',email)}>✉ ${email}</div>`:''}
-    ${addr?`<div class="t32-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr}</div>`:''}
+    ${addr?`<div class="t32-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr}</div>`:''}
     ${linkedin?`<div class="t32-contact-item editable-field" ${editBtn('linkedin','LinkedIn',linkedin)}>🔗 ${linkedin}</div>`:''}
     ${website?`<div class="t32-contact-item editable-field" ${editBtn('website','Website',website)}>🌐 ${website}</div>`:''}
     ${edu.length?`<div class="t32-sec-title-l">Education</div>${eduHTML2}`:''}
@@ -3892,7 +3939,7 @@ function buildTemplate33Template({ resumeData: d, edu, skills, projects, experie
       <div class="t33-sec-title" style="color:${accent};">Contact</div>
       ${phone?`<div class="t33-contact-item editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone}</div>`:''}
       ${email?`<div class="t33-contact-item editable-field" ${editBtn('email','Email',email)}>✉ ${email}</div>`:''}
-      ${addr?`<div class="t33-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr}</div>`:''}
+      ${addr?`<div class="t33-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr}</div>`:''}
       ${linkedin?`<div class="t33-contact-item editable-field" ${editBtn('linkedin','LinkedIn',linkedin)}>🔗 ${linkedin}</div>`:''}
       ${edu.length?`<div class="t33-sec-title" style="color:${accent};margin-top:14px;">Education</div>${eduHTML2}`:''}
       ${skills.length?`<div class="t33-sec-title" style="color:${accent};margin-top:14px;">Skills</div>${skillsHTML}`:''}
@@ -3968,7 +4015,7 @@ function buildTemplate35Template({ resumeData: d, edu, skills, projects, experie
       <div class="t35-sec-badge" style="background:${accent};">Contact</div>
       ${phone?`<div class="t35-contact-item editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone}</div>`:''}
       ${email?`<div class="t35-contact-item editable-field" ${editBtn('email','Email',email)}>✉ ${email}</div>`:''}
-      ${addr?`<div class="t35-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr}</div>`:''}
+      ${addr?`<div class="t35-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr}</div>`:''}
       ${linkedin?`<div class="t35-contact-item editable-field" ${editBtn('linkedin','LinkedIn',linkedin)}>🔗 ${linkedin}</div>`:''}
       ${eduHTML2?`<div class="t35-sec-badge" style="background:${accent};margin-top:12px;">Education</div>${eduHTML2}`:''}
       ${skillsHTML?`<div class="t35-sec-badge" style="background:${accent};margin-top:12px;">Skills</div>${skillsHTML}`:''}
@@ -4000,7 +4047,7 @@ function buildTemplate36Template({ resumeData: d, edu, skills, projects, experie
       ${photoHTML}
       ${phone?`<div class="t36-contact-item-l">📞 ${phone}</div>`:''}
       ${email?`<div class="t36-contact-item-l">✉ ${email}</div>`:''}
-      ${addr?`<div class="t36-contact-item-l">📍 ${addr}</div>`:''}
+      ${addr?`<div class="t36-contact-item-l">📍 ${addr}</div>`:''}
       ${linkedin?`<div class="t36-contact-item-l">🔗 ${linkedin}</div>`:''}
     </div>
     <div class="t36-left-body" style="background:${accentLight};">
@@ -4071,7 +4118,7 @@ function buildTemplate38Template({ resumeData: d, edu, skills, projects, experie
     <div class="t38-left-contact">
       ${phone?`<div class="t38-contact-item-l">📞 ${phone}</div>`:''}
       ${email?`<div class="t38-contact-item-l">✉ ${email}</div>`:''}
-      ${addr?`<div class="t38-contact-item-l">📍 ${addr}</div>`:''}
+      ${addr?`<div class="t38-contact-item-l">📍 ${addr}</div>`:''}
       ${linkedin?`<div class="t38-contact-item-l">🔗 ${linkedin}</div>`:''}
     </div>
     ${skillsHTML?`<div class="t38-sec-title-l">Skills</div>${skillsHTML}`:''}
@@ -4108,7 +4155,7 @@ function buildTemplate39Template({ resumeData: d, edu, skills, projects, experie
     <div class="t39-contact-row">
       ${phone?`<div class="t39-contact-item">📞 ${phone}</div>`:''}
       ${email?`<div class="t39-contact-item">✉ ${email}</div>`:''}
-      ${addr?`<div class="t39-contact-item">📍 ${addr}</div>`:''}
+      ${addr?`<div class="t39-contact-item">📍 ${addr}</div>`:''}
       ${linkedin?`<div class="t39-contact-item">🔗 ${linkedin}</div>`:''}
     </div>
     ${summary?`<div class="t39-sec-title-r">Profile</div><div class="t39-about-text editable-field section-block" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
@@ -4177,7 +4224,7 @@ function buildTemplate41Template({ resumeData: d, edu, skills, projects, experie
       <div class="t41-sec-title" style="color:${accent};border-color:${accent};">Contact</div>
       ${phone?`<div class="t41-contact-item editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone}</div>`:''}
       ${email?`<div class="t41-contact-item editable-field" ${editBtn('email','Email',email)}>✉ ${email}</div>`:''}
-      ${addr?`<div class="t41-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr}</div>`:''}
+      ${addr?`<div class="t41-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr}</div>`:''}
       ${linkedin?`<div class="t41-contact-item editable-field" ${editBtn('linkedin','LinkedIn',linkedin)}>🔗 ${linkedin}</div>`:''}
       ${eduHTML2?`<div class="t41-sec-title" style="color:${accent};border-color:${accent};margin-top:14px;">Education</div>${eduHTML2}`:''}
       ${skillsHTML?`<div class="t41-sec-title" style="color:${accent};border-color:${accent};margin-top:14px;">Skills</div>${skillsHTML}`:''}
@@ -4213,7 +4260,7 @@ function buildTemplate42Template({ resumeData: d, edu, skills, projects, experie
       <div class="t42-sec-title-l" style="color:${accent};border-color:${accent};">Contact</div>
       ${phone?`<div class="t42-contact-item editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone}</div>`:''}
       ${email?`<div class="t42-contact-item editable-field" ${editBtn('email','Email',email)}>✉ ${email}</div>`:''}
-      ${addr?`<div class="t42-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr}</div>`:''}
+      ${addr?`<div class="t42-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr}</div>`:''}
       ${linkedin?`<div class="t42-contact-item editable-field" ${editBtn('linkedin','LinkedIn',linkedin)}>🔗 ${linkedin}</div>`:''}
       ${skillsHTML?`<div class="t42-sec-title-l" style="color:${accent};border-color:${accent};">Skills</div>${skillsHTML}`:''}
       ${eduHTML2?`<div class="t42-sec-title-l" style="color:${accent};border-color:${accent};">Education</div>${eduHTML2}`:''}
@@ -4248,7 +4295,7 @@ function buildTemplate43Template({ resumeData: d, edu, skills, projects, experie
       <div class="t43-sec-title-l" style="color:${accent};">Contact</div>
       ${phone?`<div class="t43-contact-item">📞 ${phone}</div>`:''}
       ${email?`<div class="t43-contact-item">✉ ${email}</div>`:''}
-      ${addr?`<div class="t43-contact-item">📍 ${addr}</div>`:''}
+      ${addr?`<div class="t43-contact-item">📍 ${addr}</div>`:''}
       ${linkedin?`<div class="t43-contact-item">🔗 ${linkedin}</div>`:''}
       ${skillsHTML?`<div class="t43-sec-title-l" style="color:${accent};">Skills</div>${skillsHTML}`:''}
       ${eduHTML2?`<div class="t43-sec-title-l" style="color:${accent};">Education</div>${eduHTML2}`:''}
@@ -4497,7 +4544,7 @@ function buildTemplate46Template({ resumeData: d, edu, skills, projects, experie
       <div class="t46-contact-section-title">CONTACTS</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div class="t46-contact-icon" style="background:rgba(255,255,255,0.15);">📞</div><div class="t46-contact-text editable-field" ${editBtn('phone','Phone',phone)}>${phone} <span class="edit-pen">✏</span></div></div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div class="t46-contact-icon" style="background:rgba(255,255,255,0.15);">✉</div><div class="t46-contact-text editable-field" ${editBtn('email','Email',email)}>${email} <span class="edit-pen">✏</span></div></div>
-      <div style="display:flex;align-items:center;gap:8px;"><div class="t46-contact-icon" style="background:rgba(255,255,255,0.15);">📍</div><div class="t46-contact-text editable-field" ${editBtn('address','Address',addr)}>${addr} <span class="edit-pen">✏</span></div></div>
+      <div style="display:flex;align-items:center;gap:8px;"><div class="t46-contact-icon" style="background:rgba(255,255,255,0.15);">📍</div><div class="t46-contact-text editable-field" ${editBtn('address','Address',addr)}>${addr} <span class="edit-pen">✏</span></div></div>
     </div>
     <div class="t46-top-right-header" style="background:${accent}cc;">
       <div>
@@ -4574,7 +4621,7 @@ function buildTemplate47Template({ resumeData: d, edu, skills, projects, experie
     </div>
     <div class="t47-top-right">
       <div class="t47-top-right-contact">
-        <div class="editable-field" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>
+        <div class="editable-field" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>
         <div class="editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>
         <div class="editable-field" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>
       </div>
@@ -4702,7 +4749,7 @@ function buildTemplate49Template({ resumeData: d, edu, skills, projects, experie
     <div class="t49-contact-col" style="background:${accent};">
       <div class="t49-contact-row"><span class="t49-contact-icon">📞</span><span class="t49-contact-text editable-field" ${editBtn('phone','Phone',phone)}>${phone} <span class="edit-pen">✏</span></span></div>
       <div class="t49-contact-row"><span class="t49-contact-icon">✉</span><span class="t49-contact-text editable-field" ${editBtn('email','Email',email)}>${email} <span class="edit-pen">✏</span></span></div>
-      <div class="t49-contact-row"><span class="t49-contact-icon">📍</span><span class="t49-contact-text editable-field" ${editBtn('address','Address',addr)}>${addr} <span class="edit-pen">✏</span></span></div>
+      <div class="t49-contact-row"><span class="t49-contact-icon">📍</span><span class="t49-contact-text editable-field" ${editBtn('address','Address',addr)}>${addr} <span class="edit-pen">✏</span></span></div>
       <div class="t49-contact-row"><span class="t49-contact-icon">🌐</span><span class="t49-contact-text editable-field" ${editBtn('website','Website',website)}>${website} <span class="edit-pen">✏</span></span></div>
     </div>
   </div>
@@ -4792,7 +4839,7 @@ function buildTemplate50Template({ resumeData: d, edu, skills, projects, experie
     <div class="t50-top-contact">
       <div class="t50-contact-item editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>
       <div class="t50-contact-item editable-field" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>
-      <div class="t50-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>
+      <div class="t50-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>
       ${website ? `<div class="t50-contact-item editable-field" ${editBtn('website','Website',website)}>🌐 ${website} <span class="edit-pen">✏</span></div>` : ''}
     </div>
     <div class="t50-sec-title-r">Experience</div>
@@ -4836,7 +4883,7 @@ function buildTemplate51Template({ resumeData: d, edu, skills, projects, experie
     <div class="t51-sec-title-l">Contact</div>
     <div class="t51-contact-item editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>
     <div class="t51-contact-item editable-field" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>
-    <div class="t51-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>
+    <div class="t51-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>
     ${website ? `<div class="t51-contact-item editable-field" ${editBtn('website','Website',website)}>🌐 ${website} <span class="edit-pen">✏</span></div>` : ''}
     <div class="t51-sec-title-l">Education</div>
     <div class="section-block" id="rv-edu-section">
@@ -4916,7 +4963,7 @@ function buildTemplate52Template({ resumeData: d, edu, skills, projects, experie
         <div class="t52-contact-row">
           <div class="t52-contact-item editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>
           <div class="t52-contact-item editable-field" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>
-          <div class="t52-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>
+          <div class="t52-contact-item editable-field" ${editBtn('address','Address',addr)}>📍 ${addr} <span class="edit-pen">✏</span></div>
           ${website ? `<div class="t52-contact-item editable-field" ${editBtn('website','Website',website)}>🌐 ${website} <span class="edit-pen">✏</span></div>` : ''}
         </div>
       </div>
@@ -5207,7 +5254,7 @@ function buildRobertTemplate({ resumeData: d, edu, skills, projects, experience,
                <input type="range" min="60" max="140" value="${photoSize}" style="width:80px;" oninput="updatePhotoSize(this.value)" title="Photo size">
                <select style="font-size:10px;border:1px solid #ccc;border-radius:4px;padding:1px 3px;" onchange="updatePhotoShape(this.value)" title="Shape">
                  <option value="circle" ${d.photoShape!=='square'?'selected':''}>●</option>
-                 <option value="square" ${d.photoShape==='square'?'selected':''}>■</option>
+                 <option value="square" ${d.photoShape==='square'?'selected':''}>▶ </option>
                </select>
              </div>
            </div>`
@@ -5221,7 +5268,7 @@ function buildRobertTemplate({ resumeData: d, edu, skills, projects, experience,
         { icon: '📞', val: phone,   field: 'phone',   label: 'Phone'    },
         { icon: '✉',  val: email,   field: 'email',   label: 'Email'    },
         { icon: '🔗', val: linkedin,field: 'linkedin',label: 'LinkedIn' },
-        { icon: '📍', val: location,field: 'location',label: 'Location' },
+        { icon: '📍', val: location,field: 'location',label: 'Location' },
     ].map(c => `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;" class="editable-field" ${editBtn(c.field, c.label, c.val)}>
         <span style="font-size:13px;flex-shrink:0;">${c.icon}</span>
         <span style="font-size:12px;color:#374151;line-height:1.4;">${c.val} <span class="edit-pen">✏</span></span>
@@ -5417,7 +5464,7 @@ function buildOliviaTemplate({ resumeData: d, edu, skills, projects, experience,
             <!-- Contact teal block -->
             <div style="background:#d6e8e2;padding:14px 16px;margin-top:0;">
                 <div class="editable-field" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;" ${editBtn('address','Address', d.address||'')}>
-                    <span style="font-size:13px;">📍</span>
+                    <span style="font-size:13px;">📍</span>
                     <span style="font-size:12px;color:#374151;">${addr} <span class="edit-pen">✏</span></span>
                 </div>
                 <div class="editable-field" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;" ${editBtn('phone','Phone', d.phone||'')}>
@@ -5503,7 +5550,7 @@ function buildMaryTemplate({ resumeData: d, edu, skills, projects, experience, c
                <input type="range" min="60" max="140" value="${photoSize}" style="width:80px;" oninput="updatePhotoSize(this.value)" title="Photo size">
                <select style="font-size:10px;border:1px solid #ccc;border-radius:4px;padding:1px 3px;" onchange="updatePhotoShape(this.value)">
                  <option value="circle" ${d.photoShape!=='square'?'selected':''}>● Circle</option>
-                 <option value="square" ${d.photoShape==='square'?'selected':''}>■ Square</option>
+                 <option value="square" ${d.photoShape==='square'?'selected':''}>▶  Square</option>
                </select>
              </div>
            </div>`
@@ -5555,7 +5602,7 @@ function buildMaryTemplate({ resumeData: d, edu, skills, projects, experience, c
             <!-- Contact -->
             ${sectionTitle('Contact')}
             <div class="editable-field" style="margin-bottom:5px;" ${editBtn('address','Address',d.address||'')}>
-                <span style="font-size:12px;color:#374151;">📍 ${addr} <span class="edit-pen">✏</span></span>
+                <span style="font-size:12px;color:#374151;">📍 ${addr} <span class="edit-pen">✏</span></span>
             </div>
             <div class="editable-field" style="margin-bottom:5px;" ${editBtn('phone','Phone',d.phone||'')}>
                 <span style="font-size:12px;color:#374151;">📞 ${phone} <span class="edit-pen">✏</span></span>
@@ -5667,7 +5714,7 @@ function buildTanyaTemplate({ resumeData: d, edu, skills, projects, experience, 
             <div class="editable-field" style="text-align:center;margin-bottom:16px;" ${editBtn('fullName','Full Name',d.fullName||'')}><div style="font-size:15px;font-weight:900;color:#fff;">${name} <span class="edit-pen">✏</span></div></div>
             <div class="editable-field" style="text-align:center;margin-bottom:16px;" ${editBtn('jobTitle','Job Title',d.jobTitle||'')}><div style="font-size:11px;color:${gold};">${title} <span class="edit-pen">✏</span></div></div>
             ${secTitle('Contact')}
-            <div class="editable-field" style="font-size:12px;color:#ccc;line-height:1.9;" ${editBtn('address','Address',d.address||'')}>📍 ${addr} <span class="edit-pen">✏</span></div>
+            <div class="editable-field" style="font-size:12px;color:#ccc;line-height:1.9;" ${editBtn('address','Address',d.address||'')}>📍 ${addr} <span class="edit-pen">✏</span></div>
             <div class="editable-field" style="font-size:12px;color:#ccc;" ${editBtn('phone','Phone',d.phone||'')}>📞 ${phone} <span class="edit-pen">✏</span></div>
             <div class="editable-field" style="font-size:12px;color:#ccc;" ${editBtn('email','Email',d.email||'')}>✉ ${email} <span class="edit-pen">✏</span></div>
             <div class="editable-field" style="font-size:12px;color:#ccc;margin-bottom:14px;" ${editBtn('website','Website',d.website||'')}>🔗 ${website} <span class="edit-pen">✏</span></div>
@@ -5727,7 +5774,7 @@ function buildSamuelTemplate({ resumeData: d, edu, skills, projects, experience,
         <div style="width:240px;flex-shrink:0;background:#1a1a1a;padding:24px 14px;color:#fff;">
             ${photoHTML}
             <div style="background:${accent};color:#1a1a1a;font-size:10px;font-weight:800;padding:4px 8px;border-radius:4px;text-align:center;margin-bottom:10px;">CONTACT ME</div>
-            <div class="editable-field" style="font-size:12px;color:#ccc;line-height:1.9;margin-bottom:14px;" ${editBtn('address','Address',d.address||'')}>📍 ${addr}<br>✉ ${email}<br>📞 ${phone} <span class="edit-pen">✏</span></div>
+            <div class="editable-field" style="font-size:12px;color:#ccc;line-height:1.9;margin-bottom:14px;" ${editBtn('address','Address',d.address||'')}>📍 ${addr}<br>✉ ${email}<br>📞 ${phone} <span class="edit-pen">✏</span></div>
             <div style="background:${accent};color:#1a1a1a;font-size:10px;font-weight:800;padding:4px 8px;border-radius:4px;text-align:center;margin-bottom:10px;">PRO SKILLS</div>
             <div class="editable-field" ${editBtn('skillsJson','Skills',JSON.stringify(skills))}>${skillBars} <span class="edit-pen">✏</span></div>
         </div>
@@ -5855,7 +5902,7 @@ function buildMinimalTemplate({ resumeData: d, edu, skills, projects, experience
             <div class="editable-field" ${editBtn('fullName','Full Name',d.fullName||'')}><div style="font-size:17px;font-weight:900;color:#111;line-height:1.1;margin-bottom:3px;">${name} <span class="edit-pen">✏</span></div></div>
             <div class="editable-field" ${editBtn('jobTitle','Job Title',d.jobTitle||'')}><div style="font-size:11px;color:#888;margin-bottom:16px;">${title} <span class="edit-pen">✏</span></div></div>
             ${secTitle('Contact')}
-            <div class="editable-field" style="font-size:12px;color:#555;line-height:1.9;margin-bottom:14px;" ${editBtn('address','Address',d.address||'')}>📍 ${addr}<br>📞 ${phone}<br>✉ ${email}<br>🔗 ${website} <span class="edit-pen">✏</span></div>
+            <div class="editable-field" style="font-size:12px;color:#555;line-height:1.9;margin-bottom:14px;" ${editBtn('address','Address',d.address||'')}>📍 ${addr}<br>📞 ${phone}<br>✉ ${email}<br>🔗 ${website} <span class="edit-pen">✏</span></div>
             ${secTitle('Skills')}
             <div class="editable-field" ${editBtn('skillsJson','Skills',JSON.stringify(skills))}>${skillsList} <span class="edit-pen">✏</span></div>
             ${secTitle('Education')}
@@ -6041,10 +6088,10 @@ function buildFullEditPanel(activeTab) {
         { id: 'personal',   icon: '👤', label: 'Personal'   },
         { id: 'summary',    icon: '📝', label: 'Summary'    },
         { id: 'contact',    icon: '📞', label: 'Contact'    },
-        { id: 'skills',     icon: '🛠', label: 'Skills'     },
+        { id: 'skills',     icon: '🛠️', label: 'Skills'     },
         { id: 'education',  icon: '🎓', label: 'Education'  },
         { id: 'experience', icon: '💼', label: 'Experience' },
-        { id: 'projects',   icon: '📁', label: 'Projects'   },
+        { id: 'projects',   icon: '📋', label: 'Projects'   },
         { id: 'extra',      icon: '➕', label: 'More'       },
     ];
 
@@ -6097,7 +6144,7 @@ function buildPhotoTab(d) {
             ? `<img src="${d.profilePhotoData}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid #7c3aed;display:block;margin:0 auto 12px;">`
             : `<div style="width:100px;height:100px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:3rem;margin:0 auto 12px;border:3px dashed #d1d5db;">👤</div>`}
         <label class="ep-upload-btn">
-            📷 ${hasPhoto ? 'Change Photo' : 'Upload Photo'}
+            📍· ${hasPhoto ? 'Change Photo' : 'Upload Photo'}
             <input type="file" id="photoFileInput" accept="image/*" style="display:none" onchange="handleReviewPhotoUpload(event)">
         </label>
         ${hasPhoto ? `<br><button class="ep-remove-btn" onclick="removeReviewPhoto()">🗑 Remove Photo</button>` : ''}
@@ -6109,7 +6156,7 @@ function buildPhotoTab(d) {
           <label class="ep-label">Shape</label>
           <select class="ep-select" id="ep_photoShape" onchange="livePreviewPhoto()">
             <option value="circle" ${(d.photoShape||'circle')==='circle'?'selected':''}>⬤ Circle</option>
-            <option value="square" ${d.photoShape==='square'?'selected':''}>■ Square</option>
+            <option value="square" ${d.photoShape==='square'?'selected':''}>▶  Square</option>
           </select>
         </div>
         <div class="ep-field">
@@ -6195,7 +6242,7 @@ function buildContactTab(d) {
         </div>
       </div>
       <div class="ep-field">
-        <label class="ep-label">📍 Address / City</label>
+        <label class="ep-label">📍 Address / City</label>
         <input class="ep-input" id="ep_address" value="${esc(d.address||'')}" placeholder="123 Main St, Chennai, TN">
       </div>
       <div class="ep-row">
@@ -6216,28 +6263,36 @@ function buildContactTab(d) {
 function buildSkillsTab(d) {
     let skills = [];
     try { skills = JSON.parse(d.skillsJson||'[]'); } catch {}
-    const items = skills.map((s,i) => {
-        const sn = s.name||s; const lv = typeof s.level==='number' ? s.level : 80;
-        return `<div class="ep-skill-row" id="epsk${i}">
-          <input class="ep-input" style="flex:1;" value="${esc(sn)}" placeholder="Skill name" oninput="updateSkillEntry(${i},'name',this.value)">
-          <div style="display:flex;align-items:center;gap:6px;min-width:160px;">
-            <input type="range" min="0" max="100" value="${lv}" style="flex:1;"
-                   oninput="updateSkillEntry(${i},'level',+this.value);this.nextElementSibling.textContent=this.value+'%'">
-            <span style="font-size:11px;color:#6b7280;min-width:32px;">${lv}%</span>
-          </div>
-          <button class="ep-remove-row" onclick="removeSkillEntry(${i})" title="Remove">✕</button>
-        </div>`;
-    }).join('');
+    // D_025 FIX: normalise plain-string skills into objects so name input always shows the value
+    skills = skills.map(s => {
+        if (typeof s === 'string') return { name: s, level: 80 };
+        const name = s.name || s.skill || s.skillName || s.title || '';
+        const level = typeof s.level === 'number' ? s.level :
+                      typeof s.proficiency === 'number' ? s.proficiency : 80;
+        return { name, level };
+    });
+
+    _epSkills = skills.slice();
+
+    const colHeaders = skills.length ? `
+      <div style="display:flex;align-items:center;gap:10px;padding:0 12px;margin-bottom:4px;">
+        <span style="flex:1;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Skill Name</span>
+        <span style="min-width:160px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Proficiency</span>
+        <span style="width:26px;"></span>
+      </div>` : '';
+
+    const items = renderSkillRows(skills);
+
     return `<div class="ep-section">
       <h4 class="ep-section-title">Skills</h4>
-      <p class="ep-hint">Add your key skills. Drag the slider to set proficiency level.</p>
+      <p class="ep-hint">Type a skill name (e.g. Python, Testing, SQL) then drag the slider to set your proficiency level.</p>
+      ${colHeaders}
       <div id="epSkillList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">${items}</div>
       <button class="ep-add-btn" onclick="addSkillEntry()">+ Add Skill</button>
       <button class="ep-save-btn" onclick="saveSkillsTab()">💾 Save Skills</button>
     </div>`;
 }
 
-// ─── EDUCATION TAB ────────────────────────────────────────────
 function buildEducationTab(d) {
     let arr = [];
     try { arr = JSON.parse(d.educationJson||'[]'); } catch {}
@@ -6307,7 +6362,7 @@ function buildProjectsTab(d) {
     try { arr = JSON.parse(d.projectsJson||'[]'); } catch {}
     const items = arr.map((p,i) => `<div class="ep-card" id="eppr${i}">
       <div class="ep-card-header">
-        <span style="font-weight:700;font-size:13px;">📁 ${p.title||p.name||'Project #'+(i+1)}</span>
+        <span style="font-weight:700;font-size:13px;">📋 ${p.title||p.name||'Project #'+(i+1)}</span>
         <button class="ep-remove-row" onclick="removeProjEntry(${i})" title="Remove">✕</button>
       </div>
       <div class="ep-row">
@@ -6347,7 +6402,7 @@ function buildExtraTab(d) {
       <div class="ep-field"><label class="ep-label">❤️ Interests / Hobbies</label>
         <textarea class="ep-textarea" id="ep_interests" rows="3" placeholder="Photography, Open-source Contribution, Chess…">${esc(d.interests||'')}</textarea></div>
 
-      <div class="ep-field"><label class="ep-label">📜 Certifications</label>
+      <div class="ep-field"><label class="ep-label">📍œ Certifications</label>
         <textarea class="ep-textarea" id="ep_certifications" rows="3" placeholder="AWS Certified Developer (2023)&#10;Google Analytics Certified…">${esc(d.certifications||'')}</textarea></div>
 
       <div class="ep-field"><label class="ep-label">💡 Key Qualities / Strengths</label>
@@ -6363,42 +6418,70 @@ let _epSkills = [], _epEdu = [], _epExp = [], _epProj = [];
 function esc(s) { return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 // ── Skill entries ──
-function addSkillEntry() {
-    try { _epSkills = JSON.parse(resumeData.skillsJson||'[]'); } catch { _epSkills=[]; }
-    _epSkills.push({name:'',level:80});
-    const list = document.getElementById('epSkillList');
-    if (list) {
-        const i = _epSkills.length-1;
-        const div = document.createElement('div');
-        div.className = 'ep-skill-row'; div.id = 'epsk'+i;
-        div.innerHTML = `<input class="ep-input" style="flex:1;" value="" placeholder="Skill name" oninput="updateSkillEntry(${i},'name',this.value)">
-          <div style="display:flex;align-items:center;gap:6px;min-width:160px;">
-            <input type="range" min="0" max="100" value="80" style="flex:1;"
-                   oninput="updateSkillEntry(${i},'level',+this.value);this.nextElementSibling.textContent=this.value+'%'">
-            <span style="font-size:11px;color:#6b7280;min-width:32px;">80%</span>
+function renderSkillRows(skills) {
+    return skills.map((s, i) => {
+        const sn = (s && (s.name || s.skill || s.skillName || s.title)) || '';
+        const lv = (s && typeof s.level === 'number') ? s.level :
+                   (s && typeof s.proficiency === 'number') ? s.proficiency : 80;
+        return `<div class="ep-skill-row" id="epsk${i}">
+          <div class="ep-skill-name-wrap">
+            <input class="ep-input ep-skill-name-input" type="text" value="${esc(sn)}" placeholder="e.g. Python, SQL, Testing" oninput="updateSkillEntry(${i},'name',this.value)">
           </div>
-          <button class="ep-remove-row" onclick="removeSkillEntry(${i})" title="Remove">✕</button>`;
-        list.appendChild(div);
-        div.querySelector('input').focus();
-    }
+          <div class="ep-skill-level-wrap">
+            <input class="ep-skill-level-input" type="range" min="0" max="100" value="${lv}" style="flex:1;"
+                   oninput="updateSkillEntry(${i},'level',+this.value);this.nextElementSibling.textContent=this.value+'%'">
+            <span class="ep-skill-level-value" style="font-size:11px;color:#6b7280;min-width:32px;">${lv}%</span>
+          </div>
+          <button class="ep-remove-row" onclick="removeSkillEntry(${i})" title="Remove">&#x2715;</button>
+        </div>`;
+    }).join('');
 }
-function updateSkillEntry(i,k,v) { try{_epSkills=JSON.parse(resumeData.skillsJson||'[]');}catch{_epSkills=[];} if(_epSkills[i])_epSkills[i][k]=v; }
-function removeSkillEntry(i) {
-    try{_epSkills=JSON.parse(resumeData.skillsJson||'[]');}catch{_epSkills=[];}
-    _epSkills.splice(i,1);
-    resumeData.skillsJson = JSON.stringify(_epSkills);
-    const content = document.getElementById('epContent');
-    if (content) content.innerHTML = buildTabContent('skills');
-}
-function saveSkillsTab() {
+
+function collectSkillEntriesFromDom() {
     const rows = document.querySelectorAll('#epSkillList .ep-skill-row');
     const arr = [];
-    rows.forEach((row,i) => {
-        const inp = row.querySelector('input[type=text],input:not([type=range]):not([type=file])');
-        const rng = row.querySelector('input[type=range]');
-        const name = inp ? inp.value.trim() : '';
-        if (name) arr.push({ name, level: rng ? +rng.value : 80 });
+    rows.forEach(row => {
+        const inp = row.querySelector('.ep-skill-name-input');
+        const rng = row.querySelector('.ep-skill-level-input');
+        arr.push({
+            name: inp ? inp.value.trim() : '',
+            level: rng ? +rng.value : 80
+        });
     });
+    return arr;
+}
+
+function rerenderSkillList(focusIndex) {
+    const list = document.getElementById('epSkillList');
+    if (!list) return;
+    list.innerHTML = renderSkillRows(_epSkills);
+    if (typeof focusIndex === 'number') {
+        requestAnimationFrame(() => {
+            const input = list.querySelector(`#epsk${focusIndex} .ep-skill-name-input`);
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        });
+    }
+}
+
+function addSkillEntry() {
+    _epSkills = collectSkillEntriesFromDom();
+    _epSkills.push({ name: '', level: 80 });
+    rerenderSkillList(_epSkills.length - 1);
+}
+function updateSkillEntry(i,k,v) {
+    _epSkills = collectSkillEntriesFromDom();
+    if (_epSkills[i]) _epSkills[i][k] = v;
+}
+function removeSkillEntry(i) {
+    _epSkills = collectSkillEntriesFromDom();
+    _epSkills.splice(i, 1);
+    rerenderSkillList();
+}
+function saveSkillsTab() {
+    const arr = collectSkillEntriesFromDom().filter(s => s.name);
     resumeData.skillsJson = JSON.stringify(arr);
     persistField('skillsJson', resumeData.skillsJson);
     renderResume(); closeEditModal(); showToast('✓ Skills saved!');
@@ -6870,7 +6953,7 @@ function fillExactTemplateContacts(root, d) {
     const contacts = [
         { key: 'email', value: d.email || '', pattern: /email|@|\[email|✉/i },
         { key: 'phone', value: d.phone || '', pattern: /phone|📱|☎|tel|\+\d/i },
-        { key: 'address', value: d.address || d.location || '', pattern: /address|location|📍|germany|india|city/i },
+        { key: 'address', value: d.address || d.location || '', pattern: /address|location|📍|germany|india|city/i },
         { key: 'linkedin', value: d.linkedin || '', pattern: /linkedin|\bin\b/i },
         { key: 'website', value: d.website || '', pattern: /🌐|www|http|portfolio|dribbble|behance|webb/i }
     ];
@@ -8098,7 +8181,7 @@ function buildNarmathaProTemplate({ resumeData: d, edu, skills, projects, experi
         { icon: '📧', val: email,    field: 'email',    label: 'Email'    },
         { icon: '📞', val: phone,    field: 'phone',    label: 'Phone'    },
         { icon: '🔗', val: linkedin, field: 'linkedin', label: 'LinkedIn' },
-        { icon: '📍', val: location, field: 'location', label: 'Location' },
+        { icon: '📍', val: location, field: 'location', label: 'Location' },
     ].map(c => `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:11px;color:#555;cursor:pointer;" class="editable-field" ${editBtn(c.field,c.label,c.val)}>
         <span>${c.icon}</span><span>${c.val} <span class="edit-pen">✏</span></span>
     </div>`).join('');
@@ -8286,7 +8369,7 @@ function buildJohnPurpleLeftTemplate({ resumeData: d, edu, skills, projects, exp
     <div class="editable-field" ${editBtn('educationJson','Education','')}>${eduHTML}</div>
     <div style="font-size:13px;font-weight:800;color:#1a1a2e;margin-bottom:8px;margin-top:16px;">Contact</div>
     <div style="font-size:11px;color:#555;line-height:1.8;cursor:pointer;" class="editable-field" ${editBtn('email','Email',email)}>📧 ${email} <span class="edit-pen">✏</span></div>
-    <div style="font-size:11px;color:#555;cursor:pointer;" class="editable-field" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
+    <div style="font-size:11px;color:#555;cursor:pointer;" class="editable-field" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
     <div style="font-size:11px;color:#555;cursor:pointer;" class="editable-field" ${editBtn('linkedin','LinkedIn',linkedin)}>🔗 ${linkedin} <span class="edit-pen">✏</span></div>
   </div>
 </div>`;
@@ -8476,7 +8559,7 @@ function buildProductManagerTemplate({ resumeData: d, edu, skills, projects, exp
     const name     = d.fullName       || 'JOHN SMITH';
     const title    = d.jobTitle       || 'Product Manager';
     const email    = d.email          || 'johnsmith@gmail.com';
-    const phone    = d.phone          || '1234567890';
+    const phone    = d.phone          || '+91 98765 43210';
     const summary  = d.profileSummary || 'Results-driven Product Manager with experience in defining product vision, strategy, and roadmaps.';
     const linkedin = d.linkedin       || 'https://behance.net/johnsmith';
     const location = d.location       || '23/2 East street, Tenkasi';
@@ -8541,7 +8624,7 @@ function buildProductManagerTemplate({ resumeData: d, edu, skills, projects, exp
       <div style="font-size:10px;color:#1a1a2e;font-weight:600;cursor:pointer;" class="editable-field" ${editBtn('email','Email',email)}>📧 ${email} <span class="edit-pen">✏</span></div>
       <div style="font-size:10px;color:#1a1a2e;font-weight:600;cursor:pointer;" class="editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>
       <div style="font-size:10px;color:#1a1a2e;font-weight:600;cursor:pointer;" class="editable-field" ${editBtn('linkedin','LinkedIn',linkedin)}>🔗 ${linkedin} <span class="edit-pen">✏</span></div>
-      <div style="font-size:10px;color:#1a1a2e;font-weight:600;cursor:pointer;" class="editable-field" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
+      <div style="font-size:10px;color:#1a1a2e;font-weight:600;cursor:pointer;" class="editable-field" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
     </div>
   </div>
 </div>`;
@@ -8557,7 +8640,7 @@ function buildBotanicaTemplate({ resumeData: d, edu, skills, projects, experienc
     const title    = d.jobTitle       || 'Stagiaire / Professional';
     const email    = d.email          || 'email@gmail.com';
     const phone    = d.phone          || '+33 1 23 45 67 89';
-    const summary  = d.profileSummary || 'Jeune travailleuse et ambitieuse capable de travailler en équipe. La confiance se mérite et passe par la satisfaction d\'un travail bien fait !';
+    const summary  = d.profileSummary || 'Jeune travailleuse et ambitieuse capable de travailler en Ã©quipe. La confiance se mÃ©rite et passe par la satisfaction d\'un travail bien fait !';
     const linkedin = d.linkedin       || 'linkedin.com/in/yourname';
     const location = d.location       || 'Nice, FRANCE';
 
@@ -8595,12 +8678,12 @@ function buildBotanicaTemplate({ resumeData: d, edu, skills, projects, experienc
     </div>
     <div style="display:flex;">
       <div style="width:34%;background:#222;padding:20px 16px;min-height:700px;">
-        ${infoItem('📍','localisation',location,'location')}
+        ${infoItem('📍','localisation',location,'location')}
         ${infoItem('📞','contact',phone,'phone')}
         ${infoItem('✉','email',email,'email')}
         <div style="margin-bottom:14px;">
           <div style="font-size:10px;color:${accent};font-weight:700;margin-bottom:4px;">🌐 langues</div>
-          <div style="font-size:10px;color:rgba(255,255,255,0.7);">${d.languages||'Français · Anglais'}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.7);">${d.languages||'FranÃ§ais · Anglais'}</div>
         </div>
         <div style="margin-bottom:14px;">
           <div style="font-size:10px;color:${accent};font-weight:700;margin-bottom:4px;">🚗 automobile</div>
@@ -8612,7 +8695,7 @@ function buildBotanicaTemplate({ resumeData: d, edu, skills, projects, experienc
         </div>
         <div>
           <div style="font-size:10px;color:${accent};font-weight:700;margin-bottom:4px;">🎵 loisirs</div>
-          <div style="font-size:10px;color:rgba(255,255,255,0.7);line-height:2;">Musique<br>Lecture<br>Randonnée</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.7);line-height:2;">Musique<br>Lecture<br>RandonnÃ©e</div>
         </div>
       </div>
       <div style="flex:1;padding:18px 20px;">
@@ -8728,7 +8811,7 @@ function buildBrianTemplate({ resumeData: d, edu, skills, projects, experience, 
     const name     = d.fullName       || 'Brian R';
     const title    = d.jobTitle       || 'Graphics & Web Designer';
     const email    = d.email          || 'brianr@gmail.com';
-    const phone    = d.phone          || '1234567890';
+    const phone    = d.phone          || '+91 98765 43210';
     const summary  = d.profileSummary || 'Creative and detail-oriented Graphics & Web Designer with experience in designing visually appealing graphics and user-friendly websites.';
     const linkedin = d.linkedin       || 'linkedin.com/in/brianr';
     const location = d.location       || '23/2 East street, Tenkasi';
@@ -8785,7 +8868,7 @@ function buildBrianTemplate({ resumeData: d, edu, skills, projects, experience, 
         <div style="font-size:10px;color:#555;line-height:2;">
           <div class="editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>
-          <div class="editable-field" style="cursor:pointer;" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
+          <div class="editable-field" style="cursor:pointer;" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
         </div>
       </div>
       <div style="margin-bottom:18px;position:relative;">
@@ -8986,7 +9069,7 @@ function buildEmilyTemplate({ resumeData: d, edu, skills, projects, experience, 
     const name    = d.fullName       || 'Emily Johnson';
     const title   = d.jobTitle       || 'Creative Designer';
     const email   = d.email          || 'emily@gmail.com';
-    const phone   = d.phone          || '1234567890';
+    const phone   = d.phone          || '+91 98765 43210';
     const summary = d.profileSummary || 'Creative professional with a passion for impactful design and visual storytelling.';
     const location= d.location       || 'City, State';
     const linkedin= d.linkedin       || 'linkedin';
@@ -9115,7 +9198,7 @@ function buildKellyTemplate({ resumeData: d, edu, skills, projects, experience, 
   <div style="width:48%;background:#1a1a1a;padding:28px 20px;color:#fff;">
     <div style="background:${accent};color:#fff;font-size:10px;font-weight:800;padding:4px 16px;border-radius:99px;width:fit-content;margin-bottom:18px;">Pro</div>
     <div style="font-size:13px;font-weight:800;text-transform:uppercase;text-align:center;background:${accent};color:#1a1a1a;padding:6px;margin-bottom:12px;">CONTACT ME</div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.7);margin-bottom:5px;cursor:pointer;" class="editable-field" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.7);margin-bottom:5px;cursor:pointer;" class="editable-field" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
     <div style="font-size:9px;color:rgba(255,255,255,0.7);margin-bottom:5px;cursor:pointer;" class="editable-field" ${editBtn('linkedin','Website/LinkedIn',website)}>🌐 ${website} <span class="edit-pen">✏</span></div>
     <div style="font-size:9px;color:rgba(255,255,255,0.7);margin-bottom:18px;cursor:pointer;" class="editable-field" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>
     <div style="font-size:13px;font-weight:800;text-transform:uppercase;text-align:center;background:${accent};color:#1a1a1a;padding:6px;margin-bottom:12px;">PRO SKILLS</div>
@@ -9160,7 +9243,7 @@ function buildSuhailTemplate({ resumeData: d, edu, skills, projects, experience,
           </div>`).join('')
         : `<div style="font-size:9px;color:#888;cursor:pointer;" ${editBtn('educationJson','Education','')}>Add education ✏</div>`;
 
-    const hobbyEmojis = ['🍳','✈️','🎤','🏊','📚','🎨','🎮','🎵'];
+    const hobbyEmojis = ['🍳','✈️','🎤','🏊','📍š','🎨','🎮','🎵'];
     const hobbyList = hobbies.split(',').map((h,i)=>`<div style="text-align:center;">
         <div style="width:36px;height:36px;background:#f0f4f8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">${hobbyEmojis[i%hobbyEmojis.length]}</div>
         <div style="font-size:8px;color:#888;margin-top:2px;">${h.trim()}</div>
@@ -9188,7 +9271,7 @@ function buildSuhailTemplate({ resumeData: d, edu, skills, projects, experience,
         <div style="font-size:9px;color:#555;line-height:2;margin-bottom:14px;">
           <div class="editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>
-          <div class="editable-field" style="cursor:pointer;" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
+          <div class="editable-field" style="cursor:pointer;" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
         </div>
         <div style="font-size:12px;font-weight:800;color:#1a1a2e;margin-bottom:8px;">Hobbies</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">${hobbyList}</div>
@@ -9263,7 +9346,7 @@ function buildRickTangTemplate({ resumeData: d, edu, skills, projects, experienc
       <div style="flex:0.9;">
         <div style="font-size:12px;font-weight:800;color:${accent};text-transform:uppercase;border-bottom:2px solid ${accent};padding-bottom:4px;margin-bottom:10px;">Details</div>
         <div style="font-size:9px;color:#555;line-height:2;margin-bottom:14px;">
-          <div class="editable-field" style="cursor:pointer;" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
+          <div class="editable-field" style="cursor:pointer;" ${editBtn('location','Location',location)}>📍 ${location} <span class="edit-pen">✏</span></div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>
         </div>
@@ -9311,10 +9394,10 @@ function buildHaniTemplate(ctx) {
         : `<div style="font-size:9px;color:rgba(255,255,255,0.4);">Add skills</div>`;
 
     const contacts = [
-        d.dob       ? `📅 ${d.dob}` : '',
+        d.dob       ? `📍… ${d.dob}` : '',
         d.phone     ? `📞 ${d.phone}` : '',
         d.email     ? `✉ ${d.email}` : '',
-        d.address   ? `📍 ${d.address}` : '',
+        d.address   ? `📍 ${d.address}` : '',
     ].filter(Boolean);
 
     const extraHTML = buildExtraSectionsHTML(ctx, accent, '');
@@ -9528,7 +9611,7 @@ function buildKateBishopTemplate(ctx) {
     const contactInfo = [
         d.email   ? `✉ ${d.email}` : '',
         d.phone   ? `📞 ${d.phone}` : '',
-        d.address ? `📍 ${d.address}` : '',
+        d.address ? `📍 ${d.address}` : '',
         d.linkedin? `🔗 ${d.linkedin}` : '',
     ].filter(Boolean).join(' &nbsp;·&nbsp; ');
 
@@ -9886,7 +9969,7 @@ function buildTemplate22ProperTemplate({ resumeData: d, edu, skills, projects, e
       <div class="t22-green-btn" style="background:${accent};">Contact</div>
       ${phone ? `<div class="t22-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>` : ''}
       ${email ? `<div class="t22-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>` : ''}
-      ${d.address ? `<div class="t22-contact-item editable-field" style="cursor:pointer;" ${editBtn('address','Address',d.address||'')}>📍 ${d.address} <span class="edit-pen">✏</span></div>` : ''}
+      ${d.address ? `<div class="t22-contact-item editable-field" style="cursor:pointer;" ${editBtn('address','Address',d.address||'')}>📍 ${d.address} <span class="edit-pen">✏</span></div>` : ''}
     </div>
     ${langBarHTML ? `<div class="t22-contact-section" style="margin-top:10px;"><div class="t22-green-btn-wide" style="background:${accent};">Languages</div><div class="editable-field" ${editBtn('languages','Languages',d.languages||'')}>${langBarHTML}<span class="edit-pen" style="font-size:10px;">✏</span></div></div>` : ''}
     <div class="t22-contact-section" style="margin-top:10px;">
@@ -9965,7 +10048,7 @@ function buildTemplate23ProperTemplate({ resumeData: d, edu, skills, projects, e
       ${phone ? `<div class="t23-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>` : ''}
       ${email ? `<div class="t23-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>` : ''}
       ${d.linkedin ? `<div class="t23-contact-item editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}>🔗 ${d.linkedin} <span class="edit-pen">✏</span></div>` : ''}
-      ${d.address ? `<div class="t23-contact-item editable-field" style="cursor:pointer;" ${editBtn('address','Address',d.address||'')}>📍 ${d.address} <span class="edit-pen">✏</span></div>` : ''}
+      ${d.address ? `<div class="t23-contact-item editable-field" style="cursor:pointer;" ${editBtn('address','Address',d.address||'')}>📍 ${d.address} <span class="edit-pen">✏</span></div>` : ''}
     </div>
     <div class="t23-left-body">
       <div class="t23-orange-sec" style="background:${accent};margin:10px -14px 8px;">Skills</div>
@@ -11373,7 +11456,7 @@ function buildTemplate10Template({ resumeData: d, edu, skills, projects, experie
       <div class="t10-footer">
         ${phone?`<div class="t10-footer-item">📞 ${phone}</div>`:''}
         ${email?`<div class="t10-footer-item">✉ ${email}</div>`:''}
-        ${addr?`<div class="t10-footer-item">📍 ${addr}</div>`:''}
+        ${addr?`<div class="t10-footer-item">📍 ${addr}</div>`:''}
         ${linkedin?`<div class="t10-footer-item">🔗 ${linkedin}</div>`:''}
       </div>
     </div>`;
@@ -11418,7 +11501,7 @@ function buildTemplate11Template({ resumeData: d, edu, skills, projects, experie
         <div class="t11-name editable-field" style="cursor:pointer;" ${editBtn('fullName','Full Name',d.fullName||'')}>${name}</div>
         <div class="t11-role editable-field" style="cursor:pointer;color:#e0b0ff;" ${editBtn('jobTitle','Job Title',d.jobTitle||'')}>${title}</div>
         <div class="t11-contact-row">
-          ${phone?`<span>📞 ${phone}</span>`:''}${email?`<span>✉ ${email}</span>`:''}${addr?`<span>📍 ${addr}</span>`:''}
+          ${phone?`<span>📞 ${phone}</span>`:''}${email?`<span>✉ ${email}</span>`:''}${addr?`<span>📍 ${addr}</span>`:''}
         </div>
       </div>
       <div class="t11-body">
@@ -11620,7 +11703,7 @@ function buildTemplate14Template({ resumeData: d, edu, skills, projects, experie
         <div class="t14-role-l" style="color:#4a90d9;">${title}</div>
         <div class="t14-contact-item">📞 ${phone||''}</div>
         <div class="t14-contact-item">✉ ${email||''}</div>
-        ${addr?`<div class="t14-contact-item">📍 ${addr}</div>`:''}
+        ${addr?`<div class="t14-contact-item">📍 ${addr}</div>`:''}
         ${skills.length?`<div class="t14-sec-l"><div class="t14-sec-title-l" style="border-color:${gold};">Skills</div>
         <div class="editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills','')}>${skillBars}</div></div>`:''}
         ${edu.length?`<div class="t14-sec-l"><div class="t14-sec-title-l" style="border-color:${gold};">Education</div>
@@ -11752,7 +11835,7 @@ function buildTemplate16Template({ resumeData: d, edu, skills, projects, experie
         <div class="t16-left-content">
           ${phone?`<div class="t16-contact">📞 ${phone}</div>`:''}
           ${email?`<div class="t16-contact">✉ ${email}</div>`:''}
-          ${addr?`<div class="t16-contact">📍 ${addr}</div>`:''}
+          ${addr?`<div class="t16-contact">📍 ${addr}</div>`:''}
         </div>
         ${skills.length?`<div class="t16-sec-title" style="background:#3d5246;color:${gold};">Skills</div>
         <div class="t16-left-content editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills','')}>${skillBars}</div>`:''}
@@ -11837,7 +11920,7 @@ function buildTemplate18Template({ resumeData: d, edu, skills, projects, experie
             <div class="t18-sec-title" style="border-color:${accent};">Contact</div>
             ${phone?`<div style="font-size:10px;color:#555;">📞 ${phone}</div>`:''}
             ${email?`<div style="font-size:10px;color:#555;">✉ ${email}</div>`:''}
-            ${addr?`<div style="font-size:10px;color:#555;">📍 ${addr}</div>`:''}
+            ${addr?`<div style="font-size:10px;color:#555;">📍 ${addr}</div>`:''}
             ${linkedin?`<div style="font-size:10px;color:#555;">🔗 ${linkedin}</div>`:''}
           </div>
         </div>
@@ -11891,7 +11974,7 @@ function buildTemplate20Template({ resumeData: d, edu, skills, projects, experie
         <div class="t20-sec-title-r">Contact</div>
         ${phone?`<div class="t20-contact">📞 ${phone}</div>`:''}
         ${email?`<div class="t20-contact">✉ ${email}</div>`:''}
-        ${addr?`<div class="t20-contact">📍 ${addr}</div>`:''}
+        ${addr?`<div class="t20-contact">📍 ${addr}</div>`:''}
         ${linkedin?`<div class="t20-social" style="color:${accent};">🔗 ${linkedin}</div>`:''}
         ${website?`<div class="t20-social" style="color:${accent};">🌐 ${website}</div>`:''}
         ${skills.length?`<div class="t20-sec-title-r">Skills</div>
@@ -12013,7 +12096,7 @@ function buildTemplate24Template({ resumeData: d, edu, skills, projects, experie
           <div class="t24-role" style="color:${accent};">${title}</div>
           ${summary?`<div class="t24-bio">${summary}</div>`:''}
           <div class="t24-contact-row">
-            ${phone?`<span>📞 ${phone}</span>`:''}${email?`<span>✉ ${email}</span>`:''}${addr?`<span>📍 ${addr}</span>`:''}
+            ${phone?`<span>📞 ${phone}</span>`:''}${email?`<span>✉ ${email}</span>`:''}${addr?`<span>📍 ${addr}</span>`:''}
           </div>
         </div>
         <div class="t24-photo" style="color:${accent};">${(name||'U').charAt(0).toUpperCase()}</div>
@@ -12107,7 +12190,7 @@ function buildTemplate26Template({ resumeData: d, edu, skills, projects, experie
         <div class="t26-right-sec" style="color:${accent};">Contact</div>
         ${phone?`<div class="t26-contact-item">📞 ${phone}</div>`:''}
         ${email?`<div class="t26-contact-item">✉ ${email}</div>`:''}
-        ${addr?`<div class="t26-contact-item">📍 ${addr}</div>`:''}
+        ${addr?`<div class="t26-contact-item">📍 ${addr}</div>`:''}
         ${skills.length?`<div class="t26-right-sec" style="color:${accent};">Skills</div>
         <div class="editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills','')}>${skillBars}</div>`:''}
         ${d.languages?`<div class="t26-right-sec" style="color:${accent};">Languages</div>
@@ -12169,7 +12252,7 @@ function buildTemplate27Template({ resumeData: d, edu, skills, projects, experie
           <div class="t27-sec-title" style="color:${accent};">Contact</div>
           ${phone?`<div class="t27-contact">📞 ${phone}</div>`:''}
           ${email?`<div class="t27-contact">✉ ${email}</div>`:''}
-          ${addr?`<div class="t27-contact">📍 ${addr}</div>`:''}
+          ${addr?`<div class="t27-contact">📍 ${addr}</div>`:''}
           ${linkedin?`<div class="t27-link" style="color:${accent};">🔗 ${linkedin}</div>`:''}
           ${skills.length?`<div class="t27-sec-title" style="color:${accent};">Skills</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills','')}>${skillItems}</div>`:''}
@@ -12222,7 +12305,7 @@ function buildTemplate29Template({ resumeData: d, edu, skills, projects, experie
         <div class="t29-contacts">
           ${phone?`<div>📞 ${phone}</div>`:''}
           ${email?`<div>✉ ${email}</div>`:''}
-          ${addr?`<div>📍 ${addr}</div>`:''}
+          ${addr?`<div>📍 ${addr}</div>`:''}
           ${linkedin?`<div>🔗 ${linkedin}</div>`:''}
         </div>
       </div>
@@ -12286,7 +12369,7 @@ function buildTemplate30Template({ resumeData: d, edu, skills, projects, experie
         </div>
         <div class="t30-info-box">📞 ${phone||''}</div>
         <div class="t30-info-box" style="word-break:break-all;">✉ ${email||''}</div>
-        ${addr?`<div class="t30-info-box">📍 ${addr}</div>`:''}
+        ${addr?`<div class="t30-info-box">📍 ${addr}</div>`:''}
         ${linkedin?`<div class="t30-link-box">🔗 ${linkedin}</div>`:''}
         ${website?`<div class="t30-link-box">🌐 ${website}</div>`:''}
         <div class="t30-sec-title-l">Skills</div>
@@ -12347,7 +12430,7 @@ function buildTemplate31Template({ resumeData: d, edu, skills, projects, experie
         <div class="t31-contact-r">
           ${phone?`<div class="t31-contact-r-item">📞 ${phone}</div>`:''}
           ${email?`<div class="t31-contact-r-item">✉ ${email}</div>`:''}
-          ${addr?`<div class="t31-contact-r-item">📍 ${addr}</div>`:''}
+          ${addr?`<div class="t31-contact-r-item">📍 ${addr}</div>`:''}
           ${linkedin?`<div class="t31-contact-r-item">🔗 ${linkedin}</div>`:''}
         </div>
       </div>

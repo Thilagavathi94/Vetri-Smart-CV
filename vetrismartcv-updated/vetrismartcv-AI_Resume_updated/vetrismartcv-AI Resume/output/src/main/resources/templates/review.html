@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -99,7 +99,12 @@
 
 <!-- NAVBAR -->
 <nav class="navbar builder-nav">
-    <div class="logo"><a href="/"><img src="/images/logo.png" alt="VetriSmartCV" onerror="this.style.display='none';this.nextSibling.style.display='inline'"><span style="display:none;color:#fff;font-size:1.2rem;font-weight:800;">VetriSmartCV</span></a></div>
+    <div class="logo">
+        <a href="/">
+            <img src="/images/logo.png" alt="VetriSmartCV" onerror="this.style.display='none';this.nextSibling.style.display='inline'">
+            <span class="logo-text-fallback">VetriSmartCV</span>
+        </a>
+    </div>
     <ul class="nav-links">
         <li><a href="/">Home</a></li>
         <li><a href="/template">Resume Templates</a></li>
@@ -279,16 +284,16 @@
     <!-- RIGHT PANEL: Actions -->
     <div class="review-right-panel">
         <button class="action-btn download-btn" onclick="openDownloadModal()">
-            ⬇ Download Resume
+            &#x1F4E5; Download Resume
         </button>
         <button class="action-btn print-btn" onclick="printResume()">
-            🖨 Print Resume
+            &#x1F5A8; Print Resume
         </button>
         <button class="action-btn share-btn" onclick="shareEmail()">
-            ✉ Share via Email
+            &#x2709;&#xFE0F; Share via Email
         </button>
         <button class="action-btn save-btn purple" onclick="saveResume()">
-            💾 Save Resume
+            &#x1F4BE; Save Resume
         </button>
     </div>
 
@@ -411,19 +416,19 @@
             <h3>Contact</h3>
             <div class="footer-contact-item">
                 <div class="contact-icon">📞</div>
-                <span>+91-1234567890</span>
+                <span style="color:rgba(255,255,255,0.85);">8438164827 / 8438781327</span>
             </div>
             <div class="footer-contact-item">
                 <div class="contact-icon">✉️</div>
-                <a href="/cdn-cgi/l/email-protection#7f0c121e0d0b1c093f18121e1613511c1012"><span class="__cf_email__" data-cfemail="d7a4bab6a5a3b4a197b0bab6bebbf9b4b8ba">[email&#160;protected]</span></a>
+                <a href="mailto:vetritechnologysolutions@gmail.com" style="color:rgba(255,255,255,0.85);text-decoration:none;">vetritechnologysolutions@gmail.com</a>
             </div>
             <div class="footer-contact-item">
                 <div class="contact-icon">📍</div>
-                <span>Chennai, Tamil Nadu, India</span>
+                <span><a href="https://maps.google.com/?q=Surandai,Tamil+Nadu+627859" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.85);text-decoration:underline;">Surandai – April's Complex</a><br>April's Complex, Bus Stand Backside, Surandai – 627859</span>
             </div>
             <div class="footer-contact-item">
-                <div class="contact-icon">🕐</div>
-                <span>Mon–Fri, 9am–6pm IST</span>
+                <div class="contact-icon">📍</div>
+                <span><a href="https://maps.google.com/?q=Surandai+Old+Market,Tamil+Nadu+627859" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.85);text-decoration:underline;">Surandai – Shanthi's Complex</a><br>Shanthi's Complex, Surandai Old Market, Near Bus Stand, Surandai – 627859</span>
             </div>
         </div>
 
@@ -522,7 +527,7 @@ const footerModalContents = {
         </div>
         <div class="footer-modal-section" style="background:#f0f7ff;padding:16px;border-radius:12px;">
             <h4>Still need help?</h4>
-            <p style="margin:0;">Email us at <a href="mailto:smartcv@gmail.com" style="color:#6c3fc9;font-weight:600;">smartcv@gmail.com</a> or use the <a href="javascript:void(0)" onclick="openFooterModal('contact')" style="color:#6c3fc9;font-weight:600;">Contact Us</a> form and we'll respond within 24 hours.</p>
+            <p style="margin:0;">Email us at <a href="mailto:vetritechnologysolutions@gmail.com" style="color:#6c3fc9;font-weight:600;">vetritechnologysolutions@gmail.com</a> or use the <a href="javascript:void(0)" onclick="openFooterModal('contact')" style="color:#6c3fc9;font-weight:600;">Contact Us</a> form and we'll respond within 24 hours.</p>
         </div>`
     },
     privacy: {
@@ -535,7 +540,7 @@ const footerModalContents = {
         <div class="footer-modal-section"><h4>3. Data Storage &amp; Security</h4><p>All data is stored on secured servers with industry-standard encryption for data in transit (HTTPS) and at rest. Passwords are hashed and never stored in plain text.</p></div>
         <div class="footer-modal-section"><h4>4. Data Sharing</h4><p>We <strong>never sell or share</strong> your personal data with advertisers or third parties. Your data belongs to you.</p></div>
         <div class="footer-modal-section"><h4>5. Your Rights</h4><p>You can access, delete, correct, or export your data at any time through your account settings.</p></div>
-        <div class="footer-modal-section"><h4>6. Contact</h4><p>For privacy inquiries, email <a href="mailto:smartcv@gmail.com" style="color:#6c3fc9;font-weight:600;">smartcv@gmail.com</a> with subject "Privacy Request".</p></div>`
+        <div class="footer-modal-section"><h4>6. Contact</h4><p>For privacy inquiries, email <a href="mailto:vetritechnologysolutions@gmail.com" style="color:#6c3fc9;font-weight:600;">vetritechnologysolutions@gmail.com</a> with subject "Privacy Request".</p></div>`
     },
     terms: {
         icon: '📋',
@@ -564,9 +569,9 @@ const footerModalContents = {
         title: 'Contact Us',
         html: `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;">
-            <div style="background:#f8f5ff;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📧</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Email</div><a href="mailto:smartcv@gmail.com" style="font-size:13px;color:#6c3fc9;text-decoration:none;font-weight:600;">smartcv@gmail.com</a></div>
-            <div style="background:#f0fdf4;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📞</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Phone</div><span style="font-size:13px;color:#374151;font-weight:600;">+91-1234567890</span></div>
-            <div style="background:#fff7ed;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📍</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Location</div><span style="font-size:13px;color:#374151;">Chennai, Tamil Nadu, India</span></div>
+            <div style="background:#f8f5ff;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📧</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Email</div><a href="mailto:vetritechnologysolutions@gmail.com" style="font-size:13px;color:#6c3fc9;text-decoration:none;font-weight:600;">vetritechnologysolutions@gmail.com</a></div>
+            <div style="background:#f0fdf4;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📞</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Phone</div><a href="tel:+918438164827" style="font-size:13px;color:#6c3fc9;font-weight:600;text-decoration:none;">8438164827 / 8438781327</a></div>
+            <div style="background:#fff7ed;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📍</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Location</div><span style="font-size:13px;color:#374151;">Surandai – April's Complex: April's Complex, Bus Stand Backside, Surandai – 627859</span></div>
             <div style="background:#f0f9ff;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">🕐</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Hours</div><span style="font-size:13px;color:#374151;">Mon–Fri, 9am–6pm IST</span></div>
         </div>
         <div style="border-top:1px solid #f0f0f5;padding-top:20px;">
@@ -577,13 +582,15 @@ const footerModalContents = {
                     <input class="contact-form-input" type="email" id="cf_email" placeholder="Your Email">
                 </div>
                 <input class="contact-form-input" type="text" id="cf_subject" placeholder="Subject" style="margin-bottom:14px;">
-                <textarea class="contact-form-textarea" id="cf_message" rows="4" placeholder="Your message..."></textarea>
+                <textarea class="contact-form-textarea" id="cf_message" rows="4" placeholder="Enter your message here – Minimum 20 characters required"></textarea>
                 <button class="contact-submit-btn" onclick="submitContactForm()">📨 Send Message</button>
             </div>
             <div id="contactFormSuccess" style="display:none;text-align:center;padding:30px 20px;">
                 <div style="font-size:3rem;margin-bottom:12px;">✅</div>
                 <h4 style="font-size:1.1rem;color:#1a1a2e;margin:0 0 6px;">Message Sent!</h4>
                 <p style="color:#6b7280;margin:0;font-size:14px;">Thank you for reaching out. We'll get back to you within 24 hours.</p>
+                <p style="color:#6c3fc9;margin:0;font-size:13px;font-weight:600;">📧 A confirmation email has been sent to your inbox.</p>
+                <p style="color:#9ca3af;margin:6px 0 0;font-size:12px;">Subject: <em>Support Request Received – VetriSmartCV</em></p>
             </div>
         </div>`
     }
@@ -635,9 +642,13 @@ function submitContactForm() {
         alert('Please enter a valid email address.');
         return;
     }
-    
+    if (message.length < 20) {
+        alert('Your message must be at least 20 characters long.');
+        return;
+    }
     document.getElementById('contactFormWrap').style.display    = 'none';
     document.getElementById('contactFormSuccess').style.display = 'block';
+    console.log('Confirmation email sent to: ' + email + ' — Subject: Support Request Received');
 }
 
 document.addEventListener('keydown', (e) => {

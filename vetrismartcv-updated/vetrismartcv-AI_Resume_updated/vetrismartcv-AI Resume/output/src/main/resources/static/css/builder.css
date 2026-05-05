@@ -197,11 +197,38 @@ body { background: #f4f5f7; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group.full-width { grid-column: 1 / -1; }
 .form-group label { font-size: 13px; font-weight: 600; color: #374151; }
+/* D_024 FIX 1: Required field asterisk (*) must be red, not black */
+.form-group label .req,
+.step-card label .req { color: #dc2626 !important; font-weight: 700; }
 .form-group input, .form-group select, .form-group textarea { background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 10px 14px; font-size: 14px; outline: none; transition: border-color 0.2s; font-family: inherit; box-sizing: border-box; }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #7c3aed; }
 
 /* ADD MORE */
-.btn-add-more { background: linear-gradient(135deg, #7c3aed, #5b21b6); color: #fff; border: none; border-radius: 10px; padding: 10px 22px; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 20px; }
+/* D_024 FIX 2: Prevent "+ Add Project" button from overlapping description text */
+.btn-add-more { background: linear-gradient(135deg, #7c3aed, #5b21b6); color: #fff; border: none; border-radius: 10px; padding: 10px 22px; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 20px; clear: both; display: block; margin-top: 24px; width: fit-content; }
+
+/* D_024 FIX 2b: Ensure proj-entry and edu-entry stack cleanly with separator */
+.proj-entry, .edu-entry, .exp-entry {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f5;
+}
+
+/* D_024 FIX 2c: full-width form-group must not overlap adjacent elements */
+.form-group.full-width {
+    width: 100%;
+    box-sizing: border-box;
+    clear: both;
+    display: block;
+}
+
+.form-group.full-width textarea {
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+}
 
 /* TAG AREA */
 .tag-area { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }

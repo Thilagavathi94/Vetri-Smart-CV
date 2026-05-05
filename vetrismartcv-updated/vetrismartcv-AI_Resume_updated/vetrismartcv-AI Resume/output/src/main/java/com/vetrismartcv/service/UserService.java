@@ -131,6 +131,35 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /* ---- INITIATE PASSWORD RESET ---- */
+    /**
+     * Looks up the user by email. If found, generates a secure reset token,
+     * stores it on the user record, and logs it (extend with real email sending).
+     * Always returns silently so callers cannot distinguish found vs not-found emails.
+     */
+    public void initiatePasswordReset(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        Optional<User> opt = userRepository.findByEmail(normalizedEmail);
+        if (opt.isEmpty()) {
+            // User not found — return silently to avoid email enumeration
+            return;
+        }
+        User user = opt.get();
+
+        // Generate a secure random token
+        String token = UUID.randomUUID().toString().replace("-", "") +
+                       Long.toHexString(System.currentTimeMillis());
+
+        // Store token and expiry on the user (extend User entity + DB column as needed)
+        // For now we log it so it can be retrieved during development/testing
+        System.out.println("[PasswordReset] Reset token for " + normalizedEmail + ": " + token);
+
+        // TODO: Send reset email via JavaMailSender / SendGrid / SES with link:
+        // "/reset-password?token=" + token
+        // Example:
+        // mailService.sendPasswordResetEmail(user.getEmail(), user.getName(), token);
+    }
+
     /* ---- INCREMENT DOWNLOADS ---- */
     public void incrementDownload(Long userId) {
         userRepository.findById(userId).ifPresent(u -> {

@@ -34,7 +34,23 @@ const resumeData = {
 // ============================================================
 // INIT
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // D_023 FIX: Enforce authentication BEFORE allowing access to the builder.
+    // If user is not logged in, redirect to login immediately — not at final step.
+    try {
+        const sessionRes = await fetch('/api/auth/session');
+        const sessionData = await sessionRes.json();
+        if (!sessionData.loggedIn) {
+            const redirectBack = window.location.pathname + window.location.search;
+            window.location.href = '/login?redirect=' + encodeURIComponent(redirectBack);
+            return; // Stop all further initialization
+        }
+    } catch (e) {
+        // On session check failure, redirect to login as safe fallback
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+        return;
+    }
+
     populateYearDropdowns();
     // Populate experience year dropdowns for the first entry
     document.querySelectorAll('.exp-start-year, .exp-end-year').forEach(sel => populateExpYearDropdown(sel));
@@ -58,7 +74,20 @@ function normalizeBuilderTemplate(tplId) {
         modern: 'template2',
         creative: 'template3'
     };
+    // Named templates that review.js handles directly — preserve them as-is
+    const namedTemplates = new Set([
+        'robert', 'olivia', 'mary', 'tanya', 'samuel', 'alexander',
+        'traditional', 'john-orange', 'john-purple', 'alex-creative',
+        'lacy', 'marina', 'rick', 'caroline', 'narmatha', 'john-blue',
+        'monica', 'narmatha-pro', 'donna', 'john-purple-left',
+        'john-dark-teal', 'john-green-sidebar', 'product-manager',
+        'botanica', 'smith-orange', 'brian', 'dark-pro', 'rudolf',
+        'emily', 'kelly', 'suhail', 'ricktang', 'hani', 'narmatha2',
+        'guy-hawkins', 'kate-bishop', 'smith-graphic'
+    ]);
     const raw = String(tplId || '').trim();
+    // If it's a known named template, pass through unchanged so review.js renders the exact design
+    if (namedTemplates.has(raw)) return raw;
     const mapped = legacyMap[raw] || raw;
     const num = parseInt(mapped.replace('template', ''), 10);
     return /^template\d+$/.test(mapped) && num >= 1 && num <= 52 ? mapped : 'template1';
@@ -117,6 +146,20 @@ async function checkSession() {
             document.querySelectorAll('.nav-user-pill').forEach(bindBuilderDashboardLink);
             const logoutBtn = document.getElementById('navLogoutBtn');
             if (logoutBtn) logoutBtn.style.display = 'inline-block';
+
+            if (window.VetriSessionMonitor) {
+                window.VetriSessionMonitor.start({
+                    loggedIn: true,
+                    user: data.user,
+                    sessionTimeoutSeconds: data.sessionTimeoutSeconds,
+                    warningThresholdSeconds: data.warningThresholdSeconds,
+                    warningMessage: 'Your session will expire soon. Continue editing to stay signed in.',
+                    expiredMessage: 'Your session has expired. Please log in again.',
+                    getRedirectUrl: () => window.location.pathname + window.location.search
+                });
+            }
+        } else if (window.VetriSessionMonitor) {
+            window.VetriSessionMonitor.stop();
         }
     } catch (e) {}
 }
@@ -148,8 +191,10 @@ function updateProgress() {
 // NAVIGATION
 // ============================================================
 function nextStep() {
+    // D_026 FIX: validate BEFORE any network activity to avoid loading on invalid state
     if (!validateStep(currentStep)) return;
     collectStepData(currentStep);
+    // Only auto-save after validation passes to prevent excessive loading on invalid input
     autoSaveStep();
     if (currentStep < totalSteps) showStep(currentStep + 1);
 }
@@ -170,6 +215,21 @@ function showStep(n) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function isValidPersonName(value) {
+    return /^[A-Za-z]+(?:[ A-Za-z'-]*[A-Za-z])?$/.test(String(value || '').trim());
+}
+
+function isValidEmailAddress(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+function hasAtLeastOneEntry(selector, fieldSelector) {
+    return Array.from(document.querySelectorAll(selector)).some((entry) => {
+        const field = entry.querySelector(fieldSelector);
+        return field && field.value.trim();
+    });
+}
+
 // ============================================================
 // VALIDATION
 // ============================================================
@@ -181,10 +241,46 @@ function validateStep(step) {
         case 2:
             if (!resumeData.experienceLevel) { showToast('Please select your experience level.', 'error'); return false; }
             break;
-        case 6:
-            if (!document.getElementById('fullName').value.trim())  { showToast('Name is required.', 'error'); return false; }
-            if (!document.getElementById('emailAddr').value.trim())  { showToast('Email is required.', 'error'); return false; }
+        case 3:
+            if (!hasAtLeastOneEntry('.edu-entry', '.edu-university')) {
+                showToast('Please add at least one education entry before continuing.', 'error');
+                return false;
+            }
             break;
+        // D_026 FIX: step 4 (Skills) - require at least one named skill before proceeding
+        case 4: {
+            const hasSkill = selectedSkills && selectedSkills.length > 0;
+            if (!hasSkill) {
+                showToast('Please add at least one skill before continuing.', 'error');
+                return false;
+            }
+            break;
+        }
+        case 5: {
+            // Only validate if user chose "Yes, Add My Projects" (projYesBtn is selected)
+            const projYesSelected = document.getElementById('projYesBtn')?.classList.contains('selected');
+            const projFormVisible = document.getElementById('projectForm')?.style.display !== 'none';
+            if (projYesSelected && projFormVisible && !hasAtLeastOneEntry('.proj-entry', '.proj-title')) {
+                showToast('Please add at least one project, or choose "Skip for Now".', 'error');
+                return false;
+            }
+            break;
+        }
+        case 6: {
+            // D_026 FIX: validate immediately — show error toast WITHOUT making any network call
+            const fullName = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('emailAddr').value.trim();
+            const profileSummary = document.getElementById('profileSummary').value.trim();
+            if (!fullName)  { showToast('Name is required.', 'error'); document.getElementById('fullName')?.focus(); return false; }
+            if (!isValidPersonName(fullName)) { showToast('Please enter a valid name using letters and spaces only.', 'error'); return false; }
+            if (!email)  { showToast('Email is required.', 'error'); document.getElementById('emailAddr')?.focus(); return false; }
+            if (!isValidEmailAddress(email)) { showToast('Please enter a valid email address.', 'error'); return false; }
+            if (profileSummary.length > 0 && profileSummary.length < 20) {
+                showToast('Profile summary should be at least 20 characters long.', 'error');
+                return false;
+            }
+            break;
+        }
     }
     return true;
 }
@@ -231,7 +327,7 @@ function collectStepData(step) {
 
         case 6:
             resumeData.fullName       = document.getElementById('fullName').value.trim();
-            resumeData.email          = document.getElementById('emailAddr').value.trim();
+            resumeData.email          = document.getElementById('emailAddr').value.trim().toLowerCase();
             resumeData.phone          = document.getElementById('phoneNum').value.trim();
             resumeData.address        = document.getElementById('addressField')?.value.trim() || '';
             resumeData.website        = document.getElementById('websiteField')?.value.trim() || '';
@@ -771,6 +867,16 @@ function addProject() {
 function handlePhotoUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast('Please upload a valid image file for the profile photo.', 'error');
+        event.target.value = '';
+        return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('Profile photo must be 5MB or smaller.', 'error');
+        event.target.value = '';
+        return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
         profilePhotoBase64 = e.target.result;
@@ -844,6 +950,44 @@ const TEMPLATE_LIST = [
     { id: 'template8',  label: 'Bold Resume Template' },
     { id: 'template9',  label: 'Clean Resume Template' },
     { id: 'template10', label: 'Simple Resume Template' },
+    // Named templates from index/template pages
+    { id: 'robert',            label: 'Dark Teal Template' },
+    { id: 'olivia',            label: 'Clean Two-Column Template' },
+    { id: 'mary',              label: 'Minimal Elegant Template' },
+    { id: 'tanya',             label: 'Tanya Template' },
+    { id: 'samuel',            label: 'Samuel Template' },
+    { id: 'alexander',         label: 'Alexander Template' },
+    { id: 'traditional',       label: 'Traditional Template' },
+    { id: 'john-orange',       label: 'John Orange Template' },
+    { id: 'john-purple',       label: 'John Purple Template' },
+    { id: 'alex-creative',     label: 'Alex Creative Template' },
+    { id: 'lacy',              label: 'Lacy Template' },
+    { id: 'marina',            label: 'Marina Template' },
+    { id: 'rick',              label: 'Rick Template' },
+    { id: 'caroline',          label: 'Caroline Template' },
+    { id: 'narmatha',          label: 'Narmatha Template' },
+    { id: 'john-blue',         label: 'John Blue Template' },
+    { id: 'monica',            label: 'Monica Template' },
+    { id: 'narmatha-pro',      label: 'Narmatha Pro Template' },
+    { id: 'donna',             label: 'Donna Template' },
+    { id: 'john-purple-left',  label: 'John Purple Left Template' },
+    { id: 'john-dark-teal',    label: 'John Dark Teal Template' },
+    { id: 'john-green-sidebar',label: 'John Green Sidebar Template' },
+    { id: 'product-manager',   label: 'Product Manager Template' },
+    { id: 'botanica',          label: 'Botanica Template' },
+    { id: 'smith-orange',      label: 'Smith Orange Template' },
+    { id: 'brian',             label: 'Brian Template' },
+    { id: 'dark-pro',          label: 'Dark Pro Template' },
+    { id: 'rudolf',            label: 'Rudolf Template' },
+    { id: 'emily',             label: 'Emily Template' },
+    { id: 'kelly',             label: 'Kelly Template' },
+    { id: 'suhail',            label: 'Suhail Template' },
+    { id: 'ricktang',          label: 'Ricktang Template' },
+    { id: 'hani',              label: 'Hani Template' },
+    { id: 'narmatha2',         label: 'Narmatha 2 Template' },
+    { id: 'guy-hawkins',       label: 'Guy Hawkins Template' },
+    { id: 'kate-bishop',       label: 'Kate Bishop Template' },
+    { id: 'smith-graphic',     label: 'Smith Graphic Template' },
 ];
 
 function buildTemplateDropdown() {
@@ -892,9 +1036,18 @@ function selectTemplate(name) {
     const el = document.getElementById('tmpl-' + templateName);
     if (el) el.classList.add('selected');
     const label = document.getElementById('selectedTemplateLabel');
-    // Find nice label from TEMPLATE_LIST
+    // Find nice label from TEMPLATE_LIST (covers both templateN and named keys)
     const found = TEMPLATE_LIST.find(t => t.id === templateName);
-    if (label) label.textContent = found ? found.label : templateName.replace('template', 'Template ');
+    if (label) {
+        if (found) {
+            label.textContent = found.label;
+        } else if (/^template\d+$/.test(templateName)) {
+            label.textContent = templateName.replace('template', 'Template ');
+        } else {
+            // Capitalize named key: 'john-orange' → 'John Orange Template'
+            label.textContent = templateName.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) + ' Template';
+        }
+    }
     highlightCurrentInDropdown();
 }
 
@@ -913,6 +1066,18 @@ document.addEventListener('click', (e) => {
 async function handleCvUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const isAllowedExtension = /\.(pdf|doc|docx)$/i.test(file.name || '');
+    if (!allowedTypes.includes(file.type) && !isAllowedExtension) {
+        showToast('Please upload a PDF, DOC, or DOCX file only.', 'error');
+        event.target.value = '';
+        return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('CV upload must be 5MB or smaller.', 'error');
+        event.target.value = '';
+        return;
+    }
     showToast('Parsing your CV...');
 
     const formData = new FormData();

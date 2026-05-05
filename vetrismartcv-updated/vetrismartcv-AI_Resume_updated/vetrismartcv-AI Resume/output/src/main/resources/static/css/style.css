@@ -82,7 +82,9 @@ body {
 /* NAVBAR */
 /* NAVBAR */
 .navbar {
-    position: relative;
+    /* D_024 FIX 3: Make navbar sticky so it stays fixed at top while scrolling */
+    position: sticky;
+    top: 0;
     z-index: 1000;
     display: flex;
     justify-content: space-between;
@@ -227,6 +229,8 @@ body {
     position: relative;
     z-index: 1000;
     margin-left: auto;    /* ← pushes to far right */
+    min-width: 0;         /* D_009 FIX: allow shrinking to prevent overflow */
+    flex-shrink: 1;
 }
 
 /* HERO CONTENT */
@@ -818,7 +822,19 @@ body {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1.3fr;
     gap: 50px;
-    align-items: flex-start;
+    align-items: start;
+}
+
+/* Ensure footer column headings are consistently aligned at the top */
+.footer-col h3 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: rgba(255,255,255,0.6);
+    margin: 0 0 18px;
+    padding-top: 0;
+    line-height: 1.4;
 }
 
 /* BRAND COL */
@@ -920,11 +936,22 @@ body {
 .social-twitter:hover    { background: #000000 !important; }
 .social-youtube:hover    { background: #ff0000 !important; }
 .social-github:hover     { background: #333333 !important; }
+.social-youtube {
+    color: #ff0000 !important;
+}
 
 /* COLUMN */
 .footer-col {
     flex: 1;
     min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    align-self: flex-start;
+}
+
+/* Non-brand footer columns: align headings consistently at the top */
+.footer-col:not(.footer-brand-col) {
+    padding-top: 0;
 }
 
 /* HEADINGS */
@@ -977,6 +1004,11 @@ body {
     margin-bottom: 14px;
     font-size: 13.5px;
     color: rgba(255,255,255,0.82);
+}
+
+.footer-contact-item span,
+.footer-contact-item a {
+    line-height: 1.55;
 }
 
 .footer-contact-item .contact-icon {
@@ -1324,6 +1356,9 @@ body {
     object-position: top center;
     display: block;
     transition: transform 0.4s ease;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    -ms-interpolation-mode: bicubic;
 }
 
 .template-card:hover .template-preview img.tpl-img {
@@ -1394,37 +1429,46 @@ body {
     border: 1px solid #ddd;
 }
 
+/* D_021 FIX: Both Preview and Use Template buttons appear together in same row on hover */
 .template-overlay {
     position: absolute;
     inset: 0;
     background: rgba(20,20,40,0.85);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;        /* D_021 FIX: always row, never column */
+    flex-wrap: nowrap;          /* D_021 FIX: keep both buttons on same line */
     justify-content: center;
     align-items: center;
     gap: 10px;
     opacity: 0;
     transition: 0.3s ease;
+    padding: 16px;
 }
 
 .template-overlay button {
-    width: 180px;
-    padding: 10px;
-    border-radius: 10px;
+    padding: 10px 18px;
+    border-radius: 99px;
     border: none;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
+    font-size: 13px;
+    transition: opacity 0.2s, transform 0.15s;
+    white-space: nowrap;
+    flex: 0 0 auto;             /* D_021 FIX: prevent buttons from stretching */
 }
+.template-overlay button:hover { opacity: 0.9; transform: scale(1.03); }
 
 .template-overlay button:first-child {
-    background: transparent;
-    border: 2px solid white;
-    color: white;
+    background: rgba(255,255,255,0.95);
+    border: 1.5px solid #7c3aed;
+    color: #7c3aed;
 }
 
 .template-overlay button:last-child {
-    background: #7B2FBE;
+    background: linear-gradient(135deg,#7c3aed,#5b21b6);
     color: white;
+    border: none;
+    box-shadow: 0 4px 20px rgba(124,58,237,0.5);
 }
 
 .template-card:hover .template-overlay {

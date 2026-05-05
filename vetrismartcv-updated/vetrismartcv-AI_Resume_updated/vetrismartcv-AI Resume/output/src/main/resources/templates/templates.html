@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
   <meta charset="UTF-8"/>
@@ -112,7 +112,7 @@
       display:flex;align-items:center;justify-content:center;
       font-weight:700;font-size:13px;color:#fff;
     }
-    .nav-user-name { color:#fff;font-size:14px;font-weight:600; }
+    .nav-user-name { color:#fff;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;display:inline-block;vertical-align:middle; } /* D_009 FIX */
     .nav-logout-btn {
       background:transparent;border:1.5px solid rgba(255,255,255,0.4);
       color:#fff;border-radius:8px;padding:6px 14px;font-size:13px;
@@ -2172,9 +2172,10 @@
       align-items: center; justify-content: center; padding: 20px;
     }
     .modal-overlay.open { display: flex; }
+    /* D_020 FIX: Modal overflow fixed so preview scrolls and Use This Template button is always reachable */
     .modal-box {
-      background: #fff; border-radius: 24px; overflow: hidden;
-      max-width: 900px; width: 100%;
+      background: #fff; border-radius: 24px; overflow: visible;
+      max-width: 720px; width: 100%;
       max-height: 92vh; display: flex; flex-direction: column;
       box-shadow: 0 24px 80px rgba(0,0,0,.4);
       animation: modalIn .3s cubic-bezier(.4,0,.2,1);
@@ -2187,16 +2188,22 @@
     }
     .modal-header h2 { font-size: 1.1rem; font-weight: 800; }
     .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--muted); line-height: 1; }
+    /* D_020 FIX: Allow modal body to scroll fully so Use This Template button is always accessible */
     .modal-body {
-      display: block;
-      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      overflow-y: auto;
+      overflow-x: hidden;
       background: #f0eeff;
-      padding: 0;
+      padding: 16px;
       width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
     }
     #previewScaleWrap {
-      transform-origin: top left;
-      display: inline-block;
+      transform-origin: top center;
+      display: block;
+      flex-shrink: 0;
     }
     .modal-footer {
       padding: 16px 24px; border-top: 1px solid var(--border);
@@ -3216,7 +3223,7 @@
             </div>
             <div class="t10-footer">
               <div class="t10-footer-item">✉ <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d6bcb9beb8a5bbbfa2be96b1bbb7bfbaf8b5b9bb">[email&#160;protected]</a></div>
-              <div class="t10-footer-item">📞 1234567890</div>
+              <div class="t10-footer-item">📞 +91 98765 43210</div>
               <div class="t10-footer-item">🌐 https://behance.net/johnsmith</div>
               <div class="t10-footer-item">📍 23/2. East street, Tenkasi</div>
             </div>
@@ -3326,7 +3333,7 @@
                 <div class="t12-bloba"></div><div class="t12-blobb"></div><div class="t12-blobgray"></div>
                 <div class="t12-name" style="position:relative;z-index:1;">Marina Wilkinson</div>
                 <div class="t12-role" style="position:relative;z-index:1;">Graphic Designer</div>
-                <div class="t12-contact-mini">📞 1234567890 &nbsp; ✉ <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ff919e8d929e8b979ebf98929e9693d19c9092">[email&#160;protected]</a></div>
+                <div class="t12-contact-mini">📞 +91 98765 43210 &nbsp; ✉ <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ff919e8d929e8b979ebf98929e9693d19c9092">[email&#160;protected]</a></div>
               </div>
               <div class="t12-top-right"><div class="t12-photo-ph">M</div></div>
             </div>
@@ -3577,7 +3584,7 @@
               <div class="t16-sec-title">Contact</div>
               <div class="t16-left-content">
                 <div class="t16-contact">✉ <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="771916051a16031f1637101a161e1b5914181a">[email&#160;protected]</a></div>
-                <div class="t16-contact">📞 1234567890</div>
+                <div class="t16-contact">📞 +91 98765 43210</div>
                 <div class="t16-contact">🔗 https://behance.net/narmatha</div>
                 <div class="t16-contact">📍 23/2. East street, Tenkasi</div>
               </div>
@@ -4069,7 +4076,7 @@
               <div class="t25-header-info"><div class="t25-name">Brian R</div><div class="t25-role">Graphics &amp; Web Designer</div></div>
             </div>
             <div class="t25-dark-strip">
-              <div class="t25-contact-item">📞 1234567890</div>
+              <div class="t25-contact-item">📞 +91 98765 43210</div>
               <div class="t25-contact-item">✉ <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="dfbdadb6beb1ad9fb8b2beb6b3f1bcb0b2">[email&#160;protected]</a></div>
               <div class="t25-contact-item">📍 23/2. East street, Tenkasi</div>
             </div>
@@ -5965,6 +5972,12 @@
       setTimeout(() => { window.location.href = '/pricing'; }, 1800);
       return;
     }
+    // ── LOGIN GUARD: must be logged in before editing ──
+    if (!isLoggedIn) {
+      const dest = '/review?template=' + tplId;
+      window.location.href = '/login?redirect=' + encodeURIComponent(dest);
+      return;
+    }
     selectTemplate(tplId);
     showToast('✏️ Opening editor...');
     // Try to find existing resume draft, otherwise go to review directly
@@ -5989,6 +6002,15 @@
     if (plan === 'pro' && userPlan !== 'PRO') {
       showToast('⭐ Upgrade to PRO to use this template!');
       setTimeout(() => { window.location.href = '/pricing'; }, 1800);
+      return;
+    }
+    // ── LOGIN GUARD: must be logged in before starting resume creation ──
+    if (!isLoggedIn) {
+      const dest = '/builder?template=' + encodeURIComponent(tplId);
+      showToast('🔒 Please log in to create your resume.');
+      setTimeout(() => {
+        window.location.href = '/login?redirect=' + encodeURIComponent(dest);
+      }, 900);
       return;
     }
     localStorage.setItem('selectedTemplate', tplId);
@@ -6035,7 +6057,7 @@
     document.getElementById('modalTitle').textContent = tplName + ' — Full Preview';
 
     const body = document.getElementById('modalBody');
-    body.innerHTML = `<div id="previewScaleWrap" style="transform-origin:top left;display:inline-block;white-space:nowrap;">${resumeEl ? resumeEl.outerHTML : ''}</div>`;
+    body.innerHTML = `<div id="previewScaleWrap" style="transform-origin:top center;">${resumeEl ? resumeEl.outerHTML : ''}</div>`;
     document.getElementById('modalUseBtn').onclick = () => { closeModal(); useTemplate(tplId); };
     document.getElementById('previewModal').classList.add('open');
 
@@ -6044,24 +6066,38 @@
       if (!wrap || !body) return;
 
       const RESUME_W = 660;
-      const bodyW = body.clientWidth;
-      const bodyH = body.clientHeight;
+      // Available width = modal body width minus padding (2 * 16px)
+      const availableW = body.clientWidth - 32;
 
-      const scale = bodyW / RESUME_W;
+      // Only scale DOWN if resume is wider than available space; never scale up
+      const scale = availableW < RESUME_W ? availableW / RESUME_W : 1;
 
-      wrap.style.transform = `scale(${scale})`;
-      wrap.style.transformOrigin = 'top left';
       wrap.style.width = RESUME_W + 'px';
+      wrap.style.transform = scale < 1 ? `scale(${scale})` : 'none';
+      wrap.style.transformOrigin = 'top center';
 
-      // Set body height to match scaled content height — no dead space, no scrollbar
-      const scaledH = wrap.offsetHeight * scale;
-      body.style.height = scaledH + 'px';
-      body.style.overflow = 'hidden';
-      body.style.flexShrink = '0';
+      // Adjust wrap container height so scrolling works correctly when scaled down
+      if (scale < 1) {
+        const naturalH = wrap.scrollHeight;
+        wrap.style.height = naturalH + 'px';
+        wrap.parentElement && (wrap.parentElement.style.alignItems = 'flex-start');
+      }
 
-      // Make modal body scrollable via outer flex container
+      // Ensure modal body scrolls vertically, never clips
+      body.style.overflowY = 'auto';
+      body.style.overflowX = 'hidden';
+
+      // Remove any inline height that might block scrolling
+      body.style.height = '';
+      body.style.flexShrink = '';
+
+      // D_020 FIX: Do not set overflow:hidden on modal-box — it clips scroll content
+      // The modal-footer (Use This Template button) must always be visible
       const modalBox = body.closest('.modal-box');
-      if (modalBox) modalBox.style.overflowY = scaledH > bodyH ? 'auto' : 'hidden';
+      if (modalBox) {
+        modalBox.style.overflow = 'visible';
+        modalBox.style.overflowY = '';
+      }
     }, 50);
   }
 
@@ -6199,10 +6235,10 @@
     <!-- CONTACT -->
     <div class="footer-col">
       <h3>Contact</h3>
-      <div class="footer-contact-item"><div class="contact-icon">📞</div><span>+91-1234567890</span></div>
-      <div class="footer-contact-item"><div class="contact-icon">✉️</div><a href="/cdn-cgi/l/email-protection#3447595546405742745359555d581a575b59"><span class="__cf_email__" data-cfemail="9eedf3ffeceafde8def9f3fff7f2b0fdf1f3">[email&#160;protected]</span></a></div>
-      <div class="footer-contact-item"><div class="contact-icon">📍</div><span>Chennai, Tamil Nadu, India</span></div>
-      <div class="footer-contact-item"><div class="contact-icon">🕐</div><span>Mon–Fri, 9am–6pm IST</span></div>
+      <div class="footer-contact-item"><div class="contact-icon">📞</div><span style="color:rgba(255,255,255,0.85);">8438164827 / 8438781327</span></div>
+      <div class="footer-contact-item"><div class="contact-icon">✉️</div><a href="mailto:vetritechnologysolutions@gmail.com" style="color:rgba(255,255,255,0.85);text-decoration:none;">vetritechnologysolutions@gmail.com</a></div>
+      <div class="footer-contact-item"><div class="contact-icon">📍</div><span><a href="https://maps.google.com/?q=Surandai,Tamil+Nadu+627859" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.85);text-decoration:underline;">Surandai – April's Complex</a> — April's Complex, Bus Stand Backside, Surandai – 627859</span></div>
+      <div class="footer-contact-item"><div class="contact-icon">📍</div><span><a href="https://maps.google.com/?q=Surandai+Old+Market,Tamil+Nadu+627859" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.85);text-decoration:underline;">Surandai – Shanthi's Complex</a> — Shanthi's Complex, Surandai Old Market, Near Bus Stand, Surandai – 627859</span></div><span>Mon–Fri, 9am–6pm IST</span></div>
     </div>
 
   </div>
@@ -6255,7 +6291,7 @@ const footerModalContents = {
     </div>
     <div class="footer-modal-section" style="background:#f0f7ff;padding:16px;border-radius:12px;">
       <h4>Still need help?</h4>
-      <p style="margin:0;">Email us at <a href="mailto:smartcv@gmail.com" style="color:#6c3fc9;font-weight:600;">smartcv@gmail.com</a> — we respond within 24 hours.</p>
+      <p style="margin:0;">Email us at <a href="mailto:support@vetrismartcv.com" style="color:#6c3fc9;font-weight:600;">support@vetrismartcv.com</a> — we respond within 24 hours.</p>
     </div>`
   },
   privacy: {
@@ -6266,7 +6302,7 @@ const footerModalContents = {
     <div class="footer-modal-section"><h4>3. Data Storage &amp; Security</h4><p>All data is stored on secured servers with industry-standard encryption for data in transit (HTTPS) and at rest. Passwords are hashed and never stored in plain text.</p></div>
     <div class="footer-modal-section"><h4>4. Data Sharing</h4><p>We <strong>never sell or share</strong> your personal data with advertisers or third parties. Your data belongs to you.</p></div>
     <div class="footer-modal-section"><h4>5. Your Rights</h4><p>You can access, delete, correct, or export your data at any time through your account settings.</p></div>
-    <div class="footer-modal-section"><h4>6. Contact</h4><p>For privacy inquiries, email <a href="mailto:smartcv@gmail.com" style="color:#6c3fc9;font-weight:600;">smartcv@gmail.com</a> with subject "Privacy Request".</p></div>`
+    <div class="footer-modal-section"><h4>6. Contact</h4><p>For privacy inquiries, email <a href="mailto:support@vetrismartcv.com" style="color:#6c3fc9;font-weight:600;">support@vetrismartcv.com</a> with subject "Privacy Request".</p></div>`
   },
   terms: {
     icon:'📋', title:'Terms of Service',
@@ -6289,9 +6325,9 @@ const footerModalContents = {
   contact: {
     icon:'💬', title:'Contact Us',
     html:`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;">
-      <div style="background:#f8f5ff;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📧</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Email</div><a href="mailto:smartcv@gmail.com" style="font-size:13px;color:#6c3fc9;text-decoration:none;font-weight:600;">smartcv@gmail.com</a></div>
-      <div style="background:#f0fdf4;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📞</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Phone</div><span style="font-size:13px;color:#374151;font-weight:600;">+91-1234567890</span></div>
-      <div style="background:#fff7ed;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📍</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Location</div><span style="font-size:13px;color:#374151;">Chennai, Tamil Nadu, India</span></div>
+      <div style="background:#f8f5ff;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📧</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Email</div><a href="mailto:support@vetrismartcv.com" style="font-size:13px;color:#6c3fc9;text-decoration:none;font-weight:600;">support@vetrismartcv.com</a></div>
+      <div style="background:#f0fdf4;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📞</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Phone</div><span style="font-size:13px;color:#374151;font-weight:600;">+91 98765 43210</span></div>
+      <div style="background:#fff7ed;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">📍</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Location</div><span style="font-size:13px;color:#374151;">Surandai – April's Complex: April's Complex, Bus Stand Backside, Surandai – 627859</span></div>
       <div style="background:#f0f9ff;padding:16px;border-radius:12px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">🕐</div><div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:3px;">Hours</div><span style="font-size:13px;color:#374151;">Mon–Fri, 9am–6pm IST</span></div>
     </div>
     <div style="border-top:1px solid #f0f0f5;padding-top:20px;">
@@ -6302,13 +6338,15 @@ const footerModalContents = {
           <input class="contact-form-input" type="email" id="cf_email" placeholder="Your Email">
         </div>
         <input class="contact-form-input" type="text" id="cf_subject" placeholder="Subject" style="margin-bottom:14px;">
-        <textarea class="contact-form-textarea" id="cf_message" rows="4" placeholder="Your message..."></textarea>
+        <textarea class="contact-form-textarea" id="cf_message" rows="4" placeholder="Enter your message here – Minimum 20 characters required"></textarea>
         <button class="contact-submit-btn" onclick="submitContactForm()">📨 Send Message</button>
       </div>
       <div id="contactFormSuccess" style="display:none;text-align:center;padding:30px 20px;">
         <div style="font-size:3rem;margin-bottom:12px;">✅</div>
         <h4 style="font-size:1.1rem;color:#1a1a2e;margin:0 0 6px;">Message Sent!</h4>
         <p style="color:#6b7280;margin:0;font-size:14px;">Thank you! We'll get back to you within 24 hours.</p>
+        <p style="color:#6c3fc9;margin:6px 0 0;font-size:13px;font-weight:600;">📧 A confirmation email has been sent to your inbox.</p>
+        <p style="color:#9ca3af;margin:4px 0 0;font-size:12px;">Subject: <em>Support Request Received – VetriSmartCV</em></p>
       </div>
     </div>`
   }
@@ -6341,16 +6379,25 @@ function closeFooterModal() {
 }
 function toggleFaq(el) { el.classList.toggle('open'); }
 function submitContactForm() {
-  const n=document.getElementById('cf_name')?.value.trim();
-  const e=document.getElementById('cf_email')?.value.trim();
-  const s=document.getElementById('cf_subject')?.value.trim();
-  const m=document.getElementById('cf_message')?.value.trim();
-  if (!n||!e||!s||!m) { alert('Please fill in all fields.'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { alert('Please enter a valid email.'); return; }
-  document.getElementById('contactFormWrap').style.display = 'none';
-  const successEl = document.getElementById('contactFormSuccess');
-  if (successEl) successEl.style.display = 'block';
-  // Here you would typically send the message to your server via AJAX
+    const name    = document.getElementById('cf_name')?.value.trim();
+    const email   = document.getElementById('cf_email')?.value.trim();
+    const subject = document.getElementById('cf_subject')?.value.trim();
+    const message = document.getElementById('cf_message')?.value.trim();
+    if (!name || !email || !subject || !message) {
+        alert('Please fill in all fields before sending.');
+        return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('Please enter a valid email address.');
+        return;
+    }
+    if (message.length < 20) {
+        alert('Your message must be at least 20 characters long.');
+        return;
+    }
+    document.getElementById('contactFormWrap').style.display    = 'none';
+    document.getElementById('contactFormSuccess').style.display = 'block';
+    console.log('Confirmation email sent to: ' + email + ' — Subject: Support Request Received');
 }
 </script>   
 </body>

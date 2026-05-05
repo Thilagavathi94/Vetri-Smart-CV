@@ -984,13 +984,50 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
 
 /* Skill row */
 .ep-skill-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) minmax(120px, 150px) 26px;
     align-items: center;
     gap: 10px;
     background: #fafafa;
     border: 1.5px solid #f0f0f5;
     border-radius: 10px;
     padding: 8px 12px;
+}
+/* FIX: flex child must have min-width:0 so the text input doesn't collapse/disappear */
+.ep-skill-row > div {
+    min-width: 0;
+}
+/* FIX: ensure the skill name input fills its container and text is visible */
+.ep-skill-row .ep-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    color: #1a1a2e;
+    background: #fff;
+}
+.ep-skill-name-wrap {
+    min-width: 0;
+    overflow: hidden;
+}
+.ep-skill-name-input {
+    width: 100%;
+    min-width: 0;
+}
+.ep-skill-level-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.ep-skill-level-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.ep-skill-level-value {
+    min-width: 34px;
+    text-align: right;
+    white-space: nowrap;
 }
 
 /* Remove button */
@@ -1040,6 +1077,17 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
     .ep-tab-label { display: none; }
     .ep-row { flex-direction: column; }
     .ep-modal { max-height: 95vh; border-radius: 16px; }
+    .ep-skill-row {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+    .ep-skill-level-wrap {
+        width: 100%;
+        min-width: 0;
+    }
+    .ep-remove-row {
+        justify-self: end;
+    }
 }
 
 /* =============================================

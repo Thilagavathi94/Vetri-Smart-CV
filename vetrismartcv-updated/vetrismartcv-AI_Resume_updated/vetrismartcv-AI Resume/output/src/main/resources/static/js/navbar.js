@@ -106,10 +106,55 @@ if (document.readyState === 'loading') {
     initNavbar(); // DOM already ready
 }
 
+
+// ── Confirmation toast (shown on all pages for logout) ─────────────────────
+function showNavToast(message, type) {
+    var t = document.getElementById('navToast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'navToast';
+        t.style.cssText = [
+            'position:fixed',
+            'top:28px',
+            'left:50%',
+            'transform:translateX(-50%) translateY(-80px)',
+            'z-index:99999',
+            'min-width:260px',
+            'max-width:420px',
+            'padding:13px 22px',
+            'border-radius:14px',
+            'font-size:15px',
+            'font-weight:700',
+            'color:#fff',
+            'text-align:center',
+            'box-shadow:0 8px 32px rgba(0,0,0,0.18)',
+            'pointer-events:none',
+            'opacity:0',
+            'transition:opacity 0.3s ease,transform 0.3s ease',
+            'font-family:Segoe UI,sans-serif'
+        ].join(';');
+        document.body.appendChild(t);
+    }
+    t.textContent = message;
+    t.style.background = type === 'success'
+        ? 'linear-gradient(135deg,#16a34a,#15803d)'
+        : 'linear-gradient(135deg,#6c3fc9,#a855f7)';
+    // Force reflow then animate in
+    void t.offsetWidth;
+    t.style.opacity = '1';
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function() {
+        t.style.opacity = '0';
+        t.style.transform = 'translateX(-50%) translateY(-80px)';
+    }, 2000);
+}
+
 // ── Global logout handler ──────────────────────────────────
 window.doLogout = async function() {
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch(e) {}
-    window.location.href = '/';
+    showNavToast('👋 Logged Out Successfully', 'success');
+    setTimeout(function() { window.location.href = '/'; }, 1000);
 };
 
 // ── Login dropdown toggle (index page) ────────────────────
