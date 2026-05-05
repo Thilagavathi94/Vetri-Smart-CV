@@ -2191,7 +2191,8 @@
     /* D_020 FIX: Allow modal body to scroll fully so Use This Template button is always accessible */
     .modal-body {
       display: flex;
-      justify-content: center;
+      justify-content: flex-start;
+      align-items: flex-start;
       overflow-y: auto;
       overflow-x: hidden;
       background: #f0eeff;
@@ -2201,7 +2202,7 @@
       min-height: 0;
     }
     #previewScaleWrap {
-      transform-origin: top center;
+      transform-origin: top left;
       display: block;
       flex-shrink: 0;
     }
@@ -6057,9 +6058,26 @@
     document.getElementById('modalTitle').textContent = tplName + ' — Full Preview';
 
     const body = document.getElementById('modalBody');
-    body.innerHTML = `<div id="previewScaleWrap" style="transform-origin:top center;">${resumeEl ? resumeEl.outerHTML : ''}</div>`;
+    body.innerHTML = `<div id="previewScaleWrap" style="transform-origin:top left;">${resumeEl ? resumeEl.outerHTML : ''}</div>`;
     document.getElementById('modalUseBtn').onclick = () => { closeModal(); useTemplate(tplId); };
     document.getElementById('previewModal').classList.add('open');
+
+    // FIX: Remove overflow:hidden from cloned resume root so decorative elements
+    // (absolute-positioned shapes, photos) are not clipped in the modal preview
+    const wrap = document.getElementById('previewScaleWrap');
+    if (wrap) {
+      const resumeClone = wrap.firstElementChild;
+      if (resumeClone) {
+        resumeClone.style.overflow = 'visible';
+        resumeClone.style.minHeight = resumeClone.style.minHeight || '860px';
+        // Also fix any child with overflow:hidden that wraps the main layout
+        // (e.g. t32-right clips decorative shapes)
+        resumeClone.querySelectorAll('[class*="-right"],[class*="-left"],[class*="-header"]').forEach(el => {
+          const computed = getComputedStyle(el).overflow;
+          if (computed === 'hidden') el.style.overflow = 'visible';
+        });
+      }
+    }
 
     setTimeout(() => {
       const wrap = document.getElementById('previewScaleWrap');
@@ -6074,13 +6092,29 @@
 
       wrap.style.width = RESUME_W + 'px';
       wrap.style.transform = scale < 1 ? `scale(${scale})` : 'none';
-      wrap.style.transformOrigin = 'top center';
+      wrap.style.transformOrigin = 'top left';
 
-      // Adjust wrap container height so scrolling works correctly when scaled down
+      // After scaling, shrink the logical space the wrap occupies so the
+      // scrollable modal body has the correct height and no gap
+      const naturalH = wrap.scrollHeight;
       if (scale < 1) {
-        const naturalH = wrap.scrollHeight;
         wrap.style.height = naturalH + 'px';
+        // Compensate for space lost due to CSS scale not affecting layout
         wrap.parentElement && (wrap.parentElement.style.alignItems = 'flex-start');
+        // Create a spacer so scroll height reflects scaled height
+        const scaledH = Math.ceil(naturalH * scale);
+        wrap.style.marginBottom = (scaledH - naturalH) + 'px';
+      } else {
+        wrap.style.height = '';
+        wrap.style.marginBottom = '';
+      }
+
+      // Centre horizontally: offset left by half the width difference
+      if (scale < 1) {
+        const offsetX = (availableW - RESUME_W * scale) / 2;
+        wrap.style.marginLeft = offsetX + 'px';
+      } else {
+        wrap.style.marginLeft = '';
       }
 
       // Ensure modal body scrolls vertically, never clips
@@ -6098,7 +6132,7 @@
         modalBox.style.overflow = 'visible';
         modalBox.style.overflowY = '';
       }
-    }, 50);
+    }, 80);
   }
 
 

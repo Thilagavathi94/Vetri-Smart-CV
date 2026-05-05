@@ -696,6 +696,14 @@ function getRedirectAfterLogin(storageKey) {
         return;
     }
 
+    // Handle generic oauth_error from backend redirect (Google or LinkedIn)
+    const oauthError = params.get('oauth_error');
+    if (oauthError) {
+        history.replaceState({}, '', window.location.pathname);
+        showOAuthError(decodeURIComponent(oauthError));
+        return;
+    }
+
     // D_018: Handle backend redirect for direct LinkedIn errors (e.g. redirect_uri_mismatch)
     // The backend redirects to /login?linkedin_error=true — show a friendly message
     if (params.get('linkedin_error') === 'true') {

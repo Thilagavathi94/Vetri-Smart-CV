@@ -34,6 +34,29 @@
         .summary-row.total { font-weight: 700; border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 6px; }
         .err-msg { color: #ef4444; font-size: 13px; margin-top: 8px; display: none; }
 
+        /* ── Per-field validation ── */
+        .field-msg {
+            font-size: 12px;
+            margin-top: 5px;
+            min-height: 16px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s;
+        }
+        .field-msg.error  { color: #ef4444; }
+        .field-msg.success { color: #22c55e; }
+        .field-msg.hint   { color: #9ca3af; }
+        .field-msg::before { font-size: 11px; }
+        .field-msg.error::before  { content: '✕'; font-weight: 700; }
+        .field-msg.success::before { content: '✓'; font-weight: 700; }
+
+        .form-group input.input-error   { border-color: #ef4444; background: #fff5f5; }
+        .form-group input.input-success { border-color: #22c55e; background: #f0fdf4; }
+        .form-group input.input-error:focus   { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+        .form-group input.input-success:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+        .form-group input:focus { box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+
         @media (max-width: 1024px) {
             .pay-nav {
                 padding: 14px 24px;
@@ -146,20 +169,24 @@
 
         <div class="form-group">
             <label>Cardholder Name</label>
-            <input type="text" id="cardName" placeholder="As on card">
+            <input type="text" id="cardName" placeholder="As on card" oninput="validateName()" onblur="validateName(true)">
+            <div class="field-msg hint" id="msg-name">Enter name exactly as it appears on your card</div>
         </div>
         <div class="form-group">
             <label>Card Number</label>
-            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" oninput="formatCard(this)">
+            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" oninput="formatCard(this);validateCardNumber()" onblur="validateCardNumber(true)">
+            <div class="field-msg hint" id="msg-number">16-digit card number</div>
         </div>
         <div class="card-row">
             <div class="form-group">
                 <label>Expiry</label>
-                <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5">
+                <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" oninput="formatExpiry(this);validateExpiry()" onblur="validateExpiry(true)">
+                <div class="field-msg hint" id="msg-expiry">Month / Year</div>
             </div>
             <div class="form-group">
                 <label>CVV</label>
-                <input type="text" id="cardCvv" placeholder="123" maxlength="3">
+                <input type="text" id="cardCvv" placeholder="123" maxlength="4" oninput="validateCvv()" onblur="validateCvv(true)">
+                <div class="field-msg hint" id="msg-cvv">3 or 4 digits</div>
             </div>
         </div>
 
@@ -180,23 +207,165 @@ function selectPlan(plan) {
     document.getElementById('summaryPrice').textContent = plan === 'PRO' ? '₹120/mo' : '₹250/mo';
 }
 
+// ── Helpers ──
+function setField(inputId, msgId, state, text) {
+    const input = document.getElementById(inputId);
+    const msg   = document.getElementById(msgId);
+    input.classList.remove('input-error', 'input-success');
+    msg.classList.remove('error', 'success', 'hint');
+    if (state === 'error')   { input.classList.add('input-error');   msg.classList.add('error'); }
+    if (state === 'success') { input.classList.add('input-success'); msg.classList.add('success'); }
+    if (state === 'hint')    { msg.classList.add('hint'); }
+    msg.textContent = text;
+}
+
+// ── Name ──
+function validateName(isFinal = false) {
+    const val = document.getElementById('cardName').value.trim();
+    if (!val) {
+        setField('cardName', 'msg-name', isFinal ? 'error' : 'hint',
+            isFinal ? 'Cardholder name is required' : 'Enter name exactly as it appears on your card');
+        return false;
+    }
+    if (val.length < 3) {
+        setField('cardName', 'msg-name', 'error', 'Name must be at least 3 characters');
+        return false;
+    }
+    if (!/^[a-zA-Z\s\-'.]+$/.test(val)) {
+        setField('cardName', 'msg-name', 'error', 'Name should contain only letters and spaces');
+        return false;
+    }
+    setField('cardName', 'msg-name', 'success', 'Looks good!');
+    return true;
+}
+
+// ── Card Number ──
 function formatCard(input) {
-    let val = input.value.replace(/\D/g,'');
+    let val = input.value.replace(/\D/g, '');
     val = val.match(/.{1,4}/g)?.join(' ') || val;
     input.value = val;
 }
 
+function detectCardType(digits) {
+    if (/^4/.test(digits))             return '💳 Visa';
+    if (/^5[1-5]/.test(digits))        return '💳 Mastercard';
+    if (/^3[47]/.test(digits))         return '💳 Amex';
+    if (/^6(?:011|5)/.test(digits))    return '💳 Discover';
+    if (/^35/.test(digits))            return '💳 JCB';
+    if (digits.length >= 1)            return '💳 Card';
+    return '';
+}
+
+function validateCardNumber(isFinal = false) {
+    const raw    = document.getElementById('cardNumber').value.replace(/\D/g, '');
+    const type   = detectCardType(raw);
+    const isAmex = /^3[47]/.test(raw);
+    const reqLen = isAmex ? 15 : 16;
+
+    if (!raw) {
+        setField('cardNumber', 'msg-number', isFinal ? 'error' : 'hint',
+            isFinal ? 'Card number is required' : '16-digit card number');
+        return false;
+    }
+    if (raw.length < reqLen) {
+        setField('cardNumber', 'msg-number', raw.length > 0 ? 'error' : 'hint',
+            type ? `${type} · ${raw.length}/${reqLen} digits` : `${raw.length}/${reqLen} digits entered`);
+        return false;
+    }
+    // Luhn check
+    let sum = 0, alt = false;
+    for (let i = raw.length - 1; i >= 0; i--) {
+        let n = parseInt(raw[i]);
+        if (alt) { n *= 2; if (n > 9) n -= 9; }
+        sum += n; alt = !alt;
+    }
+    if (sum % 10 !== 0) {
+        setField('cardNumber', 'msg-number', 'error', 'Invalid card number — please check and try again');
+        return false;
+    }
+    setField('cardNumber', 'msg-number', 'success', `${type} · Valid card number`);
+    return true;
+}
+
+// ── Expiry ──
+function formatExpiry(input) {
+    let val = input.value.replace(/\D/g, '');
+    if (val.length >= 3) val = val.slice(0, 2) + '/' + val.slice(2, 4);
+    input.value = val;
+}
+
+function validateExpiry(isFinal = false) {
+    const val = document.getElementById('cardExpiry').value.trim();
+    if (!val) {
+        setField('cardExpiry', 'msg-expiry', isFinal ? 'error' : 'hint',
+            isFinal ? 'Expiry date is required' : 'Month / Year');
+        return false;
+    }
+    if (!/^\d{2}\/\d{2}$/.test(val)) {
+        setField('cardExpiry', 'msg-expiry', 'error', 'Use MM/YY format (e.g. 08/27)');
+        return false;
+    }
+    const [mm, yy] = val.split('/').map(Number);
+    if (mm < 1 || mm > 12) {
+        setField('cardExpiry', 'msg-expiry', 'error', 'Month must be between 01 and 12');
+        return false;
+    }
+    const now     = new Date();
+    const expDate = new Date(2000 + yy, mm - 1, 1);
+    const cutoff  = new Date(now.getFullYear(), now.getMonth(), 1);
+    if (expDate < cutoff) {
+        setField('cardExpiry', 'msg-expiry', 'error', 'This card has expired');
+        return false;
+    }
+    setField('cardExpiry', 'msg-expiry', 'success', 'Valid expiry date');
+    return true;
+}
+
+// ── CVV ──
+function validateCvv(isFinal = false) {
+    const val    = document.getElementById('cardCvv').value.trim();
+    const numRaw = document.getElementById('cardNumber').value.replace(/\D/g, '');
+    const isAmex = /^3[47]/.test(numRaw);
+    const reqLen = isAmex ? 4 : 3;
+
+    if (!val) {
+        setField('cardCvv', 'msg-cvv', isFinal ? 'error' : 'hint',
+            isFinal ? 'CVV is required' : `${reqLen} digits on the back of your card`);
+        return false;
+    }
+    if (!/^\d+$/.test(val)) {
+        setField('cardCvv', 'msg-cvv', 'error', 'CVV must contain only digits');
+        return false;
+    }
+    if (val.length !== reqLen) {
+        setField('cardCvv', 'msg-cvv', 'error', `CVV must be ${reqLen} digits${isAmex ? ' (Amex front of card)' : ''}`);
+        return false;
+    }
+    setField('cardCvv', 'msg-cvv', 'success', 'CVV looks good');
+    return true;
+}
+
+// ── Submit ──
 async function processPayment() {
-    const name   = document.getElementById('cardName').value.trim();
-    const number = document.getElementById('cardNumber').value.trim();
-    const expiry = document.getElementById('cardExpiry').value.trim();
-    const cvv    = document.getElementById('cardCvv').value.trim();
-    const errEl  = document.getElementById('payErr');
-    const btn    = document.getElementById('payBtn');
+    // Run all validations as "final" (show all errors at once)
+    const nameOk   = validateName(true);
+    const numOk    = validateCardNumber(true);
+    const expOk    = validateExpiry(true);
+    const cvvOk    = validateCvv(true);
 
+    const errEl = document.getElementById('payErr');
     errEl.style.display = 'none';
-    if (!name || !number || !expiry || !cvv) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return; }
 
+    if (!nameOk || !numOk || !expOk || !cvvOk) {
+        errEl.textContent = 'Please fix the errors above before continuing.';
+        errEl.style.display = 'block';
+        // Scroll to first error field
+        const firstErr = document.querySelector('.input-error');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+
+    const btn = document.getElementById('payBtn');
     btn.disabled = true; btn.textContent = 'Processing...';
 
     setTimeout(async () => {
@@ -211,7 +380,6 @@ async function processPayment() {
                 sessionStorage.setItem('justUpgraded', selectedPlan);
                 const explicitRedirect = params.get('redirect');
                 const storedReviewReturn = sessionStorage.getItem('pendingReviewReturnUrl');
-                // Return to review page when requested, else fallback to dashboard
                 if (explicitRedirect) {
                     const redirectUrl = new URL(explicitRedirect, window.location.origin);
                     redirectUrl.searchParams.set('upgraded', '1');
@@ -224,7 +392,6 @@ async function processPayment() {
                     window.location.href = redirectUrl.pathname + redirectUrl.search;
                     return;
                 }
-                // Legacy fallback: Return to resume review page if we came from there, else dashboard
                 const resumeId = sessionStorage.getItem('pendingResumeId') || '';
                 if (resumeId) {
                     window.location.href = '/review/' + resumeId + '?upgraded=1';
