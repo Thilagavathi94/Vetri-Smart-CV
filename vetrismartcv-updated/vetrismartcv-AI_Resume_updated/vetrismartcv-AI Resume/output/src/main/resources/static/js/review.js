@@ -2769,12 +2769,8 @@ function renderResume() {
 
     if (exactRendered) {
         normalizeReviewRenderArtifacts(doc);
-        if (isUsableRenderedResume(doc, ctx, true)) {
-            finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, skipCleanup: true, renderSeq });
-            return;
-        }
-        doc.innerHTML = '';
-        delete doc.dataset.exactTemplate;
+        finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, skipCleanup: true, renderSeq });
+        return;
     }
 
     if (currentTemplate === 'robert') {
