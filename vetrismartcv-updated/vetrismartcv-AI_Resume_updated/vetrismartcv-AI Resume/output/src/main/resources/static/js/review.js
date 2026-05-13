@@ -7369,7 +7369,7 @@ function downloadAsWord(fileName) {
     const resumeDoc = document.getElementById('resumeDoc');
     if (!resumeDoc) { showToast('Resume preview is not ready.', 'error'); return; }
 
-    const docxBytes = buildDocxPackage(buildWordDocumentXml());
+    const docxBytes = buildDocxPackageFromHtml(buildResumeWordHtml(resumeDoc));
     const blob = new Blob([docxBytes], {
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     });
@@ -7382,6 +7382,87 @@ function downloadAsWord(fileName) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast('✓ Word document downloaded!');
+}
+
+function cloneResumeWithInlineStyles(resumeDoc) {
+    const clone = resumeDoc.cloneNode(true);
+    const sourceNodes = [resumeDoc, ...resumeDoc.querySelectorAll('*')];
+    const cloneNodes = [clone, ...clone.querySelectorAll('*')];
+    const removeSelector = '.rv-stb, .edit-pen, .photo-controls, .template-edit-btn, [data-rv-toolbar]';
+
+    clone.querySelectorAll(removeSelector).forEach(node => node.remove());
+    clone.classList.add('resume-doc-word-export');
+
+    sourceNodes.forEach((sourceNode, index) => {
+        const cloneNode = cloneNodes[index];
+        if (!cloneNode || cloneNode.nodeType !== 1) return;
+        if (sourceNode.matches && sourceNode.matches(removeSelector)) return;
+        const computed = window.getComputedStyle(sourceNode);
+        let inline = '';
+        for (let i = 0; i < computed.length; i++) {
+            const property = computed[i];
+            inline += `${property}:${computed.getPropertyValue(property)};`;
+        }
+        cloneNode.setAttribute('style', inline);
+        cloneNode.removeAttribute('contenteditable');
+        cloneNode.removeAttribute('onclick');
+        cloneNode.removeAttribute('oninput');
+        cloneNode.removeAttribute('onchange');
+    });
+
+    clone.querySelectorAll('img').forEach(img => {
+        img.setAttribute('style', `${img.getAttribute('style') || ''};max-width:100%;height:auto;`);
+    });
+
+    return clone;
+}
+
+function buildResumeWordHtml(resumeDoc) {
+    const clone = cloneResumeWithInlineStyles(resumeDoc);
+    return `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>Resume</title>
+<style>
+@page WordSection1 { size: 8.27in 11.69in; margin: 0.25in; }
+body { margin:0; padding:0; background:#ffffff; }
+.resume-doc-word-export { width: 794px !important; max-width: 794px !important; margin: 0 auto !important; box-shadow: none !important; }
+</style>
+</head>
+<body><div class="WordSection1">${clone.outerHTML}</div></body>
+</html>`;
+}
+
+function buildDocxPackageFromHtml(html) {
+    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:body>
+    <w:altChunk r:id="htmlResume"/>
+    <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="360" w:right="360" w:bottom="360" w:left="360"/></w:sectPr>
+  </w:body>
+</w:document>`;
+    const files = [
+        ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="htm" ContentType="text/html"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`],
+        ['_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`],
+        ['word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="htmlResume" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/aFChunk" Target="afchunk.htm"/>
+</Relationships>`],
+        ['word/document.xml', documentXml],
+        ['word/afchunk.htm', html]
+    ];
+    return createZip(files);
 }
 
 function sanitizeDownloadName(fileName) {
