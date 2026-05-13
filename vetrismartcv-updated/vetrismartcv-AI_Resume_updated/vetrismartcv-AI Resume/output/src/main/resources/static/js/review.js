@@ -1561,6 +1561,84 @@ function ensureExactCoreSections(root, ctx) {
     });
 }
 
+function shouldShowExactBuilderField(field, ctx) {
+    const d = ctx.resumeData || {};
+    if (field === 'profileSummary') return !!(d.profileSummary || '').trim();
+    if (field === 'phone') return !![d.phone, d.email, d.address || d.location, d.linkedin, d.website].filter(Boolean).length;
+    if (field === 'skillsJson') return (ctx.skills || []).length > 0;
+    if (field === 'educationJson') return (ctx.edu || []).length > 0;
+    if (field === 'experienceJson') return (ctx.experience || []).length > 0;
+    if (field === 'projectsJson') return (ctx.projects || []).length > 0;
+    if (field === 'languages') return splitExactSimpleEntries(d.languages || '').length > 0;
+    if (field === 'certifications') return splitExactSimpleEntries(d.certifications || '').length > 0;
+    if (field === 'awards') return splitExactSimpleEntries(d.awards || '').length > 0;
+    if (field === 'interests') return splitExactSimpleEntries(d.interests || '').length > 0;
+    if (field === 'qualities') return splitExactSimpleEntries(d.qualities || '').length > 0;
+    if (field === 'tools') return splitExactSimpleEntries(d.tools || '').length > 0;
+    if (field === 'website') return !!((d.website || '').trim() || (d.linkedin || '').trim());
+    return false;
+}
+
+function ensureExactBuilderStack(root, ctx) {
+    if (!root) return;
+    root.querySelectorAll('.rv-exact-builder-stack, .rv-exact-appended').forEach(node => node.remove());
+
+    const sectionDefs = [
+        { key: 'profile', field: 'profileSummary', label: 'Profile Summary' },
+        { key: 'experience', field: 'experienceJson', label: 'Professional Experience' },
+        { key: 'projects', field: 'projectsJson', label: 'Projects' },
+        { key: 'education', field: 'educationJson', label: 'Education' },
+        { key: 'skills', field: 'skillsJson', label: 'Skills' },
+        { key: 'contact', field: 'phone', label: 'Contact' },
+        { key: 'certificates', field: 'certifications', label: 'Certifications' },
+        { key: 'languages', field: 'languages', label: 'Languages' },
+        { key: 'awards', field: 'awards', label: 'Awards' },
+        { key: 'interests', field: 'interests', label: 'Interests' },
+        { key: 'tools', field: 'tools', label: 'Tools' },
+        { key: 'qualities', field: 'qualities', label: 'Qualities' },
+        { key: 'portfolio', field: 'website', label: 'Portfolio' }
+    ].filter(item => {
+        const sectionState = Object.prototype.hasOwnProperty.call(activeSections, item.key)
+            ? activeSections[item.key] === true
+            : shouldShowExactBuilderField(item.field, ctx);
+        return sectionState && shouldShowExactBuilderField(item.field, ctx);
+    });
+
+    if (!sectionDefs.length) return;
+
+    const stack = document.createElement('div');
+    stack.className = 'rv-exact-builder-stack';
+    stack.style.cssText = [
+        'display:flex',
+        'flex-direction:column',
+        'gap:16px',
+        'width:100%',
+        'max-width:100%',
+        'padding:22px 26px',
+        'background:transparent',
+        'color:inherit',
+        'box-sizing:border-box',
+        'clear:both'
+    ].join(';');
+
+    sectionDefs.forEach(item => {
+        const section = document.createElement('div');
+        section.id = exactSectionIdForField(item.field);
+        section.className = 'section-block rv-exact-appended rv-core-section';
+        section.style.cssText = 'display:block;width:100%;margin:0;color:inherit;';
+        section.innerHTML = `
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:currentColor;border-bottom:2px solid rgba(124,58,237,0.45);padding-bottom:5px;margin-bottom:10px;">${esc(item.label)}</div>
+            <div class="rv-exact-body">${buildExactSectionContent(item.field, item.label, ctx)}</div>
+        `;
+        stack.appendChild(section);
+    });
+
+    const target = findExactBuilderContentTarget(root) || root;
+    const targetStyle = window.getComputedStyle ? window.getComputedStyle(target) : null;
+    if (targetStyle && targetStyle.display === 'none') target.style.display = '';
+    target.appendChild(stack);
+}
+
 function hydrateExactGalleryTemplate(root, ctx) {
     const d = ctx.resumeData || {};
     fillExactTemplatePhoto(root, d);
@@ -11705,6 +11783,7 @@ function hydrateExactGalleryTemplate(root, ctx) {
     // ── 9. Ensure core sections are present even if template lacks headings ──
     ensureExactCoreSections(root, ctx);
     appendMissingExactSections(root, ctx);
+    ensureExactBuilderStack(root, ctx);
 
     // ── 10. Final pass: remove any nodes still showing obvious demo placeholder text ──
     const demoNames = /\b(jeremy clifford|robyn kingsley|nina patel|martina rodler|john smith|alex carter|marina wilkinson|saurabh rathore|andrew bolton|kate bishop|rick tang|caroline smith|amanda griffith|hani husamuddin|derek jane|brian r|kelly white|adeline palmerston|olivia sanchez|chidi eze|william robartson|paul waulson|lorna alvarado|richard sanchez|olivia wilson|maanvita kumari|herper russo|andrea gillis|firstname lastname|your name|position title|company name|job position|lorem ipsum)\b/i;
