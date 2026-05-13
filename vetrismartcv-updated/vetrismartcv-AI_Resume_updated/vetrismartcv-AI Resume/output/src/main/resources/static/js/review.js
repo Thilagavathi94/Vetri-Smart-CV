@@ -11400,6 +11400,11 @@ function ensureExactTemplateStylesInjected() {
 }
 
 function renderExactGalleryTemplate(doc, ctx, templateId) {
+    // The gallery-card clone path can briefly render and then collapse to a
+    // blank/hidden resume after template-page styles finish loading. Keep the
+    // review document on the stable builder-data renderers instead; the card
+    // gallery still provides selection and thumbnail visuals.
+    return false;
     if (!templatePageMarkup || !shouldUseExactGalleryTemplate(templateId)) return false;
 
     ensureExactTemplateStylesInjected();
