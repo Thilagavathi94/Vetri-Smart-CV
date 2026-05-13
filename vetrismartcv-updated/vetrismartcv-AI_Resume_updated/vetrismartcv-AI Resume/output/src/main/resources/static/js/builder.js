@@ -72,7 +72,8 @@ function normalizeBuilderTemplate(tplId) {
     const legacyMap = {
         minimal: 'template1',
         modern: 'template2',
-        creative: 'template3'
+        creative: 'template3',
+        mary: 'tanya'
     };
     // Named templates that review.js handles directly — preserve them as-is
     const namedTemplates = new Set([
@@ -86,9 +87,9 @@ function normalizeBuilderTemplate(tplId) {
         'guy-hawkins', 'kate-bishop', 'smith-graphic'
     ]);
     const raw = String(tplId || '').trim();
-    // If it's a known named template, pass through unchanged so review.js renders the exact design
-    if (namedTemplates.has(raw)) return raw;
     const mapped = legacyMap[raw] || raw;
+    // If it's a known named template, pass through unchanged so review.js renders the matching index design.
+    if (namedTemplates.has(mapped)) return mapped;
     const num = parseInt(mapped.replace('template', ''), 10);
     return /^template\d+$/.test(mapped) && num >= 1 && num <= 52 ? mapped : 'template1';
 }

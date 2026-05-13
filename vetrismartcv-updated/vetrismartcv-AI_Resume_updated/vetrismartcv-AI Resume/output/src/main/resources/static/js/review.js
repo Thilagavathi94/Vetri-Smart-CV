@@ -89,7 +89,8 @@ function normalizeReviewTemplate(templateId) {
     const legacyMap = {
         minimal: 'template1',
         modern: 'template2',
-        creative: 'template3'
+        creative: 'template3',
+        mary: 'tanya'
     };
     const raw = String(templateId || '').trim();
     return legacyMap[raw] || raw;
@@ -348,7 +349,7 @@ async function loadResume(id) {
         if (!res.ok) throw new Error('Not found');
         resumeData = await res.json();
         // Prefer saved template, fall back to URL param, then default
-        currentTemplate = resumeData.templateName || currentTemplate;
+        currentTemplate = normalizeReviewTemplate(resumeData.templateName || currentTemplate);
         if (resumeData.selectedColor)  currentColor          = resumeData.selectedColor;
         if (resumeData.fontFamily)     currentFont           = resumeData.fontFamily;
         if (resumeData.fontStyle)      currentFontSize       = resumeData.fontStyle.toLowerCase();
@@ -2775,6 +2776,8 @@ function renderResume() {
 
     if (currentTemplate === 'robert') {
         doc.innerHTML = buildRobertTemplate(ctx);
+    } else if (currentTemplate === 'olivia') {
+        doc.innerHTML = buildOliviaTemplate(ctx);
     } else if (currentTemplate === 'mary') {
         doc.innerHTML = buildMaryTemplate(ctx);
     } else if (currentTemplate === 'tanya') {
@@ -5252,7 +5255,7 @@ function editBtn(field, label, val) {
 // Based on image: cream left panel, dark maroon header bar + accents
 // ============================================================
 function buildRobertTemplate({ resumeData: d, edu, skills, projects, experience, color }) {
-    const accentColor = color || '#7a1e28';
+    const accentColor = '#7a1e28';
     const name    = d.fullName       || 'Your Name';
     const title   = d.jobTitle       || 'Job Title';
     const email   = d.email          || 'email@example.com';
@@ -5403,7 +5406,7 @@ function buildRobertTemplate({ resumeData: d, edu, skills, projects, experience,
 // Based on image: white bg, left photo + teal contact block
 // ============================================================
 function buildOliviaTemplate({ resumeData: d, edu, skills, projects, experience, color }) {
-    const accentColor = color || '#2daf7f';
+    const accentColor = '#2daf7f';
     const name    = d.fullName       || 'Your Name';
     const title   = d.jobTitle       || 'Job Title';
     const email   = d.email          || 'email@example.com';
@@ -5549,7 +5552,7 @@ function buildOliviaTemplate({ resumeData: d, edu, skills, projects, experience,
 // Based on image: clean, photo top-left, green skill bars
 // ============================================================
 function buildMaryTemplate({ resumeData: d, edu, skills, projects, experience, color }) {
-    const accentColor = color || '#2daf7f';
+    const accentColor = '#2daf7f';
     const name    = d.fullName       || 'Your Name';
     const title   = d.jobTitle       || 'Job Title';
     const email   = d.email          || 'email@example.com';
@@ -5690,7 +5693,7 @@ function buildMaryTemplate({ resumeData: d, edu, skills, projects, experience, c
 // TEMPLATE 4: TANYA — Dark Sidebar + Gold Accents
 // ============================================================
 function buildTanyaTemplate({ resumeData: d, edu, skills, projects, experience, color }) {
-    const accent = color || '#b8860b';
+    const accent = '#b8860b';
     const gold   = '#f5c842';
     const name   = d.fullName       || 'Your Name';
     const title  = d.jobTitle       || 'Job Title';
@@ -11032,7 +11035,11 @@ function _rvHideUndoToast() {
 // into the generic color-only renderer.
 // ============================================================
 function shouldUseExactGalleryTemplate(templateId) {
-    return false;
+    const normalized = normalizeReviewTemplate(templateId);
+    const match = String(normalized || '').match(/^template(\d+)$/);
+    if (!match) return false;
+    const num = Number(match[1]);
+    return Number.isInteger(num) && num >= 1 && num <= 52;
 }
 
 function ensureExactTemplateStylesInjected() {
@@ -11060,6 +11067,7 @@ function ensureExactTemplateStylesInjected() {
         .t1-avatar-placeholder img,
         .t6-avatar-placeholder img,
         .t7-avatar-ph img,
+        .t28-photo img,
         .t10-avatar-ph img,
         .t47-photo-wrap img,
         .t48-photo-circle img,
@@ -11087,6 +11095,7 @@ function ensureExactTemplateStylesInjected() {
         }
         /* Fix t17 photo overlap with header */
         .t17-top-grad { overflow: visible !important; }
+        #resumeDoc .photo-controls { display: none !important; }
     `;
     document.head.appendChild(fixStyle);
 }

@@ -1423,3 +1423,7 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
     background: #f59e0b;
     color: #fff;
 }
+
+#resumeDoc .photo-controls {
+    display: none !important;
+}
