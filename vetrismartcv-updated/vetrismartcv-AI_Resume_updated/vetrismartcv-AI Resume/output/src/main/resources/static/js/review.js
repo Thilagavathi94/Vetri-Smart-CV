@@ -7370,52 +7370,230 @@ function downloadAsWord(fileName) {
     const resumeDoc = document.getElementById('resumeDoc');
     if (!resumeDoc) { showToast('Resume preview is not ready.', 'error'); return; }
 
-    // Collect all inline styles from stylesheets into a single <style> block
-    let inlineStyles = '';
-    try {
-        Array.from(document.styleSheets).forEach(sheet => {
-            try {
-                Array.from(sheet.cssRules || []).forEach(rule => {
-                    inlineStyles += rule.cssText + '\n';
-                });
-            } catch(e) {}
-        });
-    } catch(e) {}
-
-    // Build a full HTML document preserving exact design, colours and layout
-    const htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-/* ── Reset & page ── */
-@page { size: A4; margin: 1cm; }
-html, body { margin:0; padding:0; background:#fff; font-family: Arial, sans-serif; }
-body { display:flex; justify-content:center; padding:0; }
-.resume-doc { width:794px !important; max-width:794px !important; box-shadow:none !important; border-radius:0 !important; }
-.rv-stb, .edit-pen, .photo-controls { display:none !important; }
-.editable-field { cursor:default !important; }
-/* ── Preserve all template colours ── */
-* { print-color-adjust:exact !important; -webkit-print-color-adjust:exact !important; color-adjust:exact !important; }
-${inlineStyles}
-</style>
-</head>
-<body>${resumeDoc.outerHTML}</body>
-</html>`;
-
-    // Use Blob with Word MIME type — Office and LibreOffice open HTML-based .docx
-    const blob = new Blob(['\ufeff', htmlContent], {
+    const docxBytes = buildDocxPackage(buildWordDocumentXml());
+    const blob = new Blob([docxBytes], {
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     });
     const url = URL.createObjectURL(blob);
     const a   = document.createElement('a');
     a.href     = url;
-    a.download = fileName + '.docx';
+    a.download = sanitizeDownloadName(fileName) + '.docx';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast('✓ Word document downloaded!');
+}
+
+function sanitizeDownloadName(fileName) {
+    return String(fileName || 'My_Resume')
+        .replace(/[\\/:*?"<>|]/g, '')
+        .replace(/\.(pdf|docx|txt)$/i, '')
+        .trim() || 'My_Resume';
+}
+
+function wordXmlEscape(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function parseResumeArray(value) {
+    if (Array.isArray(value)) return value;
+    if (!value) return [];
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function wordParagraph(text, style = '') {
+    const lines = String(text || '').split(/\r?\n/).filter(line => line.trim());
+    if (!lines.length) return '';
+    return lines.map(line => {
+        const pStyle = style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : '';
+        return `<w:p>${pStyle}<w:r><w:t xml:space="preserve">${wordXmlEscape(line.trim())}</w:t></w:r></w:p>`;
+    }).join('');
+}
+
+function wordHeading(text) {
+    return text ? wordParagraph(text, 'ResumeHeading') : '';
+}
+
+function wordBullet(text) {
+    return text ? wordParagraph('• ' + String(text).replace(/^[•\-\s]+/, ''), 'ResumeBullet') : '';
+}
+
+function buildWordDocumentXml() {
+    const d = resumeData || {};
+    const skills = parseResumeArray(d.skillsJson || d.skills);
+    const education = parseResumeArray(d.educationJson || d.education);
+    const experience = parseResumeArray(d.experienceJson || d.experience);
+    const projects = parseResumeArray(d.projectsJson || d.projects);
+
+    const skillText = skills.map(s => typeof s === 'string' ? s : (s.name || s.skill || '')).filter(Boolean).join(', ');
+    const contact = [
+        d.email ? `Email: ${d.email}` : '',
+        d.phone ? `Phone: ${d.phone}` : '',
+        (d.address || d.location) ? `Location: ${d.address || d.location}` : '',
+        d.linkedin ? `LinkedIn: ${d.linkedin}` : '',
+        d.website ? `Website: ${d.website}` : ''
+    ].filter(Boolean).join(' | ');
+
+    let body = '';
+    body += wordParagraph(d.fullName || 'My Resume', 'ResumeTitle');
+    if (d.jobTitle) body += wordParagraph(d.jobTitle, 'ResumeSubtitle');
+    if (contact) body += wordParagraph(contact, 'ResumeContact');
+
+    if (d.profileSummary) {
+        body += wordHeading('Summary');
+        body += wordParagraph(d.profileSummary);
+    }
+
+    if (skillText) {
+        body += wordHeading('Skills');
+        body += wordParagraph(skillText);
+    }
+
+    if (experience.length) {
+        body += wordHeading('Experience');
+        experience.forEach(item => {
+            const title = item.jobTitle || item.role || item.title || '';
+            const company = item.company ? ` - ${item.company}` : '';
+            const dates = [item.startDate || item.from || '', item.endDate || item.to || ''].filter(Boolean).join(' to ');
+            body += wordParagraph(`${title}${company}${dates ? ` (${dates})` : ''}`, 'ResumeSubheading');
+            String(item.description || item.bullets || '').split(/\r?\n/).filter(Boolean).forEach(line => {
+                body += wordBullet(line);
+            });
+        });
+    }
+
+    if (projects.length) {
+        body += wordHeading('Projects');
+        projects.forEach(item => {
+            body += wordParagraph(item.title || item.name || '', 'ResumeSubheading');
+            if (item.tools) body += wordParagraph(`Tools: ${item.tools}`);
+            String(item.description || '').split(/\r?\n/).filter(Boolean).forEach(line => {
+                body += wordBullet(line);
+            });
+        });
+    }
+
+    if (education.length) {
+        body += wordHeading('Education');
+        education.forEach(item => {
+            const degree = item.degree || '';
+            const school = item.school || item.university || '';
+            const year = item.year || '';
+            body += wordParagraph([degree, school, year].filter(Boolean).join(' - '));
+        });
+    }
+
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/></w:sectPr></w:body>
+</w:document>`;
+}
+
+function buildDocxPackage(documentXml) {
+    const files = [
+        ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>`],
+        ['_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`],
+        ['word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`],
+        ['word/styles.xml', buildWordStylesXml()],
+        ['word/document.xml', documentXml]
+    ];
+    return createZip(files);
+}
+
+function buildWordStylesXml() {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:style w:type="paragraph" w:styleId="ResumeTitle"><w:name w:val="Resume Title"/><w:rPr><w:b/><w:sz w:val="36"/></w:rPr><w:pPr><w:spacing w:after="80"/></w:pPr></w:style>
+<w:style w:type="paragraph" w:styleId="ResumeSubtitle"><w:name w:val="Resume Subtitle"/><w:rPr><w:sz w:val="24"/></w:rPr><w:pPr><w:spacing w:after="80"/></w:pPr></w:style>
+<w:style w:type="paragraph" w:styleId="ResumeContact"><w:name w:val="Resume Contact"/><w:rPr><w:sz w:val="20"/></w:rPr><w:pPr><w:spacing w:after="220"/></w:pPr></w:style>
+<w:style w:type="paragraph" w:styleId="ResumeHeading"><w:name w:val="Resume Heading"/><w:rPr><w:b/><w:caps/><w:sz w:val="24"/></w:rPr><w:pPr><w:spacing w:before="220" w:after="80"/></w:pPr></w:style>
+<w:style w:type="paragraph" w:styleId="ResumeSubheading"><w:name w:val="Resume Subheading"/><w:rPr><w:b/><w:sz w:val="22"/></w:rPr><w:pPr><w:spacing w:before="100" w:after="40"/></w:pPr></w:style>
+<w:style w:type="paragraph" w:styleId="ResumeBullet"><w:name w:val="Resume Bullet"/><w:pPr><w:ind w:left="360" w:hanging="180"/></w:pPr><w:rPr><w:sz w:val="20"/></w:rPr></w:style>
+</w:styles>`;
+}
+
+function crc32(bytes) {
+    let table = crc32.table;
+    if (!table) {
+        table = crc32.table = new Uint32Array(256);
+        for (let i = 0; i < 256; i++) {
+            let c = i;
+            for (let j = 0; j < 8; j++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+            table[i] = c >>> 0;
+        }
+    }
+    let crc = 0xffffffff;
+    for (let i = 0; i < bytes.length; i++) crc = table[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+    return (crc ^ 0xffffffff) >>> 0;
+}
+
+function createZip(files) {
+    const encoder = new TextEncoder();
+    const localParts = [];
+    const centralParts = [];
+    let offset = 0;
+
+    const u16 = value => [value & 255, (value >>> 8) & 255];
+    const u32 = value => [value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255];
+    const pushBytes = (parts, values) => parts.push(Uint8Array.from(values));
+
+    files.forEach(([name, content]) => {
+        const nameBytes = encoder.encode(name);
+        const data = encoder.encode(content);
+        const crc = crc32(data);
+        const localHeader = [
+            ...u32(0x04034b50), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+            ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(nameBytes.length), ...u16(0)
+        ];
+        pushBytes(localParts, localHeader);
+        localParts.push(nameBytes, data);
+
+        const centralHeader = [
+            ...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+            ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(nameBytes.length), ...u16(0), ...u16(0),
+            ...u16(0), ...u16(0), ...u32(0), ...u32(offset)
+        ];
+        pushBytes(centralParts, centralHeader);
+        centralParts.push(nameBytes);
+        offset += localHeader.length + nameBytes.length + data.length;
+    });
+
+    const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+    const endRecord = Uint8Array.from([
+        ...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length),
+        ...u32(centralSize), ...u32(offset), ...u16(0)
+    ]);
+    const allParts = [...localParts, ...centralParts, endRecord];
+    const total = allParts.reduce((sum, part) => sum + part.length, 0);
+    const zip = new Uint8Array(total);
+    let pos = 0;
+    allParts.forEach(part => {
+        zip.set(part, pos);
+        pos += part.length;
+    });
+    return zip;
 }
 
 // ── PLAIN TEXT (.txt) DOWNLOAD ──────────────────────────────
