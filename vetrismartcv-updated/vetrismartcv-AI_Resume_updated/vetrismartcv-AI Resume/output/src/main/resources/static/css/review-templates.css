@@ -690,7 +690,7 @@
       padding: 0;
       text-align: center;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
       height: 160px;
     }
     .t1-header-bg {
@@ -1203,7 +1203,7 @@
     .t16-photo { width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#6d8b74,#a0b89a);display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;font-weight:900;overflow:hidden;border:3px solid rgba(255,255,255,.3);margin-bottom:10px; }
     .t16-name { font-size:16px;font-weight:900;color:#fff; }
     .t16-role { font-size:10px;color:#b5a47a;text-transform:uppercase;letter-spacing:1px;margin-top:2px; }
-    .t16-bio { font-size:9px;color:#aaa;line-height:1.5;margin-top:8px; }
+    .t16-bio { font-size:10px;color:#c8d8c9;line-height:1.6;margin-top:8px; }
     .t16-sec-title { font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px;background:#3d5246;padding:6px 16px;color:#b5a47a; }
     .t16-left-content { padding:10px 16px; }
     .t16-exp-item { margin-bottom:10px; }
@@ -1221,9 +1221,9 @@
     .t16-edu-uni { font-size:10px;color:#777; }
     .t16-edu-gpa { font-size:10px;color:#aaa; }
     .t16-skill-row { display:flex;align-items:center;gap:8px;margin:5px 0; }
-    .t16-skill-name { font-size:10px;color:#555;width:120px; }
-    .t16-skill-track { flex:1;height:5px;background:#e0d8c8;border-radius:3px;overflow:hidden; }
-    .t16-skill-fill { height:100%;background:linear-gradient(90deg,#3d5246,#6d8b74);border-radius:3px; }
+    .t16-skill-name { font-size:10px;color:#ccc;width:90px;flex-shrink:0; }
+    .t16-skill-track { flex:1;height:5px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden; }
+    .t16-skill-fill { height:100%;background:linear-gradient(90deg,#b5a47a,#d4c89a);border-radius:3px; }
     .resume-t17 { width:660px;background:#fafafa;font-family:'DM Sans',sans-serif;font-size:12px;color:#333;position:relative; overflow:hidden; box-sizing:border-box;}
     .t17-top-grad { height:100px;background:linear-gradient(135deg,#fbc2eb 0%,#a18cd1 50%,#fbc2eb 100%);position:relative; }
     .t17-photo-wrap { position:absolute;top:50px;right:20px;width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#a18cd1,#fbc2eb);display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;font-weight:900;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.15); }

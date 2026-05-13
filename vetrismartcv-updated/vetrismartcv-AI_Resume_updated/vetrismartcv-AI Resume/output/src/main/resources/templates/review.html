@@ -110,7 +110,6 @@
         <li><a href="/template">Resume Templates</a></li>
         <li><a href="/pricing">Pricing</a></li>
         <li th:if="${!loggedIn}" id="navLoginLi"><a href="/login">Login</a></li>
-        <li th:if="${loggedIn}" id="navDashLi"><a href="/dashboard" id="navUserName" th:text="${userName}">Dashboard</a></li>
     </ul>
     <div style="display:flex;align-items:center;gap:10px;">
         <div th:if="${loggedIn}" id="navUserWidget" class="nav-user-menu" style="display:flex;">

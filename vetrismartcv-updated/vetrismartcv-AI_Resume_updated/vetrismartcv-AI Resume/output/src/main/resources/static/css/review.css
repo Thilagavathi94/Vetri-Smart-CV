@@ -134,6 +134,12 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
     pointer-events: none;
 }
 
+/* Override inline scale for review sidebar (panel=360px, usable≈332px → 332/660=0.503) */
+.review-template-card-grid .tpl-preview-inner > div[style] {
+    transform: scale(0.503) !important;
+    width: 660px !important;
+}
+
 .review-template-card-grid .preview-overlay {
     position: absolute;
     inset: 0;

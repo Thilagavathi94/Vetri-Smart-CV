@@ -635,14 +635,34 @@ function buildExactTemplateContacts(d) {
 }
 
 function fillExactTemplatePhoto(root, d) {
+    // Match photo/avatar containers. 'photo-wrap', 'photo-circle', 'photo-outer' are special:
+    // - photo-circle (t48): is the actual image container, must be included
+    // - photo-wrap (t45, t50, t52): is the actual image container when no inner child with photo class exists
+    // - photo-outer (t48): is the positioner wrapper, exclude it
+    // - t1-avatar-wrap: excluded by 'wrap' check — inner t1-avatar-placeholder is matched instead
     const photoTargets = collectExactTemplateNodes(root, node => {
         const cls = node.className || '';
-        return typeof cls === 'string' && /(photo|avatar|placeholder|\bph\b|photo-ph|avatar-ph)/i.test(cls) && !/(graph|wrap|shape|meta|top-right|outer|section-title)/i.test(cls);
+        if (typeof cls !== 'string') return false;
+        // Explicit include for photo-circle (t48 inner photo container)
+        if (/photo-circle/i.test(cls)) return true;
+        // photo-wrap containers that ARE the actual image container (t45, t50, t52, t47)
+        if (/photo-wrap/i.test(cls) && !/(outer|posit)/i.test(cls)) return true;
+        // Standard match: photo, avatar, placeholder, ph, photo-ph, avatar-ph
+        if (/(photo|avatar|placeholder|\bph\b|photo-ph|avatar-ph)/i.test(cls)) {
+            // Exclude wrappers, outer positioners, and non-photo elements
+            if (/(graph|wrap|shape|meta|top-right|outer|section-title)/i.test(cls)) return false;
+            return true;
+        }
+        return false;
     });
-    if (!photoTargets.length) return;
+    // Deduplicate: if both a parent and child match, prefer the innermost (child)
+    const filteredTargets = photoTargets.filter(node =>
+        !photoTargets.some(other => other !== node && node.contains(other))
+    );
+    if (!filteredTargets.length) return;
     const shouldShowPhoto = d.includePhoto !== false;
     const initials = ((d.fullName || 'U').trim().charAt(0) || 'U').toUpperCase();
-    photoTargets.forEach(node => {
+    filteredTargets.forEach(node => {
         if (!shouldShowPhoto) {
             node.innerHTML = '';
             node.style.display = 'none';
@@ -3040,7 +3060,7 @@ function buildTemplate25Template({ resumeData: d, edu, skills, projects, experie
         ? experience.map(e=>`<div class="t25-job section-block" style="border-left-color:${accent};"><div class="t25-job-title editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${e.jobTitle||e.role||e.title||''} <span class="edit-pen">✏</span></div><div class="t25-job-co" style="color:${accent};">${e.company||''}</div><div class="t25-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div><div class="t25-job-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')
         : `<div class="t25-job" style="border-left-color:${accent};color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add work experience ✏</div>`;
     const projectsHTML = projects.length
-        ? projects.map(p=>`<div class="t25-job" style="border-left-color:${accent};"><div class="t25-job-title">${p.title||p.name||''}</div>${p.tools?`<div class="t25-job-co" style="color:${accent};">Tools: ${p.tools}</div>`:''}<div class="t25-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div></div>`).join('')
+        ? projects.map(p=>`<div class="t25-job" style="border-left-color:${accent};"><div class="t25-job-title">${p.title||p.name||''}</div>${p.tools?`<div class="t25-job-co" style="color:${accent};">Tools: ${p.tools}</div>`:''}<div class="t25-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')
         : '';
     return `<div class="resume-t25">
   <div class="t25-header" style="background:${accent};">
@@ -3122,7 +3142,7 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
       ${summary?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};">Profile Summary</div><div class="t1-job-desc editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.6;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
       <div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:${summary?'14px':'0'};">Experience</div>
       <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
-      ${projects.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t1-job"><div class="t1-job-title" style="color:${accent};">${p.title||p.name||''}</div>${p.tools?`<div class="t1-job-date">Tools: ${p.tools}</div>`:''}<div class="t1-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
+      ${projects.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t1-job"><div class="t1-job-title" style="color:${accent};">${p.title||p.name||''}</div>${p.tools?`<div class="t1-job-date">Tools: ${p.tools}</div>`:''}<div class="t1-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
       ${d.certifications?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Certifications</div><div class="section-block editable-field" style="cursor:pointer;font-size:11px;color:#555;" ${editBtn('certifications','Certifications',d.certifications||'')}>${d.certifications} <span class="edit-pen">✏</span></div>`:''}
       ${buildExtraSections(accent)}
     </div>
@@ -3283,7 +3303,7 @@ function buildTemplate4Template({ resumeData: d, edu, skills, projects, experien
     <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
     <div class="t4-section-title" style="border-bottom-color:${accent};margin-top:14px;">Skill Levels</div>
     <div class="editable-field" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>${skillBarsHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
-    ${projects.length?`<div class="t4-section-title" style="border-bottom-color:${accent};margin-top:14px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t4-job"><div class="t4-job-head"><span class="t4-job-title">${p.title||p.name||''}</span></div><div class="t4-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
+    ${projects.length?`<div class="t4-section-title" style="border-bottom-color:${accent};margin-top:14px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t4-job"><div class="t4-job-head"><span class="t4-job-title">${p.title||p.name||''}</span></div><div class="t4-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
     ${buildExtraSections(accent)}
   </div>
 </div>`;
@@ -3334,7 +3354,7 @@ function buildTemplate5Template({ resumeData: d, edu, skills, projects, experien
     <div class="t5-right">
       <div class="t5-section-title" style="color:${accent};">Work Experience</div>
       <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
-      ${projects.length?`<div class="t5-section-title" style="margin-top:14px;color:${accent};">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t5-job"><div class="t5-job-head"><span class="t5-job-title">${p.title||p.name||''}</span></div><div class="t5-job-company">${p.tools||''}</div><div class="t5-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
+      ${projects.length?`<div class="t5-section-title" style="margin-top:14px;color:${accent};">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t5-job"><div class="t5-job-head"><span class="t5-job-title">${p.title||p.name||''}</span></div><div class="t5-job-company">${p.tools||''}</div><div class="t5-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
       ${buildExtraSections(accent)}
     </div>
   </div>
@@ -3644,7 +3664,7 @@ function buildNumberedTemplate({ resumeData: d, edu, skills, projects, experienc
         ? projects.map(p => `<div style="margin-bottom:12px;padding-left:12px;border-left:3px solid ${accent}44;">
             <div style="font-size:12px;font-weight:700;color:${accent};">${p.title||p.name||''}</div>
             ${p.tools?`<div style="font-size:10px;color:#888;">Tools: ${p.tools}</div>`:''}
-            <div style="font-size:11px;color:#374151;">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+            <div style="font-size:11px;color:#374151;">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : '';
 
@@ -3804,7 +3824,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
         ? projects.map(p => `<div style="margin-bottom:12px;">
             <div style="font-size:12px;font-weight:700;color:${accent};">${p.title||p.name||''}</div>
             ${p.tools ? `<div style="font-size:11px;color:#888;">Tools: ${p.tools}</div>` : ''}
-            <div style="font-size:11px;color:#374151;line-height:1.6;">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+            <div style="font-size:11px;color:#374151;line-height:1.6;">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : '';
 
@@ -3907,7 +3927,7 @@ function buildTemplate32Template({ resumeData: d, edu, skills, projects, experie
     <div class="t32-about editable-field section-block" ${editBtn('profileSummary','Profile Summary',summary)}>${summary||'Add your profile summary.'} <span class="edit-pen">✏</span></div>
     ${skills.length?`<div class="t32-skill-group-title">Skills</div><div class="editable-field" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>${skillsHTML}</div>`:''}
     ${experience.length?`<div class="t32-r-sec-title" style="color:${accent};">Experience</div><div class="section-block editable-field" ${editBtn('experienceJson','Experience','')}>${expHTML}</div>`:''}
-    ${projects.length?`<div class="t32-r-sec-title" style="color:${accent};">Projects</div><div class="section-block editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div style="margin-bottom:10px;"><div style="font-weight:700;color:${accent};font-size:11px;">${p.title||p.name||''}</div>${p.tools?`<div style="font-size:10px;color:rgba(255,255,255,0.7);">Tools: ${p.tools}</div>`:''}<div style="font-size:10px;color:rgba(255,255,255,0.8);">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div></div>`).join('')}</div>`:''}
+    ${projects.length?`<div class="t32-r-sec-title" style="color:${accent};">Projects</div><div class="section-block editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div style="margin-bottom:10px;"><div style="font-weight:700;color:${accent};font-size:11px;">${p.title||p.name||''}</div>${p.tools?`<div style="font-size:10px;color:rgba(255,255,255,0.7);">Tools: ${p.tools}</div>`:''}<div style="font-size:10px;color:rgba(255,255,255,0.8);">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')}</div>`:''}
     ${buildExtraSections(accent)}
   </div>
 </div>`;
@@ -3962,7 +3982,7 @@ function buildTemplate34Template({ resumeData: d, edu, skills, projects, experie
     const name=d.fullName||''; const title=d.jobTitle||''; const email=d.email||''; const phone=d.phone||''; const addr=d.address||d.location||''; const linkedin=d.linkedin||''; const website=d.website||''; const summary=d.profileSummary||'';
     const photoHTML = d.profilePhotoData ? `<img src="${d.profilePhotoData}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid #fff;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>` : `<div class="t34-photo" style="background:${accent}88;">${(name||'?').charAt(0).toUpperCase()}</div>`;
     const contactStrip = [phone,email,addr,linkedin,website].filter(Boolean).map(c=>`<div class="t34-contact-strip-item">● ${c}</div>`).join('');
-    const expHTML = experience.length ? experience.map(e=>`<div class="t34-job"><div class="t34-job-head"><span class="t34-job-title" style="color:${accent};">${e.jobTitle||e.role||''}</span><span class="t34-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</span></div><div class="t34-job-co">${e.company||''}</div><div class="t34-job-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join(' ')}</div></div>`).join('') : '';
+    const expHTML = experience.length ? experience.map(e=>`<div class="t34-job"><div class="t34-job-head"><span class="t34-job-title" style="color:${accent};">${e.jobTitle||e.role||''}</span><span class="t34-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</span></div><div class="t34-job-co">${e.company||''}</div><div class="t34-job-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('') : '';
     const eduHTML2 = edu.length ? edu.map(e=>`<div class="t34-edu-item"><div class="t34-edu-deg" style="color:${accent};">${e.degree||''}</div><div class="t34-edu-uni">${e.school||e.university||''}</div><div class="t34-edu-yr">${e.year||''}</div></div>`).join('') : '';
     const skillsHTML = skills.length ? skills.map(s=>`<div class="t34-skill-item">${typeof s==='string'?s:(s.name||s.skill||'')}</div>`).join('') : '';
     return `<div class="resume-t34">
@@ -3999,7 +4019,7 @@ function buildTemplate35Template({ resumeData: d, edu, skills, projects, experie
     const accent = color || '#1d3557';
     const name=d.fullName||''; const title=d.jobTitle||''; const email=d.email||''; const phone=d.phone||''; const addr=d.address||d.location||''; const linkedin=d.linkedin||''; const summary=d.profileSummary||'';
     const photoHTML = d.profilePhotoData ? `<img src="${d.profilePhotoData}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:4px solid rgba(255,255,255,0.3);position:absolute;right:24px;top:14px;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>` : `<div class="t35-header-photo" style="background:${accent}99;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'?').charAt(0).toUpperCase()}</div>`;
-    const expHTML = experience.length ? experience.map(e=>`<div class="t35-job"><span class="t35-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</span><div class="t35-job-title">${e.jobTitle||e.role||''}</div><div class="t35-exp-co-big" style="color:${accent};">${e.company||''}</div><div class="t35-bullet">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join(' ')}</div></div>`).join('') : '';
+    const expHTML = experience.length ? experience.map(e=>`<div class="t35-job"><span class="t35-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</span><div class="t35-job-title">${e.jobTitle||e.role||''}</div><div class="t35-exp-co-big" style="color:${accent};">${e.company||''}</div><div class="t35-bullet">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('') : '';
     const eduHTML2 = edu.length ? edu.map(e=>`<div class="t35-edu-item"><div class="t35-edu-org" style="color:${accent};">${e.school||e.university||''}</div><div class="t35-edu-deg">${e.degree||''}</div><div class="t35-edu-yr">${e.year||''}</div></div>`).join('') : '';
     const skillsHTML = skills.length ? skills.map(s=>`<div class="t35-skill-item">${typeof s==='string'?s:(s.name||s.skill||'')}</div>`).join('') : '';
     return `<div class="resume-t35">
@@ -4038,7 +4058,7 @@ function buildTemplate36Template({ resumeData: d, edu, skills, projects, experie
     const accentLight = color ? color + '99' : '#4a6e5c';
     const name=d.fullName||''; const title=d.jobTitle||''; const email=d.email||''; const phone=d.phone||''; const addr=d.address||d.location||''; const linkedin=d.linkedin||''; const summary=d.profileSummary||'';
     const photoHTML = d.profilePhotoData ? `<img src="${d.profilePhotoData}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.4);display:block;margin:0 auto 12px;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>` : `<div class="t36-photo" style="background:${accent}cc;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'?').charAt(0).toUpperCase()}</div>`;
-    const expHTML = experience.length ? experience.map(e=>`<div class="t36-job"><div class="t36-exp-yr" style="color:${accent};">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div><div class="t36-exp-co">${e.company||''}</div><div class="t36-exp-role">${e.jobTitle||e.role||''}</div><div class="t36-exp-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join(' ')}</div></div>`).join('') : '';
+    const expHTML = experience.length ? experience.map(e=>`<div class="t36-job"><div class="t36-exp-yr" style="color:${accent};">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div><div class="t36-exp-co">${e.company||''}</div><div class="t36-exp-role">${e.jobTitle||e.role||''}</div><div class="t36-exp-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('') : '';
     const eduHTML2 = edu.length ? edu.map(e=>`<div class="t36-edu-item-l"><div class="t36-edu-deg-l">${e.degree||''}</div><div class="t36-edu-uni-l">${e.school||e.university||''}</div><div class="t36-edu-yr-l">${e.year||''}</div></div>`).join('') : '';
     const skillsHTML = skills.length ? skills.map(s=>`<div class="t36-skill-item-l">${typeof s==='string'?s:(s.name||s.skill||'')}</div>`).join('') : '';
     return `<div class="resume-t36">
@@ -4141,7 +4161,7 @@ function buildTemplate38Template({ resumeData: d, edu, skills, projects, experie
 function buildTemplate39Template({ resumeData: d, edu, skills, projects, experience, color }) {
     const accent = color || '#00bcd4';
     const name=d.fullName||''; const title=d.jobTitle||''; const email=d.email||''; const phone=d.phone||''; const addr=d.address||d.location||''; const linkedin=d.linkedin||''; const summary=d.profileSummary||'';
-    const expHTML = experience.length ? experience.map(e=>`<div class="t39-exp-item"><div class="t39-exp-left"><span class="t39-exp-date">${e.startDate||e.from||''}</span><span class="t39-exp-org">${e.company||''}</span></div><div class="t39-exp-right"><div class="t39-exp-title">${e.jobTitle||e.role||''}</div><div class="t39-exp-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join(' ')}</div></div></div>`).join('') : '';
+    const expHTML = experience.length ? experience.map(e=>`<div class="t39-exp-item"><div class="t39-exp-left"><span class="t39-exp-date">${e.startDate||e.from||''}</span><span class="t39-exp-org">${e.company||''}</span></div><div class="t39-exp-right"><div class="t39-exp-title">${e.jobTitle||e.role||''}</div><div class="t39-exp-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div></div>`).join('') : '';
     const eduHTML2 = edu.length ? edu.map(e=>`<div class="t39-exp-item"><div class="t39-exp-left"><span class="t39-exp-date">${e.year||''}</span></div><div class="t39-exp-right"><div class="t39-exp-title">${e.degree||''}</div><div style="font-size:10px;color:#555;">${e.school||e.university||''}</div></div></div>`).join('') : '';
     const skillsHTML = skills.length ? skills.map(s=>{const sn=typeof s==='string'?s:(s.name||s.skill||'');const pct=(typeof s==='object'&&typeof s.level==='number')?s.level:80;return `<div class="t39-skill-bar-row"><div class="t39-skill-name">${sn}</div><div class="t39-skill-track"><div class="t39-skill-fill" style="width:${pct}%;background:${accent};"></div></div></div>`;}).join('') : '';
     return `<div class="resume-t39">
@@ -4174,7 +4194,7 @@ function buildTemplate40Template({ resumeData: d, edu, skills, projects, experie
     const accent = color || '#3d4d8a';
     const name=d.fullName||''; const title=d.jobTitle||''; const email=d.email||''; const phone=d.phone||''; const addr=d.address||d.location||''; const linkedin=d.linkedin||''; const summary=d.profileSummary||'';
     const contactItems = [phone,email,addr,linkedin].filter(Boolean).map(c=>`<div class="t40-contact-item">● ${c}</div>`).join('');
-    const expHTML = experience.length ? experience.map(e=>`<div class="t40-job"><div class="t40-exp-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div><div class="t40-exp-co">${e.company||''}</div><div class="t40-exp-role">${e.jobTitle||e.role||''}</div><div class="t40-exp-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join(' ')}</div></div>`).join('') : '';
+    const expHTML = experience.length ? experience.map(e=>`<div class="t40-job"><div class="t40-exp-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div><div class="t40-exp-co">${e.company||''}</div><div class="t40-exp-role">${e.jobTitle||e.role||''}</div><div class="t40-exp-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('') : '';
     const eduHTML2 = edu.length ? edu.map(e=>`<div class="t40-edu-item"><div class="t40-edu-deg">${e.degree||''}</div><div class="t40-edu-uni">${e.school||e.university||''}</div><div class="t40-edu-yr">${e.year||''}</div></div>`).join('') : '';
     const skillsHTML = skills.length ? skills.map(s=>`<div class="t40-skill-item"><div class="t40-skill-bullet" style="background:${accent};"></div>${typeof s==='string'?s:(s.name||s.skill||'')}</div>`).join('') : '';
     return `<div class="resume-t40">
@@ -4378,7 +4398,7 @@ function buildTemplate44Template({ resumeData: d, edu, skills, projects, experie
       ${expHTML}
       ${eduHTML}
       ${projects.length ? `<div class="t44-sec-title-r section-block">Projects</div>
-        <div class="t44-job editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div style="margin-bottom:10px;"><div style="font-weight:700;font-size:11px;">${p.title||p.name||''}</div><div style="font-size:10px;color:#2563eb;">${p.tools||''}</div><div style="font-size:10px;color:#444;">${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t44-bullet">${b}</div>`).join('')}</div></div>`).join('')} <span class="edit-pen">✏</span></div>` : ''}
+        <div class="t44-job editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div style="margin-bottom:10px;"><div style="font-weight:700;font-size:11px;">${p.title||p.name||''}</div><div style="font-size:10px;color:#2563eb;">${p.tools||''}</div><div style="font-size:10px;color:#444;">${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t44-bullet">${b.replace(/^[•\-]\s*/,"")}</div>`).join('')}</div></div>`).join('')} <span class="edit-pen">✏</span></div>` : ''}
     </div>
   </div>
 </div>`;
@@ -7280,8 +7300,10 @@ async function confirmDownload() {
     closeDownloadModal();
     if (format === 'pdf') {
         downloadAsPDF(fileName);
+    } else if (format === 'docx') {
+        downloadAsWord(fileName);
     } else {
-        downloadAsText(fileName, format);
+        downloadAsPlainText(fileName);
     }
 }
 function downloadAsPDF(fileName) {
@@ -7343,17 +7365,183 @@ function downloadAsPDF(fileName) {
     printWindow.document.close();
     showToast('✓ PDF download initiated!');
 }
-function downloadAsText(fileName, type) {
+// ── WORD (.docx) DOWNLOAD ────────────────────────────────────
+function downloadAsWord(fileName) {
+    const resumeDoc = document.getElementById('resumeDoc');
+    if (!resumeDoc) { showToast('Resume preview is not ready.', 'error'); return; }
+
+    // Collect all inline styles from stylesheets into a single <style> block
+    let inlineStyles = '';
+    try {
+        Array.from(document.styleSheets).forEach(sheet => {
+            try {
+                Array.from(sheet.cssRules || []).forEach(rule => {
+                    inlineStyles += rule.cssText + '\n';
+                });
+            } catch(e) {}
+        });
+    } catch(e) {}
+
+    // Build a full HTML document preserving exact design, colours and layout
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+/* ── Reset & page ── */
+@page { size: A4; margin: 1cm; }
+html, body { margin:0; padding:0; background:#fff; font-family: Arial, sans-serif; }
+body { display:flex; justify-content:center; padding:0; }
+.resume-doc { width:794px !important; max-width:794px !important; box-shadow:none !important; border-radius:0 !important; }
+.rv-stb, .edit-pen, .photo-controls { display:none !important; }
+.editable-field { cursor:default !important; }
+/* ── Preserve all template colours ── */
+* { print-color-adjust:exact !important; -webkit-print-color-adjust:exact !important; color-adjust:exact !important; }
+${inlineStyles}
+</style>
+</head>
+<body>${resumeDoc.outerHTML}</body>
+</html>`;
+
+    // Use Blob with Word MIME type — Office and LibreOffice open HTML-based .docx
+    const blob = new Blob(['\ufeff', htmlContent], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = fileName + '.docx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✓ Word document downloaded!');
+}
+
+// ── PLAIN TEXT (.txt) DOWNLOAD ──────────────────────────────
+function downloadAsPlainText(fileName) {
     const d = resumeData;
-    let text = `${d.fullName||'Name'}\n${d.jobTitle||''}\nEmail: ${d.email||''} | Phone: ${d.phone||''}\n\nSUMMARY\n${d.profileSummary||''}\n\n`;
-    try { const sk = JSON.parse(d.skillsJson||'[]'); if(sk.length) text += `SKILLS\n${sk.join(', ')}\n\n`; } catch {}
-    try { const ed = JSON.parse(d.educationJson||'[]'); if(ed.length){ text+='EDUCATION\n'; ed.forEach(e=>{ text+=`${e.degree} ${e.field} - ${e.university} (${e.year})\n`; }); text+='\n'; } } catch {}
-    const blob = new Blob([text], {type:'text/plain'});
+    const line  = (char, len) => char.repeat(len || 60);
+    const head  = (title)     => `\n${line('─')}\n  ${title.toUpperCase()}\n${line('─')}\n`;
+    let text = '';
+
+    // Header block
+    text += `${(d.fullName  || 'Name').toUpperCase()}\n`;
+    text += `${d.jobTitle   || ''}\n`;
+    const contact = [
+        d.email    ? `Email: ${d.email}`    : '',
+        d.phone    ? `Phone: ${d.phone}`    : '',
+        d.address  ? `Location: ${d.address}`: '',
+        d.linkedin ? `LinkedIn: ${d.linkedin}`: '',
+        d.website  ? `Website: ${d.website}` : ''
+    ].filter(Boolean).join('  |  ');
+    if (contact) text += contact + '\n';
+    text += line('═') + '\n';
+
+    // Profile Summary
+    if ((d.profileSummary || '').trim()) {
+        text += head('Profile Summary');
+        text += (d.profileSummary || '').trim() + '\n';
+    }
+
+    // Skills
+    try {
+        const sk = JSON.parse(d.skillsJson || '[]');
+        if (sk.length) {
+            text += head('Skills');
+            // Wrap skills into lines of ~60 chars
+            let line60 = '', skLines = [];
+            sk.forEach(s => {
+                const token = line60 ? `, ${s}` : s;
+                if ((line60 + token).length > 58) { skLines.push(line60); line60 = s; }
+                else { line60 += token; }
+            });
+            if (line60) skLines.push(line60);
+            text += skLines.join('\n') + '\n';
+        }
+    } catch(e) {}
+
+    // Experience
+    try {
+        const exp = JSON.parse(d.experienceJson || '[]');
+        if (exp.length) {
+            text += head('Work Experience');
+            exp.forEach(e => {
+                text += `\n▸ ${e.jobTitle || e.title || ''}`;
+                if (e.company)   text += `  —  ${e.company}`;
+                if (e.startDate || e.endDate) text += `  (${[e.startDate, e.endDate].filter(Boolean).join(' – ')})`;
+                text += '\n';
+                if (e.location)    text += `  Location: ${e.location}\n`;
+                if (e.description) text += `  ${(e.description||'').replace(/\n/g,'\n  ')}\n`;
+            });
+        }
+    } catch(e) {}
+
+    // Education
+    try {
+        const ed = JSON.parse(d.educationJson || '[]');
+        if (ed.length) {
+            text += head('Education');
+            ed.forEach(e => {
+                text += `\n▸ ${[e.degree, e.field].filter(Boolean).join(' in ')}\n`;
+                if (e.university || e.school) text += `  ${e.university || e.school}`;
+                if (e.year) text += `  (${e.year})`;
+                text += '\n';
+                if (e.grade) text += `  Grade/GPA: ${e.grade}\n`;
+            });
+        }
+    } catch(e) {}
+
+    // Projects
+    try {
+        const pr = JSON.parse(d.projectsJson || '[]');
+        if (pr.length) {
+            text += head('Projects');
+            pr.forEach(p => {
+                text += `\n▸ ${p.title || p.name || ''}\n`;
+                if (p.technologies || p.tech) text += `  Technologies: ${p.technologies || p.tech}\n`;
+                if (p.link || p.url)          text += `  Link: ${p.link || p.url}\n`;
+                if (p.description)            text += `  ${(p.description||'').replace(/\n/g,'\n  ')}\n`;
+            });
+        }
+    } catch(e) {}
+
+    // Certifications
+    if ((d.certifications || '').trim()) {
+        text += head('Certifications');
+        text += d.certifications.trim().split('\n').map(l => `  • ${l.trim()}`).join('\n') + '\n';
+    }
+
+    // Awards
+    if ((d.awards || '').trim()) {
+        text += head('Awards & Achievements');
+        text += d.awards.trim().split('\n').map(l => `  • ${l.trim()}`).join('\n') + '\n';
+    }
+
+    // Languages
+    if ((d.languages || '').trim()) {
+        text += head('Languages');
+        text += d.languages.split(',').map(l => `  • ${l.trim()}`).join('\n') + '\n';
+    }
+
+    // Interests
+    if ((d.interests || '').trim()) {
+        text += head('Interests');
+        text += d.interests.trim() + '\n';
+    }
+
+    text += `\n${line('═')}\n`;
+
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
-    a.href = url; a.download = fileName + '.txt'; a.click();
+    a.href     = url;
+    a.download = fileName + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast(`✓ Downloaded!`);
+    showToast('✓ Text file downloaded!');
 }
 
 // ============================================================
@@ -8260,7 +8448,7 @@ function buildDonnaTemplate({ resumeData: d, edu, skills, projects, experience, 
         ? experience.map(e=>`<div style="margin-bottom:16px;">
             <div style="font-size:13px;font-weight:700;color:#1a1a2e;">${e.role||e.title||''} | ${e.company||''}</div>
             <div style="font-size:11px;color:#888;margin-bottom:5px;">${e.from||e.startDate||''} – ${e.to||e.endDate||'Present'}</div>
-            <div style="font-size:11px;color:#555;line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+            <div style="font-size:11px;color:#555;line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')} class="editable-field" ${editBtn('experienceJson','Experience','')}>Click to add experience ✏</div>`;
 
@@ -8329,7 +8517,7 @@ function buildJohnPurpleLeftTemplate({ resumeData: d, edu, skills, projects, exp
         ? experience.map(e=>`<div style="margin-bottom:14px;">
             <div style="font-size:13px;font-weight:700;color:${accent};">${e.role||e.title||''}</div>
             <div style="font-size:11px;color:#888;margin-bottom:4px;">${e.company||''} | ${e.from||e.startDate||''} – ${e.to||e.endDate||'Present'}</div>
-            <div style="font-size:11px;color:#555;line-height:1.6;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+            <div style="font-size:11px;color:#555;line-height:1.6;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
 
@@ -8417,7 +8605,7 @@ function buildJohnDarkTealTemplate({ resumeData: d, edu, skills, projects, exper
         ? experience.map(e=>`<div style="margin-bottom:16px;">
             <div style="font-size:12px;font-weight:800;color:${accentLight};text-transform:uppercase;">${e.role||e.title||''}</div>
             <div style="font-size:11px;color:#888;margin-bottom:5px;">${e.company||''} | ${e.from||e.startDate||''} – ${e.to||e.endDate||'Present'}</div>
-            <div style="font-size:11px;color:#555;line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+            <div style="font-size:11px;color:#555;line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
 
@@ -8501,7 +8689,7 @@ function buildJohnGreenSidebarTemplate({ resumeData: d, edu, skills, projects, e
               <div style="font-size:10px;color:${accent};font-weight:700;">${e.location||''}</div>
             </div>
             <div style="font-size:11px;color:#888;margin-bottom:5px;">${e.company||''} | ${e.from||e.startDate||''} – ${e.to||e.endDate||'Present'}</div>
-            <div style="font-size:11px;color:#555;line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+            <div style="font-size:11px;color:#555;line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
 
@@ -8655,7 +8843,7 @@ function buildBotanicaTemplate({ resumeData: d, edu, skills, projects, experienc
             <div style="font-size:12px;font-weight:800;color:${accent};margin-bottom:5px;">${e.company||''} — ${e.location||''}</div>
             <div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:2px;">${e.role||e.title||''}</div>
             <div style="font-size:9px;color:rgba(255,255,255,0.5);margin-bottom:6px;">${e.from||e.startDate||''} – ${e.to||e.endDate||'Present'}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.75);line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.75);line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : `<div style="font-size:11px;color:rgba(255,255,255,0.4);cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
 
@@ -8916,7 +9104,7 @@ function buildDarkProTemplate({ resumeData: d, edu, skills, projects, experience
         ? experience.map(e=>`<div style="margin-bottom:14px;">
             <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);margin-bottom:2px;">${e.company||''}</div>
             <div style="font-size:9px;color:rgba(255,255,255,0.35);font-style:italic;margin-bottom:5px;">${e.role||e.title||''}</div>
-            <div style="font-size:9px;color:rgba(255,255,255,0.55);line-height:1.6;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.55);line-height:1.6;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : `<div style="font-size:10px;color:rgba(255,255,255,0.35);cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add work experience ✏</div>`;
 
@@ -9016,7 +9204,7 @@ function buildRudolfTemplate({ resumeData: d, edu, skills, projects, experience,
               <div style="font-size:11px;font-weight:800;color:${accent};">${e.company||'Company'}</div>
               <div style="font-size:8px;color:rgba(255,255,255,0.4);">${e.startDate||''} – ${e.endDate||'Present'}</div>
             </div>
-            <div style="font-size:9px;color:rgba(255,255,255,0.6);line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.6);line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : `<div style="font-size:10px;color:rgba(255,255,255,0.4);cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add work experience ✏</div>`;
 
@@ -9306,7 +9494,7 @@ function buildRickTangTemplate({ resumeData: d, edu, skills, projects, experienc
         ? experience.map(e=>`<div style="margin-bottom:14px;">
             <div style="font-size:11px;font-weight:800;color:#1a1a2e;">${e.company||'Company'} — ${e.role||e.title||'Role'}</div>
             <div style="font-size:9px;color:#888;margin-bottom:5px;">${e.startDate||''} – ${e.endDate||'Present'}</div>
-            <div style="font-size:9px;color:#555;line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+            <div style="font-size:9px;color:#555;line-height:1.7;">${(e.bullets||e.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : `<div style="font-size:9px;color:#888;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
 
@@ -9946,7 +10134,7 @@ function buildTemplate22ProperTemplate({ resumeData: d, edu, skills, projects, e
               <div class="t22-exp-date">${e.startDate || e.from || ''} – ${e.endDate || e.to || 'Present'}</div>
             </div>
             <div class="t22-exp-co">${e.company || ''}</div>
-            <div class="t22-exp-desc">${(e.description || e.bullets || '').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join(' ')}</div>
+            <div class="t22-exp-desc">${(e.description || e.bullets || '').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
 
@@ -10687,6 +10875,46 @@ function ensureExactTemplateStylesInjected() {
     style.id = 'reviewExactTemplateStyles';
     style.textContent = largest.textContent || '';
     document.head.appendChild(style);
+
+    // Inject critical fixes for photo display and alignment in review page
+    const fixStyle = document.createElement('style');
+    fixStyle.id = 'reviewExactTemplateFixes';
+    fixStyle.textContent = `
+        /* Fix t1 (Vivid Pro) avatar overlap with header */
+        .t1-header { overflow: visible !important; }
+        /* Ensure photo containers show images correctly */
+        .t1-avatar-placeholder img,
+        .t6-avatar-placeholder img,
+        .t7-avatar-ph img,
+        .t10-avatar-ph img,
+        .t47-photo-wrap img,
+        .t48-photo-circle img,
+        .t50-photo-wrap img,
+        .t52-photo-wrap img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            border-radius: inherit !important;
+            display: block !important;
+        }
+        /* Ensure photo-wrap containers clip correctly */
+        .t47-photo-wrap,
+        .t48-photo-circle,
+        .t50-photo-wrap,
+        .t52-photo-wrap {
+            overflow: hidden !important;
+        }
+        /* Ensure t45 photo-wrap shows correctly */
+        .t45-photo-wrap {
+            overflow: hidden !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        /* Fix t17 photo overlap with header */
+        .t17-top-grad { overflow: visible !important; }
+    `;
+    document.head.appendChild(fixStyle);
 }
 
 function renderExactGalleryTemplate(doc, ctx, templateId) {
@@ -11021,7 +11249,7 @@ function hydrateExactGalleryTemplate(root, ctx) {
     // ── 4. Profile summary ─────────────────────────────────────────
     if (d.profileSummary) {
         fillExactTemplateText(root, /(bio|summary|quote-box|profile-text|about-text)/i, d.profileSummary, {
-            field: 'profileSummary', label: 'Profile Summary', limit: 2,
+            field: 'profileSummary', label: 'Profile Summary',
             skip: node => /(sec-title|title)/i.test(node.className || '')
         });
         // Profile strip (some templates have a dedicated strip element)
@@ -11411,7 +11639,7 @@ function buildTemplate10Template({ resumeData: d, edu, skills, projects, experie
         ? projects.map(p => `<div style="margin-bottom:10px;">
             <div style="font-size:11px;font-weight:800;color:#1a1a2e;">${p.title||p.name||''}</div>
             ${p.tools?`<div style="font-size:10px;color:#888;">Tools: ${p.tools}</div>`:''}
-            <div style="font-size:10px;color:#555;line-height:1.5;">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+            <div style="font-size:10px;color:#555;line-height:1.5;">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>`).join('')
         : '';
 
@@ -11489,7 +11717,7 @@ function buildTemplate11Template({ resumeData: d, edu, skills, projects, experie
     const projItems = projects.map(p => `<div class="t11-job">
         <div class="t11-job-title">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t11-job-co" style="color:${accent};">Tools: ${p.tools}</div>`:''}
-        <div class="t11-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+        <div class="t11-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
     </div>`).join('');
 
     return `<div class="resume-t11">
@@ -11547,7 +11775,7 @@ function buildTemplate12Template({ resumeData: d, edu, skills, projects, experie
     const projItems = projects.map(p => `<div class="t12-item">
         <div class="t12-item-title">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t12-item-sub">Tools: ${p.tools}</div>`:''}
-        <div style="font-size:10px;color:#555;margin-top:2px;">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+        <div style="font-size:10px;color:#555;margin-top:2px;">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
     </div>`).join('');
 
     const skillItems = skills.map(s=>{
@@ -11621,7 +11849,7 @@ function buildTemplate13Template({ resumeData: d, edu, skills, projects, experie
     const projItems = projects.map(p=>`<div class="t13-job">
         <div class="t13-job-title">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t13-job-co" style="color:${accent};">Tools: ${p.tools}</div>`:''}
-        <div class="t13-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+        <div class="t13-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
     </div>`).join('');
 
     return `<div class="resume-t13">
@@ -11683,7 +11911,7 @@ function buildTemplate14Template({ resumeData: d, edu, skills, projects, experie
         <div class="t14-tl-content">
           <div class="t14-tl-title">${e.jobTitle||e.role||e.title||''}</div>
           <div class="t14-tl-co" style="color:${gold};">${e.company||''}</div>
-          <div class="t14-tl-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).slice(0,2).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
+          <div class="t14-tl-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
         </div>
     </div>`).join('');
 
@@ -11809,7 +12037,7 @@ function buildTemplate16Template({ resumeData: d, edu, skills, projects, experie
         <div class="t16-exp-year">${(e.startDate||e.from||'').split('-')[0]||''} – ${(e.endDate||e.to||'Present').split('-')[0]||'Pres'}</div>
         <div class="t16-exp-co">${e.company||''}</div>
         <div class="t16-exp-role">${e.jobTitle||e.role||e.title||''}</div>
-        <div class="t16-exp-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).slice(0,2).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join(' ')}</div>
+        <div class="t16-exp-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
     </div>`).join('');
 
     const projItems = projects.map(p=>`<div class="t16-exp-item">
@@ -11829,7 +12057,7 @@ function buildTemplate16Template({ resumeData: d, edu, skills, projects, experie
           <div class="t16-photo" style="background:linear-gradient(135deg,#6d8b74,#a0b89a);">${(name||'U').charAt(0).toUpperCase()}</div>
           <div class="t16-name editable-field" style="cursor:pointer;color:#fff;" ${editBtn('fullName','Full Name',d.fullName||'')}>${name}</div>
           <div class="t16-role" style="color:${gold};">${title}</div>
-          ${summary?`<div class="t16-bio">${summary.substring(0,100)}...</div>`:''}
+          ${summary?`<div class="t16-bio">${summary}</div>`:''}
         </div>
         <div class="t16-sec-title" style="background:#3d5246;color:${gold};">Contact</div>
         <div class="t16-left-content">
@@ -11888,7 +12116,7 @@ function buildTemplate18Template({ resumeData: d, edu, skills, projects, experie
     const projItems = projects.map(p=>`<div class="t18-emp-item">
         <div class="t18-emp-title">${p.title||p.name||''}</div>
         ${p.tools?`<div style="font-size:10px;color:${accent};">Tools: ${p.tools}</div>`:''}
-        <div class="t18-emp-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+        <div class="t18-emp-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
     </div>`).join('');
 
     const eduItems = edu.map(e=>`<div class="t18-edu-item">
@@ -11952,7 +12180,7 @@ function buildTemplate20Template({ resumeData: d, edu, skills, projects, experie
     const projItems = projects.map(p=>`<div class="t20-job">
         <div class="t20-job-title" style="color:${accent};">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t20-job-co">Tools: ${p.tools}</div>`:''}
-        <div class="t20-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+        <div class="t20-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
     </div>`).join('');
 
     const skillItems = skills.map(s=>{
@@ -12146,7 +12374,7 @@ function buildTemplate26Template({ resumeData: d, edu, skills, projects, experie
           <div>
             <div class="t26-exp-role">${e.jobTitle||e.role||e.title||''}</div>
             <div class="t26-exp-co">${e.company||''}</div>
-            <div class="t26-exp-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).slice(0,2).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join(' ')}</div>
+            <div class="t26-exp-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
           </div>
         </div>
     </div>`).join('');
@@ -12352,7 +12580,7 @@ function buildTemplate30Template({ resumeData: d, edu, skills, projects, experie
     const projItems = projects.map(p=>`<div class="t30-job">
         <div class="t30-job-title">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t30-job-co">Tools: ${p.tools}</div>`:''}
-        <div class="t30-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b}`).join('<br>')}</div>
+        <div class="t30-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
     </div>`).join('');
 
     const skillItems = skills.map(s=>{
