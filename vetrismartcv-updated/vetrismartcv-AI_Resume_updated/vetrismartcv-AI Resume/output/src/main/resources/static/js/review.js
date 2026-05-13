@@ -85,60 +85,56 @@ function applyPendingProTemplateIfAllowed() {
     }
 }
 
+const REVIEW_TEMPLATE_ALIASES = {
+    robert: 'template46',
+    olivia: 'template28',
+    mary: 'template10',
+    tanya: 'template10',
+    samuel: 'template32',
+    alexander: 'template40',
+    minimal: 'template37',
+    modern: 'template2',
+    creative: 'template3',
+    traditional: 'template33',
+    'john-orange': 'template23',
+    'john-purple': 'template31',
+    'alex-creative': 'template11',
+    lacy: 'template5',
+    marina: 'template19',
+    rick: 'template22',
+    caroline: 'template28',
+    narmatha: 'template34',
+    'john-blue': 'template21',
+    monica: 'template15',
+    'narmatha-pro': 'template16',
+    donna: 'template13',
+    'john-purple-left': 'template6',
+    'john-dark-teal': 'template7',
+    'john-green-sidebar': 'template22',
+    'product-manager': 'template43',
+    botanica: 'template24',
+    'smith-orange': 'template8',
+    brian: 'template25',
+    'dark-pro': 'template50',
+    rudolf: 'template39',
+    emily: 'template45',
+    kelly: 'template26',
+    suhail: 'template41',
+    ricktang: 'template27',
+    hani: 'template30',
+    narmatha2: 'template35',
+    'guy-hawkins': 'template42',
+    'kate-bishop': 'template29',
+    'smith-graphic': 'template49'
+};
+
 function normalizeReviewTemplate(templateId) {
-    const legacyMap = {
-        minimal: 'template1',
-        modern: 'template2',
-        creative: 'template3',
-        mary: 'tanya'
-    };
     const raw = String(templateId || '').trim();
-    return legacyMap[raw] || raw;
+    return REVIEW_TEMPLATE_ALIASES[raw] || raw;
 }
 
 function resolveExactTemplateId(templateId) {
-    const normalized = normalizeReviewTemplate(templateId);
-    const legacyExactMap = {
-        robert: 'template46',
-        olivia: 'template28',
-        mary: 'template44',
-        tanya: 'template10',
-        samuel: 'template32',
-        alexander: 'template40',
-        minimal: 'template37',
-        traditional: 'template33',
-        'john-orange': 'template23',
-        'john-purple': 'template31',
-        'alex-creative': 'template11',
-        lacy: 'template5',
-        marina: 'template19',
-        rick: 'template22',
-        caroline: 'template28',
-        narmatha: 'template34',
-        'john-blue': 'template21',
-        monica: 'template15',
-        'narmatha-pro': 'template16',
-        donna: 'template13',
-        'john-purple-left': 'template6',
-        'john-dark-teal': 'template7',
-        'john-green-sidebar': 'template22',
-        'product-manager': 'template43',
-        botanica: 'template24',
-        'smith-orange': 'template8',
-        brian: 'template25',
-        'dark-pro': 'template50',
-        rudolf: 'template39',
-        emily: 'template45',
-        kelly: 'template26',
-        suhail: 'template41',
-        ricktang: 'template27',
-        hani: 'template30',
-        narmatha2: 'template35',
-        'guy-hawkins': 'template42',
-        'kate-bishop': 'template29',
-        'smith-graphic': 'template49'
-    };
-    return legacyExactMap[normalized] || normalized;
+    return normalizeReviewTemplate(templateId);
 }
 
 function normalizeReviewRenderArtifacts(root) {
@@ -241,8 +237,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (stored) {
             try { resumeData = JSON.parse(stored); } catch {}
         }
-        // Prefer saved templateName from session, then URL param, then default
-        if (resumeData.templateName) currentTemplate = normalizeReviewTemplate(resumeData.templateName);
+        // A URL template is an explicit user selection; do not let saved legacy
+        // names like "robert" switch the review page back to old fallback layouts.
+        currentTemplate = normalizeReviewTemplate(tmplParam || resumeData.templateName || currentTemplate);
         renderResume();
     }
 
@@ -358,8 +355,10 @@ async function loadResume(id) {
         const res = await fetch(`${API_BASE}/${id}`);
         if (!res.ok) throw new Error('Not found');
         resumeData = await res.json();
-        // Prefer saved template, fall back to URL param, then default
-        currentTemplate = normalizeReviewTemplate(resumeData.templateName || currentTemplate);
+        const selectedFromUrl = new URLSearchParams(window.location.search).get('template');
+        // Prefer explicit URL/click selection over saved templateName so the
+        // preview always matches the card the user opened or selected.
+        currentTemplate = normalizeReviewTemplate(selectedFromUrl || resumeData.templateName || currentTemplate);
         if (resumeData.selectedColor)  currentColor          = resumeData.selectedColor;
         if (resumeData.fontFamily)     currentFont           = resumeData.fontFamily;
         if (resumeData.fontStyle)      currentFontSize       = resumeData.fontStyle.toLowerCase();
@@ -2385,9 +2384,15 @@ function changeTemplate(name) {
         'template51': '#1a1a2e',
         'template52': '#1a1a2e',
     };
-    currentColor = colorMap[name] || '#2daf7f';
+    currentColor = colorMap[currentTemplate] || colorMap[name] || '#2daf7f';
+    if (window.history && window.location) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('template', currentTemplate);
+        history.replaceState({}, '', url.pathname + url.search);
+    }
     document.querySelectorAll('.tmpl-thumb').forEach(t => t.classList.remove('selected'));
-    const el = document.getElementById('tgrid-' + name);
+    document.querySelectorAll('.review-tpl-card').forEach(t => t.classList.remove('selected'));
+    const el = document.getElementById('tgrid-' + currentTemplate) || document.getElementById('tgrid-' + name);
     if (el) el.classList.add('selected');
     // Sync color swatch UI
     document.querySelectorAll('.color-swatch').forEach(s => {
@@ -11491,23 +11496,49 @@ function buildExactSectionContent(field, label, ctx) {
     return '';
 }
 
-function appendMissingExactSections(root, ctx) {
-    const d = ctx.resumeData || {};
-    const targetCandidates = Array.from(root.querySelectorAll('*')).filter(node => {
-        const cls = node.className || '';
-        return typeof cls === 'string'
-            && /(body|right|content|br|main|column)/i.test(cls)
-            && !/(top|header|photo|avatar|contact|strip|left|info)/i.test(cls);
+function findExactBuilderContentTarget(root) {
+    if (!root) return null;
+    const candidates = [root, ...Array.from(root.querySelectorAll('*'))].filter(node => {
+        const cls = (node.className || '').toString();
+        if (/(avatar|photo|logo|icon|controls|preview|overlay|badge|button|btn)/i.test(cls)) return false;
+        if (/(contact|phone|email|address)/i.test(cls) && !/(body|main|content|right|column|panel)/i.test(cls)) return false;
+        return node.children && node.children.length >= 0;
     });
 
-    let target = targetCandidates[targetCandidates.length - 1]
-        || root.querySelector('[class*="body"]')
-        || root.querySelector('[class*="content"]')
-        || root;
+    let best = root;
+    let bestScore = -Infinity;
+    candidates.forEach(node => {
+        const cls = (node.className || '').toString();
+        let score = 0;
+        if (/(main|body|content|right|details|section|experience|work|resume-frame)/i.test(cls)) score += 80;
+        if (/(left|side|sidebar|aside|contact|avatar|photo|header|top|hero|strip|meta|info)/i.test(cls)) score -= 50;
+        if (node === root) score += 10;
+        score += Math.min(node.children.length, 12);
 
-    if (target && target.children.length === 1 && target.firstElementChild && !target.firstElementChild.id) {
-        target = target.firstElementChild;
+        if (typeof node.getBoundingClientRect === 'function') {
+            const rect = node.getBoundingClientRect();
+            if (rect.width > 250) score += 25;
+            if (rect.width > 420) score += 20;
+            if (rect.height > 160) score += 15;
+            if (rect.left > root.getBoundingClientRect().left + 120) score += 18;
+        }
+
+        if (score > bestScore) {
+            bestScore = score;
+            best = node;
+        }
+    });
+
+    if (best && best.children.length === 1 && best.firstElementChild && !best.firstElementChild.id) {
+        const childCls = (best.firstElementChild.className || '').toString();
+        if (/(body|main|content|right|column|details)/i.test(childCls)) return best.firstElementChild;
     }
+    return best || root;
+}
+
+function appendMissingExactSections(root, ctx) {
+    const d = ctx.resumeData || {};
+    const target = findExactBuilderContentTarget(root);
 
     const hasContentForField = (field) => {
         if (field === 'profileSummary') return !!(d.profileSummary || '').trim();
@@ -11564,21 +11595,7 @@ function appendMissingExactSections(root, ctx) {
 
 function ensureExactCoreSections(root, ctx) {
     const d = ctx.resumeData || {};
-    const targetCandidates = Array.from(root.querySelectorAll('*')).filter(node => {
-        const cls = node.className || '';
-        return typeof cls === 'string'
-            && /(body|right|content|br|main|column)/i.test(cls)
-            && !/(top|header|photo|avatar|contact|strip|left|info)/i.test(cls);
-    });
-
-    let target = targetCandidates[targetCandidates.length - 1]
-        || root.querySelector('[class*="body"]')
-        || root.querySelector('[class*="content"]')
-        || root;
-
-    if (target && target.children.length === 1 && target.firstElementChild && !target.firstElementChild.id) {
-        target = target.firstElementChild;
-    }
+    const target = findExactBuilderContentTarget(root);
 
     const requiredSections = [
         { field: 'profileSummary', label: 'Profile Summary', show: !!(d.profileSummary || '').trim() },
