@@ -170,6 +170,16 @@ function normalizeReviewRenderArtifacts(root) {
         }
         node = walker.nextNode();
     }
+
+    root.querySelectorAll('[class*="bullet"], [class*="skill"], [class*="contact"], [class*="about"], [class*="bio"], [class*="summary"], [class*="desc"]').forEach(el => {
+        if (el.style) {
+            el.style.overflow = 'visible';
+            el.style.textOverflow = 'clip';
+            el.style.whiteSpace = 'normal';
+            el.style.wordBreak = 'normal';
+            el.style.overflowWrap = 'anywhere';
+        }
+    });
 }
 
 function isUsableRenderedResume(doc, ctx, isExact = false) {
@@ -2488,7 +2498,7 @@ function updatePlanBadge() {
     }
 
     if (userPlan === 'PRO') {
-        label.textContent = '🛡ï¸ Pro Plan';
+        label.textContent = 'Pro Plan';
         bar.className = 'plan-badge-bar plan-pro';
         if (link) { link.textContent = 'Go Premium ↗'; link.href = '/pricing'; }
     } else if (userPlan === 'PREMIUM') {
@@ -11176,6 +11186,131 @@ function ensureExactTemplateStylesInjected() {
         }
         /* Fix t17 photo overlap with header */
         .t17-top-grad { overflow: visible !important; }
+        #resumeDoc [class^="resume-t"],
+        #resumeDoc [class*=" resume-t"] {
+            box-sizing: border-box !important;
+            overflow: visible !important;
+            min-height: 860px !important;
+        }
+        #resumeDoc [class^="resume-t"] *,
+        #resumeDoc [class*=" resume-t"] * {
+            box-sizing: border-box !important;
+            max-height: none !important;
+            text-overflow: clip !important;
+        }
+        #resumeDoc [class*="bio"],
+        #resumeDoc [class*="about"],
+        #resumeDoc [class*="summary"],
+        #resumeDoc [class*="desc"],
+        #resumeDoc [class*="contact"],
+        #resumeDoc [class*="skill"],
+        #resumeDoc [class*="bullet"],
+        #resumeDoc [class*="edu"],
+        #resumeDoc [class*="job"] {
+            white-space: normal !important;
+            overflow: visible !important;
+            overflow-wrap: anywhere !important;
+            word-break: normal !important;
+            line-height: 1.55 !important;
+        }
+        #resumeDoc .t17-profile-strip-title,
+        #resumeDoc .t12-profile-strip-title,
+        #resumeDoc .t17-sec-title,
+        #resumeDoc .t12-sec-title,
+        #resumeDoc .t21-sec-title,
+        #resumeDoc .t29-sec-title,
+        #resumeDoc .t30-sec-title-l,
+        #resumeDoc .t30-sec-title-r,
+        #resumeDoc .t31-sec-title,
+        #resumeDoc .t32-sec-title-l,
+        #resumeDoc .t32-sec-title-r,
+        #resumeDoc .t34-sec-title-l,
+        #resumeDoc .t34-sec-title-r,
+        #resumeDoc .t48-sec-title-l,
+        #resumeDoc .t48-sec-title-r {
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+            overflow-wrap: normal !important;
+        }
+        #resumeDoc .t12-profile-strip,
+        #resumeDoc .t17-profile-strip {
+            align-items: flex-start !important;
+            gap: 14px !important;
+        }
+        #resumeDoc .t12-profile-strip-title,
+        #resumeDoc .t17-profile-strip-title {
+            flex: 0 0 auto !important;
+            min-width: 44px !important;
+        }
+        #resumeDoc .t12-profile-strip > :not(.t12-profile-strip-title),
+        #resumeDoc .t17-profile-strip > :not(.t17-profile-strip-title) {
+            flex: 1 1 auto !important;
+        }
+        #resumeDoc .t17-bio { max-width: 560px !important; }
+        #resumeDoc .t17-body,
+        #resumeDoc .t21-two,
+        #resumeDoc .t29-body,
+        #resumeDoc .t30-left,
+        #resumeDoc .t30-right,
+        #resumeDoc .t31-body,
+        #resumeDoc .t32-left,
+        #resumeDoc .t32-right,
+        #resumeDoc .t34-body,
+        #resumeDoc .t48-left,
+        #resumeDoc .t48-right {
+            min-height: 0 !important;
+        }
+        #resumeDoc .t21-bullet,
+        #resumeDoc .t29-bullet,
+        #resumeDoc .t30-skill-l,
+        #resumeDoc .t30-hobby,
+        #resumeDoc .t31-bullet,
+        #resumeDoc .t31-quality,
+        #resumeDoc .t48-skill-dot-item {
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 6px !important;
+            padding-left: 0 !important;
+        }
+        #resumeDoc .t21-bullet::before,
+        #resumeDoc .t29-bullet::before,
+        #resumeDoc .t30-skill-l::before,
+        #resumeDoc .t30-hobby::before,
+        #resumeDoc .t31-bullet::before,
+        #resumeDoc .t31-quality::before {
+            position: static !important;
+            flex: 0 0 auto !important;
+        }
+        #resumeDoc .t30-info-box,
+        #resumeDoc .t30-link-box {
+            width: 100% !important;
+            min-height: 24px !important;
+        }
+        #resumeDoc .t32-right {
+            padding-top: 24px !important;
+        }
+        #resumeDoc .t32-skills,
+        #resumeDoc .t32-skill-list,
+        #resumeDoc .t32-right [class*="skill"] {
+            text-align: left !important;
+        }
+        #resumeDoc .t34-left {
+            padding: 20px 18px !important;
+        }
+        #resumeDoc .t48-left-deco {
+            border-width: 145px 145px 0 0 !important;
+        }
+        #resumeDoc .t48-name-area {
+            top: 150px !important;
+            padding: 0 18px !important;
+        }
+        #resumeDoc .t48-left-content {
+            padding-top: 230px !important;
+        }
+        #resumeDoc .t48-name-48 {
+            font-size: 15px !important;
+            line-height: 1.2 !important;
+        }
         #resumeDoc .photo-controls { display: none !important; }
     `;
     document.head.appendChild(fixStyle);
