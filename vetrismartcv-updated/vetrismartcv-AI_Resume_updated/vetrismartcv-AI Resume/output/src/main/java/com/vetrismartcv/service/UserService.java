@@ -1,5 +1,6 @@
 package com.vetrismartcv.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vetrismartcv.model.User;
 import com.vetrismartcv.repository.UserRepository;
 import jakarta.mail.internet.MimeMessage;
@@ -11,6 +12,10 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import java.net.InetAddress;
@@ -26,6 +31,9 @@ public class UserService {
     private static final Pattern SIGNUP_EMAIL_PATTERN =
             Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,63}$", Pattern.CASE_INSENSITIVE);
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+
     @Autowired
     private UserRepository userRepository;
 
@@ -39,6 +47,12 @@ public class UserService {
 
     @Value("${spring.mail.password:}")
     private String mailPassword;
+
+    @Value("${resend.api-key:}")
+    private String resendApiKey;
+
+    @Value("${resend.from-email:${app.mail.from:${spring.mail.username:}}}")
+    private String resendFromEmail;
 
     @Value("${app.base-url:https://vetri-smart-cv.onrender.com}")
     private String appBaseUrl;
@@ -239,14 +253,20 @@ public class UserService {
     }
 
     private boolean isPasswordResetMailConfigured() {
-        return mailSender != null
+        return isResendConfigured()
+                || (mailSender != null
                 && mailFrom != null && !mailFrom.isBlank()
                 && mailUsername != null && !mailUsername.isBlank()
-                && mailPassword != null && !mailPassword.isBlank();
+                && mailPassword != null && !mailPassword.isBlank());
     }
 
     private void sendPasswordResetEmail(User user, String token) throws Exception {
         String resetLink = appBaseUrl.replaceAll("/+$", "") + "/reset-password?token=" + token;
+        if (isResendConfigured()) {
+            sendPasswordResetEmailViaResend(user, resetLink);
+            return;
+        }
+
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
         helper.setFrom(mailFrom);
@@ -254,6 +274,31 @@ public class UserService {
         helper.setSubject("Reset your VetriSmartCV password");
         helper.setText(buildPasswordResetEmailBody(user, resetLink), false);
         mailSender.send(message);
+    }
+
+    private boolean isResendConfigured() {
+        return resendApiKey != null && !resendApiKey.isBlank()
+                && resendFromEmail != null && !resendFromEmail.isBlank();
+    }
+
+    private void sendPasswordResetEmailViaResend(User user, String resetLink) throws Exception {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("from", resendFromEmail);
+        payload.put("to", List.of(user.getEmail()));
+        payload.put("subject", "Reset your VetriSmartCV password");
+        payload.put("text", buildPasswordResetEmailBody(user, resetLink));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.resend.com/emails"))
+                .header("Authorization", "Bearer " + resendApiKey.trim())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload), StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IllegalStateException("Resend email API failed with HTTP " + response.statusCode() + ": " + response.body());
+        }
     }
 
     private String buildPasswordResetEmailBody(User user, String resetLink) {
