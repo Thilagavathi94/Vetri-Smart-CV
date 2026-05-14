@@ -20,10 +20,13 @@ public class MailConfig {
             @Value("${spring.mail.properties.mail.smtp.auth:true}") String smtpAuth,
             @Value("${spring.mail.properties.mail.smtp.starttls.enable:true}") String startTls,
             @Value("${spring.mail.properties.mail.smtp.starttls.required:true}") String startTlsRequired,
+            @Value("${spring.mail.properties.mail.smtp.ssl.enable:false}") String sslEnable,
+            @Value("${spring.mail.properties.mail.smtp.ssl.trust:smtp.gmail.com}") String sslTrust,
             @Value("${spring.mail.properties.mail.smtp.connectiontimeout:10000}") String connectionTimeout,
             @Value("${spring.mail.properties.mail.smtp.timeout:10000}") String timeout,
             @Value("${spring.mail.properties.mail.smtp.writetimeout:10000}") String writeTimeout) {
 
+        boolean useSsl = "465".equals(String.valueOf(port)) || Boolean.parseBoolean(sslEnable);
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
         sender.setHost(host == null || host.isBlank() ? "smtp.gmail.com" : host.trim());
         sender.setPort(port);
@@ -33,8 +36,10 @@ public class MailConfig {
         Properties props = sender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", smtpAuth);
-        props.put("mail.smtp.starttls.enable", startTls);
-        props.put("mail.smtp.starttls.required", startTlsRequired);
+        props.put("mail.smtp.starttls.enable", useSsl ? "false" : startTls);
+        props.put("mail.smtp.starttls.required", useSsl ? "false" : startTlsRequired);
+        props.put("mail.smtp.ssl.enable", String.valueOf(useSsl));
+        props.put("mail.smtp.ssl.trust", sslTrust);
         props.put("mail.smtp.connectiontimeout", connectionTimeout);
         props.put("mail.smtp.timeout", timeout);
         props.put("mail.smtp.writetimeout", writeTimeout);
