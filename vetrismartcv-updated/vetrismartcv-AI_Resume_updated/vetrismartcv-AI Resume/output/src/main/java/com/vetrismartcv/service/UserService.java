@@ -31,8 +31,14 @@ public class UserService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:}")
+    @Value("${app.mail.from:${spring.mail.username:}}")
     private String mailFrom;
+
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
+
+    @Value("${spring.mail.password:}")
+    private String mailPassword;
 
     @Value("${app.base-url:https://vetri-smart-cv.onrender.com}")
     private String appBaseUrl;
@@ -233,7 +239,10 @@ public class UserService {
     }
 
     private boolean isPasswordResetMailConfigured() {
-        return mailSender != null && mailFrom != null && !mailFrom.isBlank();
+        return mailSender != null
+                && mailFrom != null && !mailFrom.isBlank()
+                && mailUsername != null && !mailUsername.isBlank()
+                && mailPassword != null && !mailPassword.isBlank();
     }
 
     private void sendPasswordResetEmail(User user, String token) throws Exception {
