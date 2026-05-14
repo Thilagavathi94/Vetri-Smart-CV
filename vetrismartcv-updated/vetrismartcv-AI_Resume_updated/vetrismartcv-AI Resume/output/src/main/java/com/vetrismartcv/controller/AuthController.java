@@ -61,8 +61,9 @@ public class AuthController {
                 session.setAttribute("userId", userMap.get("id"));
                 session.setAttribute("userName", userMap.get("name"));
                 session.setAttribute("userPlan", userMap.get("plan"));
+                return ResponseEntity.ok(result);
             }
-            return ResponseEntity.ok(result);
+            return ResponseEntity.badRequest().body(result);
         } catch (Exception e) {
             log.error("Registration request failed for email {}", email, e);
             return ResponseEntity.internalServerError()

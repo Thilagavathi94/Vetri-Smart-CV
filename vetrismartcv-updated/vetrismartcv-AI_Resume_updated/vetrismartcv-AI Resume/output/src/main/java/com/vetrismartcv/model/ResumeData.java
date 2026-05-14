@@ -50,7 +50,8 @@ public class ResumeData {
     private String profileSummary;
 
     // Profile photo (base64 or file path)
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String profilePhotoData;
 
     // Step 7 — Template

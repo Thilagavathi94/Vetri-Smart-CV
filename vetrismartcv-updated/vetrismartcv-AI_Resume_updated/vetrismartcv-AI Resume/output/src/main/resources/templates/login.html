@@ -851,9 +851,23 @@ async function doLogin() {
     }
 
     // Bug fix #2 & #4: Validate email format and normalize to lowercase
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(emailRaw)) {
-        errorElement.textContent = 'Please enter a valid email address (e.g. you@example.com).';
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,63}$/;
+    const emailParts = emailRaw.split('@');
+    const emailDomain = (emailParts[1] || '').toLowerCase();
+    const blockedDomains = ['example.com', 'example.org', 'example.net', 'test.com', 'localhost', 'invalid'];
+    const domainLabels = emailDomain.split('.');
+    const hasInvalidDomainLabel = domainLabels.some(label => !label || label.startsWith('-') || label.endsWith('-'));
+    if (
+        !emailRegex.test(emailRaw) ||
+        emailParts.length !== 2 ||
+        emailParts[0].startsWith('.') ||
+        emailParts[0].endsWith('.') ||
+        emailParts[0].includes('..') ||
+        emailDomain.includes('..') ||
+        blockedDomains.includes(emailDomain) ||
+        hasInvalidDomainLabel
+    ) {
+        errorElement.textContent = 'Please enter a valid existing email address.';
         errorElement.style.display = 'block';
         return;
     }
@@ -918,9 +932,23 @@ async function doSignup() {
         errorElement.style.display = 'block';
         return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(emailRaw)) {
-        errorElement.textContent = 'Please enter a valid email address (e.g. you@example.com).';
+    const signupEmailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,63}$/;
+    const signupEmailParts = emailRaw.split('@');
+    const signupEmailDomain = (signupEmailParts[1] || '').toLowerCase();
+    const signupBlockedDomains = ['example.com', 'example.org', 'example.net', 'test.com', 'localhost', 'invalid'];
+    const signupDomainLabels = signupEmailDomain.split('.');
+    const signupHasInvalidDomainLabel = signupDomainLabels.some(label => !label || label.startsWith('-') || label.endsWith('-'));
+    if (
+        !signupEmailRegex.test(emailRaw) ||
+        signupEmailParts.length !== 2 ||
+        signupEmailParts[0].startsWith('.') ||
+        signupEmailParts[0].endsWith('.') ||
+        signupEmailParts[0].includes('..') ||
+        signupEmailDomain.includes('..') ||
+        signupBlockedDomains.includes(signupEmailDomain) ||
+        signupHasInvalidDomainLabel
+    ) {
+        errorElement.textContent = 'Please enter a valid existing email address.';
         errorElement.style.display = 'block';
         return;
     }

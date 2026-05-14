@@ -7971,10 +7971,6 @@ async function saveResume() {
         if (lm) lm.style.display = 'flex';
         return;
     }
-    if (!resumeId) {
-        showToast('No resume ID found. Please rebuild your resume.', 'error');
-        return;
-    }
     try {
         const payload = {
             ...resumeData,
@@ -7988,13 +7984,31 @@ async function saveResume() {
             status: 'COMPLETE',
             updatedAt: new Date().toISOString()
         };
-        const res = await fetch(`${API_BASE}/${resumeId}`, {
-            method: 'PUT',
+        const saveUrl = resumeId ? `${API_BASE}/${resumeId}` : `${API_BASE}/create`;
+        const saveMethod = resumeId ? 'PUT' : 'POST';
+        const res = await fetch(saveUrl, {
+            method: saveMethod,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         if (res.ok) {
-            sessionStorage.setItem('resumeData', JSON.stringify(payload));
+            const savedResume = await res.json().catch(() => null);
+            const savedId = savedResume?.id || savedResume?.resumeId || resumeId;
+            if (savedId) {
+                resumeId = savedId;
+                payload.id = savedId;
+                sessionStorage.setItem('pendingResumeId', String(savedId));
+                const url = new URL(window.location.href);
+                url.pathname = `/review/${savedId}`;
+                url.searchParams.set('template', currentTemplate);
+                window.history.replaceState({}, '', url.toString());
+            }
+            if (savedResume && typeof savedResume === 'object') {
+                Object.assign(resumeData, savedResume, payload);
+            } else {
+                Object.assign(resumeData, payload);
+            }
+            sessionStorage.setItem('resumeData', JSON.stringify(resumeData));
             showToast('✓ Resume saved! Redirecting to dashboard...');
             setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
         } else {

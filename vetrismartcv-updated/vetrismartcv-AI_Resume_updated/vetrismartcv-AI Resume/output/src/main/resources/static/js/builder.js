@@ -335,7 +335,9 @@ function collectStepData(step) {
             resumeData.linkedin       = document.getElementById('linkedinField')?.value.trim() || '';
             resumeData.location       = document.getElementById('locationField')?.value.trim() || '';
             resumeData.profileSummary = document.getElementById('profileSummary').value.trim();
-            resumeData.profilePhotoData = profilePhotoBase64;
+            if (profilePhotoBase64 || !resumeData.profilePhotoData) {
+                resumeData.profilePhotoData = profilePhotoBase64 || resumeData.profilePhotoData || '';
+            }
             break;
 
         case 7:
@@ -461,6 +463,7 @@ async function loadExistingResume(id) {
         const res  = await fetch(`${API_BASE}/${id}`);
         const data = await res.json();
         Object.assign(resumeData, data);
+        profilePhotoBase64 = resumeData.profilePhotoData || '';
         populateUIFromData(data);
     } catch (err) { console.error('Failed to load resume:', err); }
 }
@@ -878,6 +881,18 @@ function handlePhotoUpload(event) {
         event.target.value = '';
         return;
     }
+    resizeProfilePhoto(file)
+        .then((dataUrl) => {
+            profilePhotoBase64 = dataUrl;
+            resumeData.profilePhotoData = dataUrl;
+            sessionStorage.setItem('resumeData', JSON.stringify(resumeData));
+            showToast('Photo uploaded!');
+        })
+        .catch(() => {
+            showToast('Could not process profile photo. Please try another image.', 'error');
+            event.target.value = '';
+        });
+    return;
     const reader = new FileReader();
     reader.onload = (e) => {
         profilePhotoBase64 = e.target.result;
@@ -890,6 +905,35 @@ function handlePhotoUpload(event) {
 // ============================================================
 // STEP 6 — AI SUMMARY (3 options)
 // ============================================================
+function resizeProfilePhoto(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = () => {
+            const img = new Image();
+            img.onerror = reject;
+            img.onload = () => {
+                const maxSide = 700;
+                const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+                const width = Math.max(1, Math.round(img.width * scale));
+                const height = Math.max(1, Math.round(img.height * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    reject();
+                    return;
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.86));
+            };
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 async function generateAISummary() {
     const btn = document.querySelector('.ai-gen-btn');
     btn.textContent = '✦ Generating...';

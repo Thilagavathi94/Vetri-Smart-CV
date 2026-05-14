@@ -13,12 +13,18 @@ import org.springframework.stereotype.Service;
 
 import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
 public class UserService {
+
+    private static final Pattern SIGNUP_EMAIL_PATTERN =
+            Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,63}$", Pattern.CASE_INSENSITIVE);
 
     @Autowired
     private UserRepository userRepository;
@@ -44,6 +50,12 @@ public class UserService {
         if (normalizedName.isBlank() || normalizedEmail.isBlank() || password == null || password.isBlank()) {
             result.put("success", false);
             result.put("message", "All fields required.");
+            return result;
+        }
+
+        if (!isValidSignupEmail(normalizedEmail)) {
+            result.put("success", false);
+            result.put("message", "Please enter a valid existing email address.");
             return result;
         }
 
@@ -282,6 +294,39 @@ public class UserService {
 
     private String normalizeEmail(String email) {
         return safeTrim(email).toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isValidSignupEmail(String email) {
+        if (email == null || email.length() > 254 || !SIGNUP_EMAIL_PATTERN.matcher(email).matches()) {
+            return false;
+        }
+
+        String[] parts = email.split("@", -1);
+        if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
+            return false;
+        }
+
+        String local = parts[0];
+        String domain = parts[1].toLowerCase(Locale.ROOT);
+        if (local.startsWith(".") || local.endsWith(".") || local.contains("..") || domain.contains("..")) {
+            return false;
+        }
+        if (Set.of("example.com", "example.org", "example.net", "test.com", "localhost", "invalid").contains(domain)) {
+            return false;
+        }
+
+        for (String label : domain.split("\\.")) {
+            if (label.isBlank() || label.startsWith("-") || label.endsWith("-")) {
+                return false;
+            }
+        }
+
+        try {
+            InetAddress.getByName(domain);
+            return true;
+        } catch (UnknownHostException ex) {
+            return false;
+        }
     }
 
     private String safeTrim(String value) {
