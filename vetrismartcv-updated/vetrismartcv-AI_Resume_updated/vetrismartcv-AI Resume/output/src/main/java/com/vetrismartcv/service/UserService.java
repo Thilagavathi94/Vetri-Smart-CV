@@ -2,18 +2,38 @@ package com.vetrismartcv.service;
 
 import com.vetrismartcv.model.User;
 import com.vetrismartcv.repository.UserRepository;
+import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
+@Slf4j
 public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    private final JavaMailSender mailSender;
+
+    @Value("${spring.mail.username:}")
+    private String mailFrom;
+
+    @Value("${app.base-url:https://vetri-smart-cv.onrender.com}")
+    private String appBaseUrl;
+
+    public UserService(ObjectProvider<JavaMailSender> mailSenderProvider) {
+        this.mailSender = mailSenderProvider.getIfAvailable();
+    }
 
     /* ---- REGISTER ---- */
     public Map<String, Object> register(String name, String email, String password) {
@@ -158,6 +178,72 @@ public class UserService {
         // "/reset-password?token=" + token
         // Example:
         // mailService.sendPasswordResetEmail(user.getEmail(), user.getName(), token);
+    }
+
+    public Map<String, Object> initiatePasswordResetResult(String email) {
+        Map<String, Object> result = new HashMap<>();
+        String normalizedEmail = normalizeEmail(email);
+        Optional<User> opt = userRepository.findByEmail(normalizedEmail);
+        if (opt.isEmpty()) {
+            result.put("success", false);
+            result.put("message", "Email not registered.");
+            result.put("status", 404);
+            return result;
+        }
+
+        if (!isPasswordResetMailConfigured()) {
+            result.put("success", false);
+            result.put("message", "Password reset email is not configured. Please contact support.");
+            result.put("status", 503);
+            return result;
+        }
+
+        User user = opt.get();
+        String token = UUID.randomUUID().toString().replace("-", "") +
+                       Long.toHexString(System.currentTimeMillis());
+        user.setPasswordResetToken(token);
+        user.setPasswordResetTokenExpiresAt(LocalDateTime.now().plusHours(1));
+        userRepository.save(user);
+
+        try {
+            sendPasswordResetEmail(user, token);
+            result.put("success", true);
+            result.put("message", "Reset password link has been sent to your registered email.");
+            result.put("status", 200);
+            return result;
+        } catch (Exception ex) {
+            log.error("Failed to send password reset email to {}", normalizedEmail, ex);
+            result.put("success", false);
+            result.put("message", "Could not send reset password email. Please try again later.");
+            result.put("status", 500);
+            return result;
+        }
+    }
+
+    private boolean isPasswordResetMailConfigured() {
+        return mailSender != null && mailFrom != null && !mailFrom.isBlank();
+    }
+
+    private void sendPasswordResetEmail(User user, String token) throws Exception {
+        String resetLink = appBaseUrl.replaceAll("/+$", "") + "/reset-password?token=" + token;
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+        helper.setFrom(mailFrom);
+        helper.setTo(user.getEmail());
+        helper.setSubject("Reset your VetriSmartCV password");
+        helper.setText(buildPasswordResetEmailBody(user, resetLink), false);
+        mailSender.send(message);
+    }
+
+    private String buildPasswordResetEmailBody(User user, String resetLink) {
+        String name = safeTrim(user.getName()).isBlank() ? "there" : safeTrim(user.getName());
+        return "Hi " + name + ",\n\n"
+                + "We received a request to reset your VetriSmartCV password.\n\n"
+                + "Click this link to reset your password:\n"
+                + resetLink + "\n\n"
+                + "This link will expire in 1 hour. If you did not request this, you can ignore this email.\n\n"
+                + "Regards,\n"
+                + "VetriSmartCV Team";
     }
 
     /* ---- INCREMENT DOWNLOADS ---- */

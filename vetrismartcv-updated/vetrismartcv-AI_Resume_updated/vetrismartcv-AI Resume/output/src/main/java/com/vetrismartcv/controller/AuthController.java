@@ -155,18 +155,16 @@ public class AuthController {
         }
 
         try {
-            // Always return success to avoid leaking which emails are registered.
-            // The service handles checking if the user exists and sending the email.
-            userService.initiatePasswordReset(email.trim().toLowerCase());
+            Map<String, Object> result = userService.initiatePasswordResetResult(email.trim().toLowerCase());
+            Object statusObj = result.get("status");
+            int status = statusObj instanceof Number ? ((Number) statusObj).intValue() : 200;
+            result.remove("status");
+            return ResponseEntity.status(status).body(result);
         } catch (Exception e) {
             log.error("Password reset initiation failed for email {}", email, e);
-            // Still return success to avoid email enumeration
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("success", false, "message", "Could not send reset password email. Please try again later."));
         }
-
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "If an account with that email exists, a reset link has been sent."
-        ));
     }
 
     /* ---- POST /api/auth/upgrade ---- */

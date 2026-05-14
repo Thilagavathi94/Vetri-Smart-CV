@@ -33,6 +33,11 @@ public class User {
 
     private String profilePicture;
 
+    @Column(length = 128)
+    private String passwordResetToken;
+
+    private LocalDateTime passwordResetTokenExpiresAt;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
