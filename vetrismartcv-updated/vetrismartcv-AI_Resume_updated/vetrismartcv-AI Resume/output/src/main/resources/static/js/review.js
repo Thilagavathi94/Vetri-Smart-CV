@@ -3197,8 +3197,10 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
     const addr   = d.address || d.location || '';
     const summary= d.profileSummary || '';
     const initial = (name||'Y').charAt(0).toUpperCase();
-    const photoHTML = d.profilePhotoData
-        ? `<img src="${d.profilePhotoData}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
+    const photoSrc = typeof d.profilePhotoData === 'string' ? d.profilePhotoData.trim() : '';
+    const hasUsablePhoto = /^(data:image\/|https?:\/\/|\/)/i.test(photoSrc);
+    const photoHTML = hasUsablePhoto
+        ? `<img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;" class="editable-field" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" ${editBtn('profilePhoto','Profile Photo','')}><div class="t1-avatar-placeholder t1-avatar-fallback" style="display:none;background:linear-gradient(135deg,${accent},${accent}88);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${initial}</div>`
         : `<div class="t1-avatar-placeholder" style="background:linear-gradient(135deg,${accent},${accent}88);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${initial}</div>`;
     const skillsHTML = skills.length
         ? skills.map(s=>`<span class="t1-skill" style="background:${accent}22;color:${accent};">${s.name||s}</span>`).join('')
