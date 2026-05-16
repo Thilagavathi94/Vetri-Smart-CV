@@ -3198,9 +3198,10 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
     const summary= d.profileSummary || '';
     const initial = (name||'Y').charAt(0).toUpperCase();
     const photoSrc = typeof d.profilePhotoData === 'string' ? d.profilePhotoData.trim() : '';
-    const hasUsablePhoto = /^(data:image\/|https?:\/\/|\/)/i.test(photoSrc);
+    const hasUsablePhoto = /^(data:image\/(png|jpe?g|webp|gif);base64,|https?:\/\/|\/)/i.test(photoSrc)
+        && !/placeholder|default|avatar/i.test(photoSrc);
     const photoHTML = hasUsablePhoto
-        ? `<img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;" class="editable-field" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" ${editBtn('profilePhoto','Profile Photo','')}><div class="t1-avatar-placeholder t1-avatar-fallback" style="display:none;background:linear-gradient(135deg,${accent},${accent}88);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${initial}</div>`
+        ? `<div class="t1-avatar-placeholder t1-avatar-fallback" style="background:linear-gradient(135deg,${accent},${accent}88);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${initial}</div><img src="${photoSrc}" style="position:absolute;inset:0;z-index:2;width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;" class="editable-field" onerror="this.remove();" onload="(function(img){try{var c=document.createElement('canvas'),w=8,h=8;c.width=w;c.height=h;var x=c.getContext('2d');x.drawImage(img,0,0,w,h);var p=x.getImageData(0,0,w,h).data,sat=0,bright=0,n=0;for(var i=0;i<p.length;i+=4){var r=p[i],g=p[i+1],b=p[i+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b);sat+=mx-mn;bright+=(r+g+b)/3;n++;}sat/=n;bright/=n;if(sat<8&&bright>120&&bright<235)img.remove();}catch(e){}})(this);" ${editBtn('profilePhoto','Profile Photo','')}>`
         : `<div class="t1-avatar-placeholder" style="background:linear-gradient(135deg,${accent},${accent}88);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${initial}</div>`;
     const skillsHTML = skills.length
         ? skills.map(s=>`<span class="t1-skill" style="background:${accent}22;color:${accent};">${s.name||s}</span>`).join('')
