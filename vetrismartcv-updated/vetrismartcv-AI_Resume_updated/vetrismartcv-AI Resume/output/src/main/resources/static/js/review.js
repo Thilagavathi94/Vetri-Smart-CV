@@ -11251,6 +11251,8 @@ function ensureExactTemplateStylesInjected() {
     fixStyle.textContent = `
         /* Fix t1 (Vivid Pro) avatar overlap with header */
         .t1-header { overflow: visible !important; }
+        .t1-identity { padding-top: 66px !important; position: relative !important; z-index: 1 !important; }
+        .t1-name { line-height: 1.15 !important; overflow-wrap: anywhere !important; }
         /* Ensure photo containers show images correctly */
         .t1-avatar-placeholder img,
         .t6-avatar-placeholder img,
