@@ -231,6 +231,16 @@ function userHasPro() {
 
 // --- Home Template Buttons ---
 
+function resolveHomePreviewImage(tmplName) {
+  var previewMap = {
+    robert: 'robert',
+    olivia: 'olivia',
+    tanya: 'mary',
+    mary: 'mary'
+  };
+  return '/images/previews/' + (previewMap[tmplName] || tmplName || 'robert') + '.jpg';
+}
+
 function homeOpenTemplate(tmplName, title, subtitle, requiredPlan) {
   // Try to open the inline preview modal if it exists on this page
   var modal   = document.getElementById('homeTplModal');
@@ -242,7 +252,13 @@ function homeOpenTemplate(tmplName, title, subtitle, requiredPlan) {
   if (modal && titleEl && btnEl) {
     if (titleEl) titleEl.textContent = title    || tmplName;
     if (subEl)   subEl.textContent   = subtitle || '';
-    if (imgEl)   imgEl.src           = '/images/previews/' + tmplName + '.jpg';
+    if (imgEl) {
+      imgEl.onerror = function() {
+        imgEl.onerror = null;
+        imgEl.src = '/images/previews/robert.jpg';
+      };
+      imgEl.src = resolveHomePreviewImage(tmplName);
+    }
 
     var locked = (requiredPlan === 'pro') && !userHasPro();
     btnEl.style.background = locked

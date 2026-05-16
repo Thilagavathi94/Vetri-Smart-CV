@@ -425,7 +425,13 @@
 function homeOpenTemplate(key, title, subtitle, plan) {
   document.getElementById('htmTitle').textContent    = title    || key;
   document.getElementById('htmSubtitle').textContent = subtitle || '';
-  document.getElementById('htmImg').src = '/images/previews/' + key + '.jpg';
+  var previewMap = { robert: 'robert', olivia: 'olivia', tanya: 'mary', mary: 'mary' };
+  var img = document.getElementById('htmImg');
+  img.onerror = function() {
+    img.onerror = null;
+    img.src = '/images/previews/robert.jpg';
+  };
+  img.src = '/images/previews/' + (previewMap[key] || key || 'robert') + '.jpg';
 
   var btn = document.getElementById('htmUseBtn');
   btn.style.background = (plan === 'pro')
