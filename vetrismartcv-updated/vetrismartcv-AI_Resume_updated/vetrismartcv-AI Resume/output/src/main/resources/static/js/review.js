@@ -17,14 +17,50 @@ let currentEditSection    = null;
 let isLoggedIn  = false;
 let userPlan    = 'FREE';
 let userId      = null;
+let resumeDownloads = 0;
 let activeSections = {};
 let templatePageMarkup = null;
 let reviewRenderSeq = 0;
 let reviewRecoveryAttempts = 0;
+const FREE_ALLOWED_TEMPLATES = new Set(['template1', 'template2', 'template3']);
 
 function isPaidPlan(plan) {
     const normalized = String(plan || '').toUpperCase();
     return normalized === 'PRO' || normalized === 'PREMIUM';
+}
+
+function isFreeTemplateAllowed(templateId) {
+    return FREE_ALLOWED_TEMPLATES.has(normalizeReviewTemplate(templateId));
+}
+
+function isTemplateLockedForCurrentUser(templateId) {
+    return !isPaidPlan(userPlan) && !isFreeTemplateAllowed(templateId);
+}
+
+function showUpgradePlanPopup(reason = 'TEMPLATE_LIMIT') {
+    closeDownloadModal();
+    const existing = document.getElementById('upgradePlanModal');
+    if (existing) existing.remove();
+    const isDownloadLimit = reason === 'DOWNLOAD_LIMIT';
+    const title = isDownloadLimit ? 'Upgrade to Download More' : 'Upgrade to Use This Template';
+    const message = isDownloadLimit
+        ? 'Free plan includes only one resume download. Upgrade to Pro for unlimited downloads.'
+        : 'Free plan users can use only the first three templates. Upgrade to Pro to unlock all templates.';
+    const modal = document.createElement('div');
+    modal.id = 'upgradePlanModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;z-index:999999;padding:20px;';
+    modal.innerHTML = `
+        <div style="width:min(420px,100%);background:#fff;border-radius:18px;padding:28px;text-align:center;box-shadow:0 24px 70px rgba(15,23,42,.35);">
+            <div style="width:58px;height:58px;border-radius:16px;margin:0 auto 14px;background:linear-gradient(135deg,#7c3aed,#f59e0b);display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;">★</div>
+            <h3 style="margin:0 0 8px;color:#111827;font-size:22px;font-weight:900;">${title}</h3>
+            <p style="margin:0 0 20px;color:#4b5563;font-size:14px;line-height:1.55;">${message}</p>
+            <div style="display:flex;gap:10px;">
+                <button type="button" onclick="document.getElementById('upgradePlanModal').remove()" style="flex:1;border:1.5px solid #e5e7eb;background:#fff;color:#374151;border-radius:11px;padding:12px 10px;font-weight:700;cursor:pointer;">Cancel</button>
+                <button type="button" onclick="window.location.href='/pricing'" style="flex:1.7;border:none;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border-radius:11px;padding:12px 10px;font-weight:800;cursor:pointer;">Go to Pricing</button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
 function buildReviewReturnUrl(templateId) {
@@ -53,6 +89,10 @@ function goToProTemplatePayment() {
 }
 
 function handleLockedTemplateSelection(templateId) {
+    if (isTemplateLockedForCurrentUser(templateId)) {
+        showUpgradePlanPopup('TEMPLATE_LIMIT');
+        return;
+    }
     storePendingProTemplate(templateId);
     if (!isLoggedIn) {
         window.location.href = '/login?redirect=' + encodeURIComponent(sessionStorage.getItem('pendingReviewReturnUrl'));
@@ -229,6 +269,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (tmplParam) currentTemplate = normalizeReviewTemplate(tmplParam);
 
     await checkSession();
+    if (isTemplateLockedForCurrentUser(currentTemplate)) {
+        currentTemplate = 'template1';
+        setTimeout(() => showUpgradePlanPopup('TEMPLATE_LIMIT'), 250);
+    }
 
     if (resumeId) {
         await loadResume(resumeId);
@@ -240,6 +284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // A URL template is an explicit user selection; do not let saved legacy
         // names like "robert" switch the review page back to old fallback layouts.
         currentTemplate = normalizeReviewTemplate(tmplParam || resumeData.templateName || currentTemplate);
+        if (isTemplateLockedForCurrentUser(currentTemplate)) currentTemplate = 'template1';
         renderResume();
     }
 
@@ -277,6 +322,7 @@ async function checkSession() {
         if (data.loggedIn && data.user) {
             userPlan = data.user.plan || 'FREE';
             userId   = data.user.id;
+            resumeDownloads = Number(data.user.resumeDownloads || 0);
             const user = data.user;
             const initial  = (user.name || '?').charAt(0).toUpperCase();
             const userName = user.name || 'User';
@@ -310,6 +356,7 @@ async function checkSession() {
                 });
             }
         } else if (window.VetriSessionMonitor) {
+            resumeDownloads = 0;
             window.VetriSessionMonitor.stop();
         }
 
@@ -359,6 +406,10 @@ async function loadResume(id) {
         // Prefer explicit URL/click selection over saved templateName so the
         // preview always matches the card the user opened or selected.
         currentTemplate = normalizeReviewTemplate(selectedFromUrl || resumeData.templateName || currentTemplate);
+        if (isTemplateLockedForCurrentUser(currentTemplate)) {
+            currentTemplate = 'template1';
+            showUpgradePlanPopup('TEMPLATE_LIMIT');
+        }
         if (resumeData.selectedColor)  currentColor          = resumeData.selectedColor;
         if (resumeData.fontFamily)     currentFont           = resumeData.fontFamily;
         if (resumeData.fontStyle)      currentFontSize       = resumeData.fontStyle.toLowerCase();
@@ -520,8 +571,8 @@ async function buildTemplateGrid() {
     grid.innerHTML = '';
     const isPaidUser = isPaidPlan(userPlan);
     templates.forEach(t => {
-        const isProTemplate = t.plan === 'Pro';
-        const isLocked = isProTemplate && !isPaidUser;
+        const isLocked = !isPaidUser && !isFreeTemplateAllowed(t.id);
+        const planLabel = isLocked ? 'Pro' : t.plan;
         const div = document.createElement('div');
         div.className = 'tmpl-thumb'
             + (t.id === currentTemplate ? ' selected' : '')
@@ -550,7 +601,7 @@ async function buildTemplateGrid() {
                 ${editBtnHTML}
                 <div class="tmpl-thumb-label">
                     <span>${t.label}</span>
-                    <span class="tmpl-plan-badge ${t.plan === 'Free' ? 'free' : 'pro'}">${t.plan}</span>
+                    <span class="tmpl-plan-badge ${planLabel === 'Free' ? 'free' : 'pro'}">${planLabel}</span>
                 </div>
             </div>
             ${lockHTML}`;
@@ -581,8 +632,7 @@ async function buildReviewTemplateCardsFromTemplatePage(grid) {
 
         sourceCards.slice(0, 52).forEach(card => {
             const tplId = card.dataset.template;
-            const plan = (card.dataset.plan || 'free').toLowerCase();
-            const locked = plan === 'pro' && !isPaidUser;
+            const locked = !isPaidUser && !isFreeTemplateAllowed(tplId);
             const clone = card.cloneNode(true);
 
             clone.id = 'tgrid-' + tplId;
@@ -2376,6 +2426,10 @@ function buildMiniPreview(id) {
 }
 
 function changeTemplate(name) {
+    if (isTemplateLockedForCurrentUser(name)) {
+        showUpgradePlanPopup('TEMPLATE_LIMIT');
+        return;
+    }
     currentTemplate = normalizeReviewTemplate(name);
     reviewRecoveryAttempts = 0;
     // Update colour default per template
@@ -7386,12 +7440,30 @@ async function confirmDownload() {
         return;
     }
     try {
-        await fetch(`${API_BASE}/${resumeId}/download`, {
+        const res = await fetch(`${API_BASE}/${resumeId}/download`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ format, fileName })
         });
-    } catch (e) {}
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.success === false) {
+            closeDownloadModal();
+            if (data.requireLogin) {
+                redirectToLoginForDownload();
+                return;
+            }
+            if (data.upgradeRequired) {
+                showUpgradePlanPopup(data.reason || 'DOWNLOAD_LIMIT');
+                return;
+            }
+            showToast(data.message || 'Download failed. Please try again.', 'error');
+            return;
+        }
+        resumeDownloads += 1;
+    } catch (e) {
+        showToast('Download failed. Check your connection.', 'error');
+        return;
+    }
     closeDownloadModal();
     if (format === 'pdf') {
         downloadAsPDF(fileName);
@@ -8015,7 +8087,12 @@ async function saveResume() {
             showToast('✓ Resume saved! Redirecting to dashboard...');
             setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
         } else {
-            const errText = await res.text().catch(() => '');
+            const err = await res.json().catch(() => null);
+            if (err?.upgradeRequired) {
+                showUpgradePlanPopup(err.reason || 'TEMPLATE_LIMIT');
+                return;
+            }
+            const errText = err?.message || await res.text().catch(() => '');
             console.error('Save error response:', errText);
             showToast('Save failed. Please try again.', 'error');
         }
