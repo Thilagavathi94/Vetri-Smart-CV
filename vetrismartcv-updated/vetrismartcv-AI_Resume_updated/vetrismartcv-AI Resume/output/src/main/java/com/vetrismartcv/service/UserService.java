@@ -315,7 +315,8 @@ public class UserService {
     /* ---- INCREMENT DOWNLOADS ---- */
     public void incrementDownload(Long userId) {
         userRepository.findById(userId).ifPresent(u -> {
-            u.setResumeDownloads(u.getResumeDownloads() + 1);
+            int currentDownloads = u.getResumeDownloads() == null ? 0 : u.getResumeDownloads();
+            u.setResumeDownloads(currentDownloads + 1);
             userRepository.save(u);
         });
     }

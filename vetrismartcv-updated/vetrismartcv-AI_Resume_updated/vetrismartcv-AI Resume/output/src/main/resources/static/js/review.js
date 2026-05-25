@@ -33,6 +33,10 @@ function isFreeTemplateAllowed(templateId) {
     return FREE_ALLOWED_TEMPLATES.has(normalizeReviewTemplate(templateId));
 }
 
+function getTemplatePlanLabel(templateId) {
+    return isFreeTemplateAllowed(templateId) ? 'Free' : 'Pro';
+}
+
 function isTemplateLockedForCurrentUser(templateId) {
     return !isPaidPlan(userPlan) && !isFreeTemplateAllowed(templateId);
 }
@@ -572,7 +576,7 @@ async function buildTemplateGrid() {
     const isPaidUser = isPaidPlan(userPlan);
     templates.forEach(t => {
         const isLocked = !isPaidUser && !isFreeTemplateAllowed(t.id);
-        const planLabel = isLocked ? 'Pro' : t.plan;
+        const planLabel = getTemplatePlanLabel(t.id);
         const div = document.createElement('div');
         div.className = 'tmpl-thumb'
             + (t.id === currentTemplate ? ' selected' : '')
@@ -639,8 +643,17 @@ async function buildReviewTemplateCardsFromTemplatePage(grid) {
             clone.classList.add('review-tpl-card');
             clone.classList.toggle('selected', tplId === currentTemplate);
             clone.classList.toggle('pro-locked', locked);
+            clone.dataset.plan = isFreeTemplateAllowed(tplId) ? 'free' : 'pro';
             clone.removeAttribute('onclick');
             clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+
+            const badge = clone.querySelector('.plan-badge');
+            if (badge) {
+                const planLabel = getTemplatePlanLabel(tplId);
+                badge.textContent = planLabel.toUpperCase();
+                badge.classList.toggle('free', planLabel === 'Free');
+                badge.classList.toggle('pro', planLabel === 'Pro');
+            }
 
             const actions = clone.querySelector('.tpl-preview-actions');
             if (actions) {
@@ -7421,6 +7434,10 @@ async function autosaveDesign() {
 // DOWNLOAD MODAL
 // ============================================================
 function openDownloadModal() {
+    if (isLoggedIn && !isPaidPlan(userPlan) && Number(resumeDownloads || 0) >= 1) {
+        showUpgradePlanPopup('DOWNLOAD_LIMIT');
+        return;
+    }
     const name = (resumeData.fullName || 'My_Resume').replace(/\s+/g, '_');
     const fn = document.getElementById('downloadFileName');
     if (fn) fn.value = name + '_Resume';
@@ -7437,6 +7454,11 @@ async function confirmDownload() {
     if (!isLoggedIn) {
         closeDownloadModal();
         redirectToLoginForDownload();
+        return;
+    }
+    if (!isPaidPlan(userPlan) && Number(resumeDownloads || 0) >= 1) {
+        closeDownloadModal();
+        showUpgradePlanPopup('DOWNLOAD_LIMIT');
         return;
     }
     try {
