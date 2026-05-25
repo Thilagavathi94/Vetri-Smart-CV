@@ -24,6 +24,8 @@ import java.util.*;
 @CrossOrigin(origins = "*")
 public class ResumeController {
 
+    private static final Set<String> FREE_TEMPLATE_IDS = Set.of("template1", "template2", "template3");
+
     @Autowired
     private ResumeService resumeService;
 
@@ -32,42 +34,52 @@ public class ResumeController {
 
     /* ---- POST /api/resume/create ---- */
     @PostMapping("/create")
-    public ResponseEntity<ResumeData> create(
+    public ResponseEntity<?> create(
             @RequestBody ResumeData data,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId != null) data.setUserId(userId);
+        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session, data.getTemplateName());
+        if (blocked != null) return blocked;
         ResumeData created = resumeService.createResume(data);
         return ResponseEntity.ok(created);
     }
 
     /* ---- PUT /api/resume/{id}/step ---- */
     @PutMapping("/{id}/step")
-    public ResponseEntity<ResumeData> updateStep(
+    public ResponseEntity<?> updateStep(
             @PathVariable Long id,
-            @RequestBody ResumeData updates) {
+            @RequestBody ResumeData updates,
+            HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session, updates.getTemplateName());
+        if (blocked != null) return blocked;
         return ResponseEntity.ok(resumeService.updateStep(id, updates));
     }
 
     /* ---- PUT /api/resume/{id}/draft ---- */
     @PutMapping("/{id}/draft")
-    public ResponseEntity<ResumeData> saveDraft(
+    public ResponseEntity<?> saveDraft(
             @PathVariable Long id,
             @RequestBody ResumeData updates,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId != null) updates.setUserId(userId);
+        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session, updates.getTemplateName());
+        if (blocked != null) return blocked;
         return ResponseEntity.ok(resumeService.saveDraft(id, updates));
     }
 
     /* ---- POST /api/resume/{id}/process ---- */
     @PostMapping("/{id}/process")
-    public ResponseEntity<ResumeData> processResume(
+    public ResponseEntity<?> processResume(
             @PathVariable Long id,
             @RequestBody ResumeData updates,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId != null) updates.setUserId(userId);
+        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session, updates.getTemplateName());
+        if (blocked != null) return blocked;
         return ResponseEntity.ok(resumeService.processResume(id, updates));
     }
 
@@ -95,9 +107,13 @@ public class ResumeController {
 
     /* ---- PUT /api/resume/{id} ---- */
     @PutMapping("/{id}")
-    public ResponseEntity<ResumeData> update(
+    public ResponseEntity<?> update(
             @PathVariable Long id,
-            @RequestBody ResumeData updates) {
+            @RequestBody ResumeData updates,
+            HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session, updates.getTemplateName());
+        if (blocked != null) return blocked;
         ResumeData updated = resumeService.updateResume(id, updates);
         if (updated != null) return ResponseEntity.ok(updated);
         return ResponseEntity.notFound().build();
@@ -118,7 +134,7 @@ public class ResumeController {
             HttpSession session) {
 
         Long userId = (Long) session.getAttribute("userId");
-        String plan = (String) session.getAttribute("userPlan");
+        String plan = getCurrentUserPlan(userId, session);
 
         // Guest must log in
         if (userId == null) {
@@ -130,16 +146,58 @@ public class ResumeController {
         }
 
         // FREE plan can only download once
-        if ("FREE".equals(plan)) {
-            long count = resumeService.countByUser(userId);
-            // Check how many downloads they've done
-            userService.getById(userId).ifPresent(u -> {
-                // allow first download
-            });
+        if (!isPaidPlan(plan)) {
+            int downloads = userService.getById(userId)
+                    .map(u -> u.getResumeDownloads() == null ? 0 : u.getResumeDownloads())
+                    .orElse(0);
+            if (downloads >= 1) {
+                return ResponseEntity.status(403).body(Map.of(
+                    "success", false,
+                    "upgradeRequired", true,
+                    "reason", "DOWNLOAD_LIMIT",
+                    "message", "Free plan includes only one resume download. Upgrade to Pro for unlimited downloads.",
+                    "pricingUrl", "/pricing"
+                ));
+            }
         }
 
         userService.incrementDownload(userId);
         return ResponseEntity.ok(Map.of("success", true, "format", body.getOrDefault("format", "pdf")));
+    }
+
+    private ResponseEntity<Map<String, Object>> blockFreeTemplateIfNeeded(Long userId, HttpSession session, String templateName) {
+        String normalizedTemplate = normalizeTemplateId(templateName);
+        if (normalizedTemplate.isBlank() || FREE_TEMPLATE_IDS.contains(normalizedTemplate)) return null;
+
+        String plan = getCurrentUserPlan(userId, session);
+        if (isPaidPlan(plan)) return null;
+
+        return ResponseEntity.status(403).body(Map.of(
+            "success", false,
+            "upgradeRequired", true,
+            "reason", "TEMPLATE_LIMIT",
+            "message", "Free plan users can use only the first three templates. Upgrade to Pro to unlock all templates.",
+            "pricingUrl", "/pricing"
+        ));
+    }
+
+    private String getCurrentUserPlan(Long userId, HttpSession session) {
+        if (userId == null) return "FREE";
+        String plan = userService.getById(userId)
+                .map(u -> u.getPlan() == null ? "FREE" : u.getPlan().toUpperCase(Locale.ROOT))
+                .orElse("FREE");
+        session.setAttribute("userPlan", plan);
+        return plan;
+    }
+
+    private boolean isPaidPlan(String plan) {
+        String normalized = plan == null ? "FREE" : plan.toUpperCase(Locale.ROOT);
+        return "PRO".equals(normalized) || "PREMIUM".equals(normalized);
+    }
+
+    private String normalizeTemplateId(String templateName) {
+        if (templateName == null) return "";
+        return templateName.trim().toLowerCase(Locale.ROOT);
     }
 
     /* ---- POST /api/resume/upload-cv ---- */

@@ -5967,6 +5967,19 @@
     return !isPaidPlan(userPlan) && !FREE_ALLOWED_TEMPLATES.has(String(tplId || '').toLowerCase());
   }
 
+  function normalizeTemplatePlanBadges() {
+    document.querySelectorAll('.tpl-card[data-template^="template"]').forEach(card => {
+      const tplId = String(card.dataset.template || '').toLowerCase();
+      const isFreeTemplate = FREE_ALLOWED_TEMPLATES.has(tplId);
+      card.dataset.plan = isFreeTemplate ? 'free' : 'pro';
+      const badge = card.querySelector('.plan-badge');
+      if (!badge) return;
+      badge.textContent = isFreeTemplate ? 'FREE' : 'PRO';
+      badge.classList.toggle('free', isFreeTemplate);
+      badge.classList.toggle('pro', !isFreeTemplate);
+    });
+  }
+
   function showUpgradePlanPopup(message) {
     const existing = document.getElementById('upgradePlanModal');
     if (existing) existing.remove();
@@ -5992,6 +6005,8 @@
     showUpgradePlanPopup('Free users can use only the first three templates. Upgrade to unlock all templates.');
     return true;
   }
+
+  normalizeTemplatePlanBadges();
 
   // ── SELECT CARD ──
   function selectTemplate(tplId) {
