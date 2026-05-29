@@ -61,6 +61,7 @@ public class AuthController {
                 session.setAttribute("userId", userMap.get("id"));
                 session.setAttribute("userName", userMap.get("name"));
                 session.setAttribute("userPlan", userMap.get("plan"));
+                session.setAttribute("userRole", userMap.get("role"));
                 return ResponseEntity.ok(result);
             }
             return ResponseEntity.badRequest().body(result);
@@ -88,6 +89,7 @@ public class AuthController {
                 session.setAttribute("userId", userMap.get("id"));
                 session.setAttribute("userName", userMap.get("name"));
                 session.setAttribute("userPlan", userMap.get("plan"));
+                session.setAttribute("userRole", userMap.get("role"));
             }
             return ResponseEntity.ok(result);
         } catch (Exception e) {
@@ -131,6 +133,7 @@ public class AuthController {
             session.setAttribute("userId", user.getId());
             session.setAttribute("userName", user.getName());
             session.setAttribute("userPlan", user.getPlan());
+            session.setAttribute("userRole", user.getRole());
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("success", true);

@@ -46,26 +46,32 @@ public class PageController {
         boolean loggedIn = (userId != null);
 
         String plan = "FREE";
+        String role = "USER";
         if (loggedIn) {
             try {
-                plan = userService.getById(userId)
-                        .map(u -> u.getPlan() != null ? u.getPlan().toUpperCase() : "FREE")
-                        .orElse("FREE");
+                var user = userService.getById(userId).orElse(null);
+                plan = user != null && user.getPlan() != null ? user.getPlan().toUpperCase() : "FREE";
+                role = user != null && user.getRole() != null ? user.getRole().toUpperCase() : "USER";
                 session.setAttribute("userPlan", plan);
+                session.setAttribute("userRole", role);
             } catch (Exception ex) {
                 session.removeAttribute("userId");
                 session.removeAttribute("userName");
                 session.removeAttribute("userPlan");
+                session.removeAttribute("userRole");
                 userId = null;
                 name = null;
                 loggedIn = false;
                 plan = "FREE";
+                role = "USER";
             }
         }
 
         model.addAttribute("loggedIn", loggedIn);
         model.addAttribute("userName", loggedIn ? name : "");
         model.addAttribute("userPlan", plan);
+        model.addAttribute("userRole", role);
+        model.addAttribute("isAdmin", "ADMIN".equalsIgnoreCase(role));
         model.addAttribute(
                 "userInitial",
                 (loggedIn && name != null && !name.isEmpty())
@@ -137,6 +143,19 @@ public class PageController {
         }
         addSessionToModel(model, session);
         return "dashboard";
+    }
+
+    @GetMapping("/admin")
+    public String admin(Model model, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return "redirect:/login?redirect=/admin";
+        }
+        if (!userService.isAdmin(userId)) {
+            return "redirect:/dashboard?accessDenied=admin";
+        }
+        addSessionToModel(model, session);
+        return "admin";
     }
 
     @GetMapping("/review/{id}")

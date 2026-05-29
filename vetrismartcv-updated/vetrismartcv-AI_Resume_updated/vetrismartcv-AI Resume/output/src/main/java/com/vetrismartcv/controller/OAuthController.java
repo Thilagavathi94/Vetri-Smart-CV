@@ -128,6 +128,7 @@ public class OAuthController {
             session.setAttribute("userId",   user.getId());
             session.setAttribute("userName", user.getName());
             session.setAttribute("userPlan", user.getPlan());
+            session.setAttribute("userRole", user.getRole());
 
             // Step 4: Redirect to dashboard
             return ResponseEntity.status(HttpStatus.FOUND)
@@ -224,6 +225,7 @@ public class OAuthController {
             session.setAttribute("userId",   user.getId());
             session.setAttribute("userName", user.getName());
             session.setAttribute("userPlan", user.getPlan());
+            session.setAttribute("userRole", user.getRole());
 
             // Step 4: Redirect to dashboard
             return ResponseEntity.status(HttpStatus.FOUND)

@@ -57,6 +57,15 @@ public class UserService {
     @Value("${app.base-url:https://vetri-smart-cv.onrender.com}")
     private String appBaseUrl;
 
+    @Value("${app.admin.name:Admin}")
+    private String defaultAdminName;
+
+    @Value("${app.admin.email:admin@vetrismartcv.com}")
+    private String defaultAdminEmail;
+
+    @Value("${app.admin.password:Admin@12345}")
+    private String defaultAdminPassword;
+
     public UserService(ObjectProvider<JavaMailSender> mailSenderProvider) {
         this.mailSender = mailSenderProvider.getIfAvailable();
     }
@@ -91,6 +100,7 @@ public class UserService {
                     .email(normalizedEmail)
                     .password(hashPassword(password))
                     .provider("LOCAL")
+                    .role("USER")
                     .plan("FREE")
                     .resumeDownloads(0)
                     .build();
@@ -164,6 +174,7 @@ public class UserService {
                 .email(normalizedEmail)
                 .provider(provider)
                 .providerId(providerId)
+                .role("USER")
                 .plan("FREE")
                 .resumeDownloads(0)
                 .build();
@@ -179,8 +190,95 @@ public class UserService {
     public User upgradePlan(Long userId, String plan) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        user.setPlan(plan);
+        user.setPlan(normalizePlan(plan));
         return userRepository.save(user);
+    }
+
+    public boolean isAdmin(Long userId) {
+        return userId != null
+                && userRepository.findById(userId)
+                .map(user -> "ADMIN".equalsIgnoreCase(normalizeRole(user.getRole())))
+                .orElse(false);
+    }
+
+    public List<Map<String, Object>> findUsersForAdmin(String query) {
+        String q = safeTrim(query);
+        List<User> users = q.isBlank()
+                ? userRepository.findAll()
+                : userRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(q, q);
+        return users.stream()
+                .sorted(Comparator.comparing(User::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(this::adminUser)
+                .toList();
+    }
+
+    public User updateUserPlan(Long userId, String plan) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setPlan(normalizePlan(plan));
+        return userRepository.save(user);
+    }
+
+    public User updateUserRole(Long userId, String role) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setRole(normalizeRole(role));
+        return userRepository.save(user);
+    }
+
+    public Map<String, Object> adminSummary() {
+        List<User> users = userRepository.findAll();
+        long admins = users.stream().filter(u -> "ADMIN".equalsIgnoreCase(normalizeRole(u.getRole()))).count();
+        long free = users.stream().filter(u -> "FREE".equalsIgnoreCase(normalizePlan(u.getPlan()))).count();
+        long pro = users.stream().filter(u -> "PRO".equalsIgnoreCase(normalizePlan(u.getPlan()))).count();
+        long premium = users.stream().filter(u -> "PREMIUM".equalsIgnoreCase(normalizePlan(u.getPlan()))).count();
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("totalUsers", users.size());
+        summary.put("admins", admins);
+        summary.put("free", free);
+        summary.put("pro", pro);
+        summary.put("premium", premium);
+        summary.put("plans", List.of("FREE", "PRO", "PREMIUM"));
+        summary.put("roles", List.of("USER", "ADMIN"));
+        return summary;
+    }
+
+    public void ensureDefaultAdminAccount() {
+        String email = normalizeEmail(defaultAdminEmail);
+        if (email.isBlank()) {
+            log.warn("Default admin email is blank; skipping admin account creation.");
+            return;
+        }
+
+        Optional<User> existing = userRepository.findByEmail(email);
+        if (existing.isPresent()) {
+            User admin = existing.get();
+            boolean changed = false;
+            if (!"ADMIN".equalsIgnoreCase(normalizeRole(admin.getRole()))) {
+                admin.setRole("ADMIN");
+                changed = true;
+            }
+            if (!"PREMIUM".equalsIgnoreCase(normalizePlan(admin.getPlan()))) {
+                admin.setPlan("PREMIUM");
+                changed = true;
+            }
+            if (changed) {
+                userRepository.save(admin);
+            }
+            return;
+        }
+
+        User admin = User.builder()
+                .name(safeTrim(defaultAdminName).isBlank() ? "Admin" : safeTrim(defaultAdminName))
+                .email(email)
+                .password(hashPassword(defaultAdminPassword))
+                .provider("LOCAL")
+                .role("ADMIN")
+                .plan("PREMIUM")
+                .resumeDownloads(0)
+                .build();
+        userRepository.save(admin);
+        log.info("Default admin account created for {}", email);
     }
 
     /* ---- INITIATE PASSWORD RESET ---- */
@@ -327,10 +425,17 @@ public class UserService {
         m.put("id", user.getId());
         m.put("name", user.getName());
         m.put("email", user.getEmail());
-        m.put("plan", user.getPlan());
+        m.put("role", normalizeRole(user.getRole()));
+        m.put("plan", normalizePlan(user.getPlan()));
         m.put("resumeDownloads", user.getResumeDownloads());
         m.put("provider", user.getProvider());
         m.put("createdAt", user.getCreatedAt());
+        return m;
+    }
+
+    public Map<String, Object> adminUser(User user) {
+        Map<String, Object> m = safeUser(user);
+        m.put("updatedAt", user.getUpdatedAt());
         return m;
     }
 
@@ -386,5 +491,21 @@ public class UserService {
 
     private String safeTrim(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String normalizePlan(String plan) {
+        String normalized = safeTrim(plan).toUpperCase(Locale.ROOT);
+        if (Set.of("FREE", "PRO", "PREMIUM").contains(normalized)) {
+            return normalized;
+        }
+        return "FREE";
+    }
+
+    private String normalizeRole(String role) {
+        String normalized = safeTrim(role).toUpperCase(Locale.ROOT);
+        if (Set.of("USER", "ADMIN").contains(normalized)) {
+            return normalized;
+        }
+        return "USER";
     }
 }

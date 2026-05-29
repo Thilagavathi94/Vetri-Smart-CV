@@ -27,6 +27,8 @@ public class User {
 
     private String providerId; // OAuth provider user id
 
+    private String role;       // USER | ADMIN
+
     private String plan;       // FREE | PRO | PREMIUM
 
     private Integer resumeDownloads; // count of downloads
@@ -45,6 +47,7 @@ public class User {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (role == null) role = "USER";
         if (plan == null) plan = "FREE";
         if (resumeDownloads == null) resumeDownloads = 0;
         if (provider == null) provider = "LOCAL";
