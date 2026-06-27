@@ -92,11 +92,54 @@ async function initNavbar() {
             }
 
             document.querySelectorAll('.nav-user-pill').forEach(makeUserPillOpenDashboard);
+            captureVisitorLocationOnce();
         }
     } catch (e) {
         // Session fetch failed — leave default logged-out state
         console.warn('Navbar session check failed:', e);
     }
+}
+
+function captureVisitorLocationOnce() {
+    if (!('geolocation' in navigator)) return;
+    if (sessionStorage.getItem('visitorLocationCaptured') === 'true') return;
+
+    navigator.geolocation.getCurrentPosition(async function(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        let label = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+
+        try {
+            const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`);
+            if (geoRes.ok) {
+                const geo = await geoRes.json();
+                const address = geo.address || {};
+                const city = address.city || address.town || address.village || address.suburb || address.county;
+                const state = address.state;
+                const country = address.country;
+                label = [city, state, country].filter(Boolean).join(', ') || label;
+            }
+        } catch (e) {
+            // Keep coordinate label when reverse geocoding is unavailable.
+        }
+
+        try {
+            await fetch('/api/auth/visitor-location', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ latitude, longitude, label })
+            });
+            sessionStorage.setItem('visitorLocationCaptured', 'true');
+        } catch (e) {
+            console.warn('Visitor location update failed:', e);
+        }
+    }, function() {
+        sessionStorage.setItem('visitorLocationCaptured', 'true');
+    }, {
+        enableHighAccuracy: false,
+        timeout: 7000,
+        maximumAge: 30 * 60 * 1000
+    });
 }
 
 // Run on DOMContentLoaded for reliability

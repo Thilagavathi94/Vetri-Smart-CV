@@ -118,9 +118,30 @@ public class AuthController {
 
     /* ---- GET /api/auth/session ---- */
     @GetMapping("/session")
-    public ResponseEntity<Map<String, Object>> getSession(HttpSession session) {
-        visitorAnalyticsService.recordActivity(session);
+    public ResponseEntity<Map<String, Object>> getSession(HttpSession session, HttpServletRequest request) {
+        Long userId = (Long) session.getAttribute("userId");
+        visitorAnalyticsService.recordActivity(userId, session, request);
         return ResponseEntity.ok(buildSessionResponse(session));
+    }
+
+    @PostMapping("/visitor-location")
+    public ResponseEntity<Map<String, Object>> updateVisitorLocation(
+            @RequestBody Map<String, Object> body,
+            HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of(
+                    "success", false,
+                    "message", "Not logged in."
+            ));
+        }
+        visitorAnalyticsService.updateCurrentLocation(
+                session,
+                toDouble(body.get("latitude")),
+                toDouble(body.get("longitude")),
+                body.get("label") == null ? null : String.valueOf(body.get("label"))
+        );
+        return ResponseEntity.ok(Map.of("success", true));
     }
 
     /* ---- POST /api/auth/oauth ---- */
@@ -198,5 +219,19 @@ public class AuthController {
         User updated = userService.upgradePlan(userId, plan);
         session.setAttribute("userPlan", updated.getPlan());
         return ResponseEntity.ok(Map.of("success", true, "plan", updated.getPlan()));
+    }
+
+    private Double toDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 }

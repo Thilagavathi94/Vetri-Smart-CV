@@ -46,6 +46,7 @@ public class VisitorAnalyticsService {
                 .ipAddress(resolveIpAddress(request))
                 .city(resolveHeader(request, "CF-IPCity", "X-AppEngine-City", "X-Visitor-City").orElse("Unknown"))
                 .country(resolveHeader(request, "CF-IPCountry", "X-AppEngine-Country", "X-Visitor-Country").orElse("Unknown"))
+                .locationLabel("Unknown")
                 .deviceType(resolveDeviceType(userAgent(request)))
                 .operatingSystem(resolveOperatingSystem(userAgent(request)))
                 .browserName(resolveBrowser(userAgent(request)))
@@ -55,10 +56,47 @@ public class VisitorAnalyticsService {
         visitorSessionRepository.save(visitorSession);
     }
 
-    public void recordActivity(HttpSession httpSession) {
+    public void recordActivity(Long userId, HttpSession httpSession, HttpServletRequest request) {
         if (httpSession == null) return;
         visitorSessionRepository.findTopBySessionIdAndLogoutTimeIsNullOrderByLoginTimeDesc(httpSession.getId())
                 .ifPresent(session -> {
+                    session.setLastActiveAt(LocalDateTime.now());
+                    if ("Unknown".equals(valueOrUnknown(session.getDeviceType()))) {
+                        session.setDeviceType(resolveDeviceType(userAgent(request)));
+                    }
+                    if ("Unknown".equals(valueOrUnknown(session.getOperatingSystem()))) {
+                        session.setOperatingSystem(resolveOperatingSystem(userAgent(request)));
+                    }
+                    if ("Unknown".equals(valueOrUnknown(session.getBrowserName()))) {
+                        session.setBrowserName(resolveBrowser(userAgent(request)));
+                    }
+                    visitorSessionRepository.save(session);
+                });
+        if (visitorSessionRepository.findTopBySessionIdAndLogoutTimeIsNullOrderByLoginTimeDesc(httpSession.getId()).isEmpty()) {
+            recordLogin(userId, httpSession, request);
+        }
+    }
+
+    public void recordActivity(HttpSession httpSession) {
+        recordActivity(null, httpSession, null);
+    }
+
+    public void updateCurrentLocation(HttpSession httpSession, Double latitude, Double longitude, String label) {
+        if (httpSession == null || latitude == null || longitude == null) return;
+        visitorSessionRepository.findTopBySessionIdAndLogoutTimeIsNullOrderByLoginTimeDesc(httpSession.getId())
+                .ifPresent(session -> {
+                    String cleanLabel = valueOrUnknown(label);
+                    session.setLatitude(latitude);
+                    session.setLongitude(longitude);
+                    session.setLocationLabel(cleanLabel);
+                    session.setGoogleMapsUrl("https://www.google.com/maps?q=" + latitude + "," + longitude);
+                    if (!"Unknown".equals(cleanLabel)) {
+                        String[] parts = cleanLabel.split(",", 2);
+                        session.setCity(parts[0].trim());
+                        if (parts.length > 1) {
+                            session.setCountry(parts[1].trim());
+                        }
+                    }
                     session.setLastActiveAt(LocalDateTime.now());
                     visitorSessionRepository.save(session);
                 });
@@ -83,12 +121,13 @@ public class VisitorAnalyticsService {
         LocalDateTime activeCutoff = LocalDateTime.now().minusMinutes(5);
 
         List<VisitorSession> todaySessions = visitorSessionRepository.findByLoginTimeBetween(todayStart, tomorrowStart);
-        List<VisitorSession> filteredSessions = loadFilteredSessions(fromDate, toDate);
+        DateRange range = resolveRange(fromDate, toDate);
+        List<VisitorSession> filteredSessions = visitorSessionRepository.findByLoginTimeBetween(range.from().atStartOfDay(), range.to().plusDays(1).atStartOfDay());
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("summary", Map.of(
                 "todaysVisitors", todaySessions.size(),
-                "uniqueUsersToday", uniqueUsers(todaySessions),
+                "newAccountsToday", userRepository.countByCreatedAtBetween(todayStart, tomorrowStart),
                 "totalSessionsToday", todaySessions.size(),
                 "totalUsageHoursToday", roundHours(totalDurationMinutes(todaySessions) / 60.0),
                 "activeUsers", todaySessions.stream()
@@ -98,16 +137,16 @@ public class VisitorAnalyticsService {
                         .collect(Collectors.toSet())
                         .size()
         ));
-        response.put("activities", activityRows(filteredSessions));
-        response.put("locations", groupedRows(filteredSessions, this::locationKey, "location"));
-        response.put("devices", groupedRows(filteredSessions, this::deviceKey, "device"));
+        response.put("activities", activityRows(filteredSessions, range));
         response.put("reports", reportRows(filteredSessions));
+        response.put("filter", Map.of("fromDate", range.from(), "toDate", range.to()));
         return response;
     }
 
-    private List<VisitorSession> loadFilteredSessions(LocalDate fromDate, LocalDate toDate) {
+    private DateRange resolveRange(LocalDate fromDate, LocalDate toDate) {
         if (fromDate == null && toDate == null) {
-            return visitorSessionRepository.findAll();
+            LocalDate today = LocalDate.now();
+            return new DateRange(today, today);
         }
         LocalDate from = fromDate != null ? fromDate : toDate;
         LocalDate to = toDate != null ? toDate : fromDate;
@@ -116,13 +155,13 @@ public class VisitorAnalyticsService {
             from = to;
             to = swap;
         }
-        return visitorSessionRepository.findByLoginTimeBetween(from.atStartOfDay(), to.plusDays(1).atStartOfDay());
+        return new DateRange(from, to);
     }
 
-    private List<Map<String, Object>> activityRows(List<VisitorSession> sessions) {
-        Map<String, Long> visitsByUserToday = visitorSessionRepository.findByLoginTimeBetween(
-                        LocalDate.now().atStartOfDay(),
-                        LocalDate.now().plusDays(1).atStartOfDay()
+    private List<Map<String, Object>> activityRows(List<VisitorSession> sessions, DateRange range) {
+        Map<String, Long> visitsByUserInRange = visitorSessionRepository.findByLoginTimeBetween(
+                        range.from().atStartOfDay(),
+                        range.to().plusDays(1).atStartOfDay()
                 ).stream()
                 .filter(s -> s.getUser() != null)
                 .collect(Collectors.groupingBy(s -> String.valueOf(s.getUser().getId()), Collectors.counting()));
@@ -136,7 +175,7 @@ public class VisitorAnalyticsService {
                     row.put("userName", user != null ? user.getName() : "Unknown User");
                     row.put("email", user != null ? user.getEmail() : "");
                     row.put("dateOfAccess", safeLogin(session).toLocalDate());
-                    row.put("visitsToday", user == null ? 0 : visitsByUserToday.getOrDefault(String.valueOf(user.getId()), 0L));
+                    row.put("visitsInPeriod", user == null ? 0 : visitsByUserInRange.getOrDefault(String.valueOf(user.getId()), 0L));
                     row.put("loginTime", session.getLoginTime());
                     row.put("logoutTime", session.getLogoutTime());
                     row.put("totalSessionDuration", formatDuration(minutes));
@@ -144,6 +183,8 @@ public class VisitorAnalyticsService {
                     row.put("lastActiveTimestamp", session.getLastActiveAt());
                     row.put("city", valueOrUnknown(session.getCity()));
                     row.put("country", valueOrUnknown(session.getCountry()));
+                    row.put("location", locationKey(session));
+                    row.put("googleMapsUrl", session.getGoogleMapsUrl());
                     row.put("deviceType", valueOrUnknown(session.getDeviceType()));
                     row.put("operatingSystem", valueOrUnknown(session.getOperatingSystem()));
                     row.put("browserName", valueOrUnknown(session.getBrowserName()));
@@ -254,6 +295,9 @@ public class VisitorAnalyticsService {
     }
 
     private String locationKey(VisitorSession session) {
+        if (!"Unknown".equals(valueOrUnknown(session.getLocationLabel()))) {
+            return session.getLocationLabel();
+        }
         return valueOrUnknown(session.getCity()) + ", " + valueOrUnknown(session.getCountry());
     }
 
@@ -311,5 +355,8 @@ public class VisitorAnalyticsService {
 
     private String valueOrUnknown(String value) {
         return value == null || value.isBlank() ? "Unknown" : value;
+    }
+
+    private record DateRange(LocalDate from, LocalDate to) {
     }
 }

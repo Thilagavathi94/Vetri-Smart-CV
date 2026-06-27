@@ -3,6 +3,7 @@ package com.vetrismartcv.controller;
 import com.vetrismartcv.model.User;
 import com.vetrismartcv.service.UserService;
 import com.vetrismartcv.service.VisitorAnalyticsService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -80,10 +81,12 @@ public class AdminController {
             @RequestParam(required = false) LocalDate date,
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate,
-            HttpSession session) {
+            HttpSession session,
+            HttpServletRequest request) {
         if (!isAdmin(session)) {
             return forbidden();
         }
+        visitorAnalyticsService.recordActivity((Long) session.getAttribute("userId"), session, request);
 
         LocalDate resolvedFrom = date != null ? date : fromDate;
         LocalDate resolvedTo = date != null ? date : toDate;
@@ -92,6 +95,20 @@ public class AdminController {
                 "success", true,
                 "analytics", visitorAnalyticsService.analytics(resolvedFrom, resolvedTo)
         ));
+    }
+
+    @PostMapping("/visitor-analytics/location")
+    public ResponseEntity<Map<String, Object>> updateVisitorLocation(
+            @RequestBody Map<String, Object> body,
+            HttpSession session) {
+        if (!isAdmin(session)) {
+            return forbidden();
+        }
+        Double latitude = toDouble(body.get("latitude"));
+        Double longitude = toDouble(body.get("longitude"));
+        String label = body.get("label") == null ? null : String.valueOf(body.get("label"));
+        visitorAnalyticsService.updateCurrentLocation(session, latitude, longitude, label);
+        return ResponseEntity.ok(Map.of("success", true));
     }
 
     private boolean isAdmin(HttpSession session) {
@@ -104,5 +121,19 @@ public class AdminController {
                 "success", false,
                 "message", "Admin access required."
         ));
+    }
+
+    private Double toDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 }

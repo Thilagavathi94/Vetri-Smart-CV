@@ -95,7 +95,6 @@
         }
         .primary-btn { background: #2563eb; color: #fff; }
         .secondary-btn { background: #fff; color: #374151; border-color: #d1d5db; }
-        .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 22px 0; }
         .panel-toolbar {
             display: flex;
             justify-content: space-between;
@@ -110,7 +109,6 @@
         table { width: 100%; border-collapse: collapse; min-width: 900px; }
         th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid #edf0f3; font-size: 14px; vertical-align: middle; }
         th { background: #f9fafb; color: #4b5563; font-size: 12px; text-transform: uppercase; letter-spacing: 0; }
-        .compact-table { min-width: 360px; }
         .user-name { font-weight: 800; color: #111827; }
         .muted { color: #6b7280; font-size: 12px; margin-top: 2px; }
         .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 800; background: #ecfdf5; color: #166534; }
@@ -141,7 +139,7 @@
         @media (max-width: 980px) {
             .admin-nav, .admin-header, .panel-toolbar { flex-direction: column; align-items: stretch; }
             .stats-grid, .reports { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .filters, .grid-two { grid-template-columns: 1fr; }
+            .filters { grid-template-columns: 1fr; }
         }
         @media (max-width: 560px) {
             .admin-nav { padding: 14px 18px; }
@@ -175,7 +173,7 @@
 
     <section class="stats-grid" aria-label="Visitor summary">
         <div class="stat-card"><div class="stat-label">Today's Visitors</div><div class="stat-value" id="statVisitors">0</div></div>
-        <div class="stat-card"><div class="stat-label">Unique Users Today</div><div class="stat-value" id="statUnique">0</div></div>
+        <div class="stat-card"><div class="stat-label">New Accounts Today</div><div class="stat-value" id="statNewAccounts">0</div></div>
         <div class="stat-card"><div class="stat-label">Total Sessions Today</div><div class="stat-value" id="statSessions">0</div></div>
         <div class="stat-card"><div class="stat-label">Usage Hours Today</div><div class="stat-value" id="statHours">0</div></div>
         <div class="stat-card"><div class="stat-label">Active Users</div><div class="stat-value" id="statActive">0</div></div>
@@ -211,40 +209,20 @@
                 <tr>
                     <th>User</th>
                     <th>Date</th>
-                    <th>Visits Today</th>
+                    <th>Visits</th>
                     <th>Login</th>
                     <th>Logout</th>
                     <th>Duration</th>
                     <th>Hours</th>
+                    <th>Location</th>
                     <th>Last Active</th>
                     <th>Device</th>
                 </tr>
                 </thead>
                 <tbody id="activityBody">
-                <tr><td colspan="9" class="empty-row">Loading visitor activity...</td></tr>
+                <tr><td colspan="10" class="empty-row">Loading visitor activity...</td></tr>
                 </tbody>
             </table>
-        </div>
-    </section>
-
-    <section class="grid-two">
-        <div class="panel">
-            <div class="panel-toolbar"><h2>Location Analytics</h2></div>
-            <div class="table-wrap">
-                <table class="compact-table">
-                    <thead><tr><th>City, Country</th><th>Visitors</th></tr></thead>
-                    <tbody id="locationBody"><tr><td colspan="2" class="empty-row">No location data.</td></tr></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="panel">
-            <div class="panel-toolbar"><h2>Device Information</h2></div>
-            <div class="table-wrap">
-                <table class="compact-table">
-                    <thead><tr><th>Device / OS / Browser</th><th>Visitors</th></tr></thead>
-                    <tbody id="deviceBody"><tr><td colspan="2" class="empty-row">No device data.</td></tr></tbody>
-                </table>
-            </div>
         </div>
     </section>
 
@@ -260,7 +238,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
-document.addEventListener('DOMContentLoaded', loadAnalytics);
+document.addEventListener('DOMContentLoaded', () => {
+    captureVisitorLocationOnce();
+    loadAnalytics();
+});
 
 async function loadAnalytics() {
     const params = new URLSearchParams();
@@ -300,14 +281,12 @@ function resetFilters() {
 function renderAnalytics(analytics) {
     const summary = analytics.summary || {};
     document.getElementById('statVisitors').textContent = summary.todaysVisitors || 0;
-    document.getElementById('statUnique').textContent = summary.uniqueUsersToday || 0;
+    document.getElementById('statNewAccounts').textContent = summary.newAccountsToday || 0;
     document.getElementById('statSessions').textContent = summary.totalSessionsToday || 0;
     document.getElementById('statHours').textContent = summary.totalUsageHoursToday || 0;
     document.getElementById('statActive').textContent = summary.activeUsers || 0;
 
     renderActivities(analytics.activities || []);
-    renderGroupedTable('locationBody', analytics.locations || [], 'location');
-    renderGroupedTable('deviceBody', analytics.devices || [], 'device');
     renderReports(analytics.reports || {});
 }
 
@@ -315,7 +294,7 @@ function renderActivities(rows) {
     const body = document.getElementById('activityBody');
     document.getElementById('activityCount').textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
     if (!rows.length) {
-        body.innerHTML = '<tr><td colspan="9" class="empty-row">No visitor activity found.</td></tr>';
+        body.innerHTML = '<tr><td colspan="10" class="empty-row">No visitor activity found.</td></tr>';
         return;
     }
     body.innerHTML = rows.map(row => `
@@ -325,30 +304,17 @@ function renderActivities(rows) {
                 <div class="muted">${escapeHtml(row.email || '')}</div>
             </td>
             <td>${formatDate(row.dateOfAccess)}</td>
-            <td><span class="badge">${row.visitsToday || 0}</span></td>
+            <td><span class="badge">${row.visitsInPeriod || 0}</span></td>
             <td>${formatDateTime(row.loginTime)}</td>
             <td>${formatDateTime(row.logoutTime)}</td>
             <td>${escapeHtml(row.totalSessionDuration || '0h 0m')}</td>
             <td>${row.totalHoursUsed || 0}</td>
+            <td>${renderLocation(row)}</td>
             <td>${formatDateTime(row.lastActiveTimestamp)}</td>
             <td>
                 <div>${escapeHtml(row.deviceType || 'Unknown')}</div>
                 <div class="muted">${escapeHtml(row.operatingSystem || 'Unknown')} / ${escapeHtml(row.browserName || 'Unknown')}</div>
             </td>
-        </tr>
-    `).join('');
-}
-
-function renderGroupedTable(bodyId, rows, key) {
-    const body = document.getElementById(bodyId);
-    if (!rows.length) {
-        body.innerHTML = '<tr><td colspan="2" class="empty-row">No records found.</td></tr>';
-        return;
-    }
-    body.innerHTML = rows.map(row => `
-        <tr>
-            <td>${escapeHtml(row[key] || 'Unknown')}</td>
-            <td><span class="badge">${row.visitors || 0}</span></td>
         </tr>
     `).join('');
 }
@@ -392,6 +358,57 @@ function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, (char) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     })[char]);
+}
+
+function renderLocation(row) {
+    const location = escapeHtml(row.location || 'Unknown');
+    if (row.googleMapsUrl) {
+        return `<a href="${escapeHtml(row.googleMapsUrl)}" target="_blank" rel="noopener">${location}</a>`;
+    }
+    return location;
+}
+
+function captureVisitorLocationOnce() {
+    if (!('geolocation' in navigator)) return;
+    if (sessionStorage.getItem('visitorLocationCaptured') === 'true') return;
+
+    navigator.geolocation.getCurrentPosition(async function(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        let label = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+
+        try {
+            const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`);
+            if (geoRes.ok) {
+                const geo = await geoRes.json();
+                const address = geo.address || {};
+                const city = address.city || address.town || address.village || address.suburb || address.county;
+                const state = address.state;
+                const country = address.country;
+                label = [city, state, country].filter(Boolean).join(', ') || label;
+            }
+        } catch (error) {
+            // Keep coordinate label when reverse geocoding is unavailable.
+        }
+
+        try {
+            await fetch('/api/auth/visitor-location', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ latitude, longitude, label })
+            });
+            sessionStorage.setItem('visitorLocationCaptured', 'true');
+            loadAnalytics();
+        } catch (error) {
+            console.warn('Visitor location update failed:', error);
+        }
+    }, function() {
+        sessionStorage.setItem('visitorLocationCaptured', 'true');
+    }, {
+        enableHighAccuracy: false,
+        timeout: 7000,
+        maximumAge: 30 * 60 * 1000
+    });
 }
 
 async function doLogout() {

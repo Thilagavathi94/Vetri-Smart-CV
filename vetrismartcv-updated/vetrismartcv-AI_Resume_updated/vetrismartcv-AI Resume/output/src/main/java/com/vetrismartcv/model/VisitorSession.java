@@ -32,6 +32,15 @@ public class VisitorSession {
     @Column(length = 120)
     private String country;
 
+    @Column(length = 160)
+    private String locationLabel;
+
+    private Double latitude;
+    private Double longitude;
+
+    @Column(length = 255)
+    private String googleMapsUrl;
+
     @Column(length = 40)
     private String deviceType;
 
