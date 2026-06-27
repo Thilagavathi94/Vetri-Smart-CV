@@ -2,6 +2,8 @@ package com.vetrismartcv.controller;
 
 import com.vetrismartcv.model.User;
 import com.vetrismartcv.service.UserService;
+import com.vetrismartcv.service.VisitorAnalyticsService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +23,9 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private VisitorAnalyticsService visitorAnalyticsService;
 
     private Map<String, Object> buildSessionResponse(HttpSession session) {
         Map<String, Object> resp = new HashMap<>();
@@ -43,7 +48,8 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(
             @RequestBody Map<String, String> body,
-            HttpSession session) {
+            HttpSession session,
+            HttpServletRequest request) {
 
         String name = body.get("name");
         String email = body.get("email");
@@ -62,6 +68,7 @@ public class AuthController {
                 session.setAttribute("userName", userMap.get("name"));
                 session.setAttribute("userPlan", userMap.get("plan"));
                 session.setAttribute("userRole", userMap.get("role"));
+                visitorAnalyticsService.recordLogin((Long) userMap.get("id"), session, request);
                 return ResponseEntity.ok(result);
             }
             return ResponseEntity.badRequest().body(result);
@@ -76,7 +83,8 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(
             @RequestBody Map<String, String> body,
-            HttpSession session) {
+            HttpSession session,
+            HttpServletRequest request) {
 
         String email = body.get("email");
         String password = body.get("password");
@@ -90,6 +98,7 @@ public class AuthController {
                 session.setAttribute("userName", userMap.get("name"));
                 session.setAttribute("userPlan", userMap.get("plan"));
                 session.setAttribute("userRole", userMap.get("role"));
+                visitorAnalyticsService.recordLogin((Long) userMap.get("id"), session, request);
             }
             return ResponseEntity.ok(result);
         } catch (Exception e) {
@@ -102,6 +111,7 @@ public class AuthController {
     /* ---- POST /api/auth/logout ---- */
     @PostMapping("/logout")
     public ResponseEntity<Map<String, Object>> logout(HttpSession session) {
+        visitorAnalyticsService.recordLogout(session);
         session.invalidate();
         return ResponseEntity.ok(Map.of("success", true));
     }
@@ -109,6 +119,7 @@ public class AuthController {
     /* ---- GET /api/auth/session ---- */
     @GetMapping("/session")
     public ResponseEntity<Map<String, Object>> getSession(HttpSession session) {
+        visitorAnalyticsService.recordActivity(session);
         return ResponseEntity.ok(buildSessionResponse(session));
     }
 
@@ -117,7 +128,8 @@ public class AuthController {
     @PostMapping("/oauth")
     public ResponseEntity<Map<String, Object>> oauthLogin(
             @RequestBody Map<String, String> body,
-            HttpSession session) {
+            HttpSession session,
+            HttpServletRequest request) {
 
         String provider = body.getOrDefault("provider", "GOOGLE");
         String providerId = body.get("providerId");
@@ -134,6 +146,7 @@ public class AuthController {
             session.setAttribute("userName", user.getName());
             session.setAttribute("userPlan", user.getPlan());
             session.setAttribute("userRole", user.getRole());
+            visitorAnalyticsService.recordLogin(user.getId(), session, request);
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("success", true);

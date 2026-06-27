@@ -158,6 +158,19 @@ public class PageController {
         return "admin";
     }
 
+    @GetMapping("/admin/visitor-analytics")
+    public String visitorAnalytics(Model model, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return "redirect:/login?redirect=/admin/visitor-analytics";
+        }
+        if (!userService.isAdmin(userId)) {
+            return "redirect:/dashboard?accessDenied=admin";
+        }
+        addSessionToModel(model, session);
+        return "visitor-analytics";
+    }
+
     @GetMapping("/review/{id}")
     public String review(@PathVariable Long id, Model model, HttpSession session) {
         addSessionToModel(model, session);

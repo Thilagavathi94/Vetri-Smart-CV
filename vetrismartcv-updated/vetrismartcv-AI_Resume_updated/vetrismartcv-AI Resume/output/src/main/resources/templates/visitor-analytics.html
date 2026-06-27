@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VetriSmartCV - Visitor Analytics</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f4f5f7; color: #1f2937; font-family: "Segoe UI", Arial, sans-serif; }
+        .admin-nav {
+            background: #4c1d95;
+            color: #fff;
+            padding: 14px 42px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        .brand { color: #fff; text-decoration: none; font-size: 1.15rem; font-weight: 800; }
+        .nav-links { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+        .nav-links a, .logout-btn {
+            color: #fff;
+            text-decoration: none;
+            font: inherit;
+            font-size: 14px;
+            border: 1px solid rgba(255,255,255,0.28);
+            border-radius: 8px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.08);
+            cursor: pointer;
+        }
+        .nav-links a.active { background: rgba(255,255,255,0.22); }
+        .admin-page { max-width: 1240px; margin: 0 auto; padding: 34px 22px 70px; }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            margin-bottom: 22px;
+        }
+        .admin-header h1 { margin: 0 0 6px; font-size: 1.8rem; color: #111827; }
+        .admin-header p { margin: 0; color: #6b7280; font-size: 14px; }
+        .admin-pill {
+            background: #e0f2fe;
+            color: #075985;
+            border-radius: 999px;
+            padding: 8px 13px;
+            font-size: 13px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+        .stat-card, .panel {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(17,24,39,0.05);
+        }
+        .stat-card { padding: 17px; }
+        .stat-label { color: #6b7280; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+        .stat-value { color: #111827; font-size: 1.65rem; font-weight: 850; margin-top: 5px; }
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            padding: 18px;
+            margin-bottom: 22px;
+        }
+        .field label { display: block; font-size: 12px; color: #4b5563; font-weight: 800; margin-bottom: 6px; }
+        .field input {
+            width: 100%;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font: inherit;
+            font-size: 14px;
+            background: #fff;
+        }
+        .filter-actions { display: flex; gap: 10px; align-items: end; }
+        .primary-btn, .secondary-btn {
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-weight: 800;
+            cursor: pointer;
+            border: 1px solid transparent;
+            height: 40px;
+        }
+        .primary-btn { background: #2563eb; color: #fff; }
+        .secondary-btn { background: #fff; color: #374151; border-color: #d1d5db; }
+        .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 22px 0; }
+        .panel-toolbar {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 18px;
+            border-bottom: 1px solid #e5e7eb;
+            align-items: center;
+        }
+        .panel-toolbar h2 { margin: 0; font-size: 1.05rem; color: #111827; }
+        .panel-note { color: #6b7280; font-size: 12px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid #edf0f3; font-size: 14px; vertical-align: middle; }
+        th { background: #f9fafb; color: #4b5563; font-size: 12px; text-transform: uppercase; letter-spacing: 0; }
+        .compact-table { min-width: 360px; }
+        .user-name { font-weight: 800; color: #111827; }
+        .muted { color: #6b7280; font-size: 12px; margin-top: 2px; }
+        .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 800; background: #ecfdf5; color: #166534; }
+        .empty-row { text-align: center; color: #6b7280; padding: 30px 16px; }
+        .reports {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            padding: 18px;
+        }
+        .report-block h3 { margin: 0 0 10px; font-size: 0.95rem; color: #111827; }
+        .report-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+        .report-list li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; color: #374151; font-size: 13px; }
+        .toast {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            max-width: 360px;
+            background: #111827;
+            color: #fff;
+            border-radius: 8px;
+            padding: 12px 14px;
+            box-shadow: 0 12px 30px rgba(17,24,39,0.22);
+            display: none;
+            z-index: 50;
+            font-size: 14px;
+        }
+        @media (max-width: 980px) {
+            .admin-nav, .admin-header, .panel-toolbar { flex-direction: column; align-items: stretch; }
+            .stats-grid, .reports { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .filters, .grid-two { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 560px) {
+            .admin-nav { padding: 14px 18px; }
+            .admin-page { padding: 24px 14px 56px; }
+            .stats-grid, .reports { grid-template-columns: 1fr; }
+            .filter-actions { flex-direction: column; align-items: stretch; }
+            .primary-btn, .secondary-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<nav class="admin-nav">
+    <a href="/" class="brand">VetriSmartCV Admin</a>
+    <div class="nav-links">
+        <a href="/admin">Admin Panel</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/builder">Resume Builder</a>
+        <a class="active" href="/admin/visitor-analytics">Visitor Analytics</a>
+        <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+</nav>
+
+<main class="admin-page">
+    <section class="admin-header">
+        <div>
+            <h1>Visitor Analytics</h1>
+            <p>Monitor visitor sessions, usage hours, location trends, devices, and activity reports.</p>
+        </div>
+        <div class="admin-pill" th:text="|Signed in as ${userName}|">Signed in as Admin</div>
+    </section>
+
+    <section class="stats-grid" aria-label="Visitor summary">
+        <div class="stat-card"><div class="stat-label">Today's Visitors</div><div class="stat-value" id="statVisitors">0</div></div>
+        <div class="stat-card"><div class="stat-label">Unique Users Today</div><div class="stat-value" id="statUnique">0</div></div>
+        <div class="stat-card"><div class="stat-label">Total Sessions Today</div><div class="stat-value" id="statSessions">0</div></div>
+        <div class="stat-card"><div class="stat-label">Usage Hours Today</div><div class="stat-value" id="statHours">0</div></div>
+        <div class="stat-card"><div class="stat-label">Active Users</div><div class="stat-value" id="statActive">0</div></div>
+    </section>
+
+    <section class="panel filters" aria-label="Date filters">
+        <div class="field">
+            <label for="dateInput">Specific Date</label>
+            <input id="dateInput" type="date">
+        </div>
+        <div class="field">
+            <label for="fromDateInput">From Date</label>
+            <input id="fromDateInput" type="date">
+        </div>
+        <div class="field">
+            <label for="toDateInput">To Date</label>
+            <input id="toDateInput" type="date">
+        </div>
+        <div class="filter-actions">
+            <button class="primary-btn" onclick="loadAnalytics()">Search</button>
+            <button class="secondary-btn" onclick="resetFilters()">Reset</button>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-toolbar">
+            <h2>User Activity Details</h2>
+            <span class="panel-note" id="activityCount">0 records</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Date</th>
+                    <th>Visits Today</th>
+                    <th>Login</th>
+                    <th>Logout</th>
+                    <th>Duration</th>
+                    <th>Hours</th>
+                    <th>Last Active</th>
+                    <th>Device</th>
+                </tr>
+                </thead>
+                <tbody id="activityBody">
+                <tr><td colspan="9" class="empty-row">Loading visitor activity...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="grid-two">
+        <div class="panel">
+            <div class="panel-toolbar"><h2>Location Analytics</h2></div>
+            <div class="table-wrap">
+                <table class="compact-table">
+                    <thead><tr><th>City, Country</th><th>Visitors</th></tr></thead>
+                    <tbody id="locationBody"><tr><td colspan="2" class="empty-row">No location data.</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-toolbar"><h2>Device Information</h2></div>
+            <div class="table-wrap">
+                <table class="compact-table">
+                    <thead><tr><th>Device / OS / Browser</th><th>Visitors</th></tr></thead>
+                    <tbody id="deviceBody"><tr><td colspan="2" class="empty-row">No device data.</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-toolbar">
+            <h2>Visitor Reports</h2>
+            <span class="panel-note">Daily, weekly, monthly, active user, usage, and location reports</span>
+        </div>
+        <div class="reports" id="reportsWrap"></div>
+    </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', loadAnalytics);
+
+async function loadAnalytics() {
+    const params = new URLSearchParams();
+    const date = document.getElementById('dateInput').value;
+    const fromDate = document.getElementById('fromDateInput').value;
+    const toDate = document.getElementById('toDateInput').value;
+
+    if (date) {
+        params.set('date', date);
+    } else {
+        if (fromDate) params.set('fromDate', fromDate);
+        if (toDate) params.set('toDate', toDate);
+    }
+
+    try {
+        const url = '/api/admin/visitor-analytics' + (params.toString() ? `?${params}` : '');
+        const res = await fetch(url, { cache: 'no-store' });
+        if (res.status === 403) {
+            window.location.href = '/dashboard?accessDenied=admin';
+            return;
+        }
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Unable to load visitor analytics.');
+        renderAnalytics(data.analytics || {});
+    } catch (error) {
+        showToast(error.message || 'Unable to load visitor analytics.', true);
+    }
+}
+
+function resetFilters() {
+    document.getElementById('dateInput').value = '';
+    document.getElementById('fromDateInput').value = '';
+    document.getElementById('toDateInput').value = '';
+    loadAnalytics();
+}
+
+function renderAnalytics(analytics) {
+    const summary = analytics.summary || {};
+    document.getElementById('statVisitors').textContent = summary.todaysVisitors || 0;
+    document.getElementById('statUnique').textContent = summary.uniqueUsersToday || 0;
+    document.getElementById('statSessions').textContent = summary.totalSessionsToday || 0;
+    document.getElementById('statHours').textContent = summary.totalUsageHoursToday || 0;
+    document.getElementById('statActive').textContent = summary.activeUsers || 0;
+
+    renderActivities(analytics.activities || []);
+    renderGroupedTable('locationBody', analytics.locations || [], 'location');
+    renderGroupedTable('deviceBody', analytics.devices || [], 'device');
+    renderReports(analytics.reports || {});
+}
+
+function renderActivities(rows) {
+    const body = document.getElementById('activityBody');
+    document.getElementById('activityCount').textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
+    if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="9" class="empty-row">No visitor activity found.</td></tr>';
+        return;
+    }
+    body.innerHTML = rows.map(row => `
+        <tr>
+            <td>
+                <div class="user-name">${escapeHtml(row.userName || 'Unknown User')}</div>
+                <div class="muted">${escapeHtml(row.email || '')}</div>
+            </td>
+            <td>${formatDate(row.dateOfAccess)}</td>
+            <td><span class="badge">${row.visitsToday || 0}</span></td>
+            <td>${formatDateTime(row.loginTime)}</td>
+            <td>${formatDateTime(row.logoutTime)}</td>
+            <td>${escapeHtml(row.totalSessionDuration || '0h 0m')}</td>
+            <td>${row.totalHoursUsed || 0}</td>
+            <td>${formatDateTime(row.lastActiveTimestamp)}</td>
+            <td>
+                <div>${escapeHtml(row.deviceType || 'Unknown')}</div>
+                <div class="muted">${escapeHtml(row.operatingSystem || 'Unknown')} / ${escapeHtml(row.browserName || 'Unknown')}</div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderGroupedTable(bodyId, rows, key) {
+    const body = document.getElementById(bodyId);
+    if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="2" class="empty-row">No records found.</td></tr>';
+        return;
+    }
+    body.innerHTML = rows.map(row => `
+        <tr>
+            <td>${escapeHtml(row[key] || 'Unknown')}</td>
+            <td><span class="badge">${row.visitors || 0}</span></td>
+        </tr>
+    `).join('');
+}
+
+function renderReports(reports) {
+    const wrap = document.getElementById('reportsWrap');
+    const blocks = [
+        ['Daily Visitor Report', reports.dailyVisitorReport || [], 'period', 'visitors'],
+        ['Weekly Visitor Report', reports.weeklyVisitorReport || [], 'period', 'visitors'],
+        ['Monthly Visitor Report', reports.monthlyVisitorReport || [], 'period', 'visitors'],
+        ['Most Active Users', reports.mostActiveUsers || [], 'user', 'visits'],
+        ['Maximum Usage Hours', reports.usersWithMaximumUsageHours || [], 'user', 'hours'],
+        ['Location-wise Statistics', reports.locationWiseVisitorStatistics || [], 'location', 'visitors']
+    ];
+
+    wrap.innerHTML = blocks.map(([title, rows, labelKey, valueKey]) => `
+        <div class="report-block">
+            <h3>${title}</h3>
+            <ul class="report-list">
+                ${rows.length ? rows.slice(0, 6).map(row => `
+                    <li><span>${escapeHtml(row[labelKey] || 'Unknown')}</span><strong>${row[valueKey] || 0}</strong></li>
+                `).join('') : '<li><span>No records</span><strong>0</strong></li>'}
+            </ul>
+        </div>
+    `).join('');
+}
+
+function formatDate(value) {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function formatDateTime(value) {
+    if (!value) return '-';
+    return new Date(value).toLocaleString('en-IN', {
+        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+}
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
+}
+
+async function doLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/';
+}
+
+function showToast(message, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.background = isError ? '#dc2626' : '#111827';
+    toast.style.display = 'block';
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => toast.style.display = 'none', 3000);
+}
+</script>
+</body>
+</html>

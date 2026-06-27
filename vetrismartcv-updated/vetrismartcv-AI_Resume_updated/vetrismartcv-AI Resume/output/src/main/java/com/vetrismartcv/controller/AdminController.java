@@ -2,10 +2,12 @@ package com.vetrismartcv.controller;
 
 import com.vetrismartcv.model.User;
 import com.vetrismartcv.service.UserService;
+import com.vetrismartcv.service.VisitorAnalyticsService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
@@ -13,9 +15,11 @@ import java.util.Map;
 public class AdminController {
 
     private final UserService userService;
+    private final VisitorAnalyticsService visitorAnalyticsService;
 
-    public AdminController(UserService userService) {
+    public AdminController(UserService userService, VisitorAnalyticsService visitorAnalyticsService) {
         this.userService = userService;
+        this.visitorAnalyticsService = visitorAnalyticsService;
     }
 
     @GetMapping("/users")
@@ -68,6 +72,25 @@ public class AdminController {
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "user", userService.adminUser(updated)
+        ));
+    }
+
+    @GetMapping("/visitor-analytics")
+    public ResponseEntity<Map<String, Object>> visitorAnalytics(
+            @RequestParam(required = false) LocalDate date,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            HttpSession session) {
+        if (!isAdmin(session)) {
+            return forbidden();
+        }
+
+        LocalDate resolvedFrom = date != null ? date : fromDate;
+        LocalDate resolvedTo = date != null ? date : toDate;
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "analytics", visitorAnalyticsService.analytics(resolvedFrom, resolvedTo)
         ));
     }
 
