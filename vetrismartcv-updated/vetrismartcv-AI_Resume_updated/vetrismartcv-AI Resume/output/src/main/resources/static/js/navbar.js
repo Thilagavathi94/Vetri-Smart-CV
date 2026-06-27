@@ -26,6 +26,7 @@ function makeUserPillOpenDashboard(root) {
 }
 
 async function initNavbar() {
+    captureVisitorLocationOnce();
     try {
         const res  = await fetch('/api/auth/session');
         const data = await res.json();
@@ -92,7 +93,7 @@ async function initNavbar() {
             }
 
             document.querySelectorAll('.nav-user-pill').forEach(makeUserPillOpenDashboard);
-            captureVisitorLocationOnce();
+            sendStoredVisitorLocation();
         }
     } catch (e) {
         // Session fetch failed — leave default logged-out state
@@ -102,7 +103,12 @@ async function initNavbar() {
 
 function captureVisitorLocationOnce() {
     if (!('geolocation' in navigator)) return;
-    if (sessionStorage.getItem('visitorLocationCaptured') === 'true') return;
+    if (sessionStorage.getItem('visitorLocationCaptured') === 'true') {
+        sendStoredVisitorLocation();
+        return;
+    }
+    if (sessionStorage.getItem('visitorLocationPending') === 'true') return;
+    sessionStorage.setItem('visitorLocationPending', 'true');
 
     navigator.geolocation.getCurrentPosition(async function(position) {
         const latitude = position.coords.latitude;
@@ -123,23 +129,36 @@ function captureVisitorLocationOnce() {
             // Keep coordinate label when reverse geocoding is unavailable.
         }
 
-        try {
-            await fetch('/api/auth/visitor-location', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ latitude, longitude, label })
-            });
-            sessionStorage.setItem('visitorLocationCaptured', 'true');
-        } catch (e) {
-            console.warn('Visitor location update failed:', e);
-        }
+        sessionStorage.setItem('visitorLocationPayload', JSON.stringify({ latitude, longitude, label }));
+        sessionStorage.setItem('visitorLocationCaptured', 'true');
+        sessionStorage.removeItem('visitorLocationPending');
+        sendStoredVisitorLocation();
     }, function() {
+        sessionStorage.removeItem('visitorLocationPending');
         sessionStorage.setItem('visitorLocationCaptured', 'true');
     }, {
         enableHighAccuracy: false,
         timeout: 7000,
         maximumAge: 30 * 60 * 1000
     });
+}
+
+async function sendStoredVisitorLocation() {
+    const payload = sessionStorage.getItem('visitorLocationPayload');
+    if (!payload || sessionStorage.getItem('visitorLocationSaved') === 'true') return;
+
+    try {
+        const response = await fetch('/api/auth/visitor-location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload
+        });
+        if (response.ok) {
+            sessionStorage.setItem('visitorLocationSaved', 'true');
+        }
+    } catch (e) {
+        console.warn('Visitor location update failed:', e);
+    }
 }
 
 // Run on DOMContentLoaded for reliability

@@ -126,7 +126,7 @@ public class VisitorAnalyticsService {
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("summary", Map.of(
-                "todaysVisitors", todaySessions.size(),
+                "todaysVisitors", uniqueUsers(todaySessions),
                 "newAccountsToday", userRepository.countByCreatedAtBetween(todayStart, tomorrowStart),
                 "totalSessionsToday", todaySessions.size(),
                 "totalUsageHoursToday", roundHours(totalDurationMinutes(todaySessions) / 60.0),
@@ -177,7 +177,7 @@ public class VisitorAnalyticsService {
                     row.put("dateOfAccess", safeLogin(session).toLocalDate());
                     row.put("visitsInPeriod", user == null ? 0 : visitsByUserInRange.getOrDefault(String.valueOf(user.getId()), 0L));
                     row.put("loginTime", session.getLoginTime());
-                    row.put("logoutTime", session.getLogoutTime());
+                    row.put("logoutTime", session.getLogoutTime() != null ? session.getLogoutTime() : safeLastActive(session));
                     row.put("totalSessionDuration", formatDuration(minutes));
                     row.put("totalHoursUsed", roundHours(minutes / 60.0));
                     row.put("lastActiveTimestamp", session.getLastActiveAt());
