@@ -121,7 +121,26 @@
         }
         .report-block h3 { margin: 0 0 10px; font-size: 0.95rem; color: #111827; }
         .report-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
-        .report-list li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; color: #374151; font-size: 13px; }
+        .report-list li {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 54px;
+            align-items: start;
+            gap: 14px;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 8px;
+            color: #374151;
+            font-size: 13px;
+        }
+        .report-list span {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            line-height: 1.4;
+        }
+        .report-list strong {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            color: #111827;
+        }
         .toast {
             position: fixed;
             right: 24px;
@@ -335,11 +354,16 @@ function renderReports(reports) {
             <h3>${title}</h3>
             <ul class="report-list">
                 ${rows.length ? rows.slice(0, 6).map(row => `
-                    <li><span>${escapeHtml(row[labelKey] || 'Unknown')}</span><strong>${row[valueKey] || 0}</strong></li>
+                    <li><span>${escapeHtml(row[labelKey] || 'Unknown')}</span><strong>${formatReportNumber(row[valueKey])}</strong></li>
                 `).join('') : '<li><span>No records</span><strong>0</strong></li>'}
             </ul>
         </div>
     `).join('');
+}
+
+function formatReportNumber(value) {
+    const number = Number(value || 0);
+    return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/\.?0+$/, '');
 }
 
 function formatDate(value) {
