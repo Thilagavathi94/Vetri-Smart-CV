@@ -231,6 +231,34 @@ function hasAtLeastOneEntry(selector, fieldSelector) {
     });
 }
 
+function focusInvalidField(field, message) {
+    showToast(message, 'error');
+    if (field && typeof field.focus === 'function') field.focus();
+    return false;
+}
+
+function validateRequiredFields(entrySelector, fieldSelectors, message) {
+    const entries = Array.from(document.querySelectorAll(entrySelector));
+    if (!entries.length) return focusInvalidField(null, message);
+
+    for (const entry of entries) {
+        const hasAnyValue = fieldSelectors.some(selector => {
+            const field = entry.querySelector(selector);
+            return field && String(field.value || '').trim();
+        });
+        if (!hasAnyValue) continue;
+
+        for (const selector of fieldSelectors) {
+            const field = entry.querySelector(selector);
+            if (!field || !String(field.value || '').trim()) {
+                return focusInvalidField(field, message);
+            }
+        }
+        return true;
+    }
+    return focusInvalidField(entries[0]?.querySelector(fieldSelectors[0]), message);
+}
+
 // ============================================================
 // VALIDATION
 // ============================================================
@@ -241,13 +269,20 @@ function validateStep(step) {
             break;
         case 2:
             if (!resumeData.experienceLevel) { showToast('Please select your experience level.', 'error'); return false; }
-            break;
-        case 3:
-            if (!hasAtLeastOneEntry('.edu-entry', '.edu-university')) {
-                showToast('Please add at least one education entry before continuing.', 'error');
-                return false;
+            if (resumeData.experienceLevel !== 'No Experience (Fresher)') {
+                return validateRequiredFields(
+                    '.exp-entry',
+                    ['.exp-jobtitle', '.exp-company', '.exp-start-month', '.exp-start-year'],
+                    'Please complete the mandatory work experience fields before continuing.'
+                );
             }
             break;
+        case 3:
+            return validateRequiredFields(
+                '.edu-entry',
+                ['.edu-university', '.edu-location', '.edu-degree', '.edu-field', '.edu-year'],
+                'Please complete the mandatory education fields before continuing.'
+            );
         // D_026 FIX: step 4 (Skills) - require at least one named skill before proceeding
         case 4: {
             const hasSkill = selectedSkills && selectedSkills.length > 0;
@@ -542,6 +577,12 @@ function selectJob(job) {
     document.getElementById('jobInput').value = job;
     document.getElementById('selectedJobTag').innerHTML =
         `<div class="selected-tag">${job} <button onclick="clearJob()">✕</button></div>`;
+    const addBtn = document.querySelector('.add-custom-btn');
+    if (addBtn) {
+        addBtn.disabled = true;
+        addBtn.textContent = 'Selected';
+        addBtn.title = 'Clear the selected job role to add a different one';
+    }
     loadSkillSuggestions();
 }
 
@@ -549,6 +590,12 @@ function clearJob() {
     resumeData.jobTitle = '';
     document.getElementById('jobInput').value = '';
     document.getElementById('selectedJobTag').innerHTML = '';
+    const addBtn = document.querySelector('.add-custom-btn');
+    if (addBtn) {
+        addBtn.disabled = false;
+        addBtn.textContent = '＋ Add';
+        addBtn.title = 'Add custom job';
+    }
 }
 
 // ============================================================
@@ -1242,6 +1289,22 @@ function normalizeParsedCvPayload(parsed) {
     }
     if (Array.isArray(parsed.projects) && parsed.projects.length) {
         payload.projectsJson = JSON.stringify(parsed.projects);
+    }
+    if (parsed.additionalSections && typeof parsed.additionalSections === 'object') {
+        payload.additionalSectionsJson = JSON.stringify(parsed.additionalSections);
+        const sectionText = (keys, separator = '\n') => keys
+            .flatMap(key => Array.isArray(parsed.additionalSections[key]) ? parsed.additionalSections[key] : [])
+            .map(value => String(value || '').trim())
+            .filter(Boolean)
+            .join(separator);
+        const certifications = sectionText(['certifications', 'training']);
+        const languages = sectionText(['languages'], ', ');
+        const awards = sectionText(['awards', 'honors', 'honours', 'achievements']);
+        const interests = sectionText(['interests', 'hobbies', 'activities', 'extracurricular activities', 'extra curricular activities']);
+        if (certifications) payload.certifications = certifications;
+        if (languages) payload.languages = languages;
+        if (awards) payload.awards = awards;
+        if (interests) payload.interests = interests;
     }
 
     payload.uploadedCvParsedJson = JSON.stringify(parsed);

@@ -321,19 +321,21 @@ public class UserService {
             return result;
         }
 
-        if (!isPasswordResetMailConfigured()) {
-            result.put("success", false);
-            result.put("message", "Password reset email is not configured. Please contact support.");
-            result.put("status", 503);
-            return result;
-        }
-
         User user = opt.get();
         String token = UUID.randomUUID().toString().replace("-", "") +
                        Long.toHexString(System.currentTimeMillis());
         user.setPasswordResetToken(token);
         user.setPasswordResetTokenExpiresAt(LocalDateTime.now().plusHours(1));
         userRepository.save(user);
+
+        if (!isPasswordResetMailConfigured()) {
+            log.warn("Password reset requested for {}, but no mail provider is configured. Token expires at {}.",
+                    normalizedEmail, user.getPasswordResetTokenExpiresAt());
+            result.put("success", true);
+            result.put("message", "If this email is registered, password reset instructions will be sent shortly.");
+            result.put("status", 200);
+            return result;
+        }
 
         try {
             sendPasswordResetEmail(user, token);

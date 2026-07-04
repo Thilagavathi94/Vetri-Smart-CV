@@ -91,6 +91,7 @@ public class ResumeService {
         if (source.getUserId() != null)                 target.setUserId(source.getUserId());
         if (source.getJobTitle() != null)               target.setJobTitle(source.getJobTitle());
         if (source.getExperienceLevel() != null)        target.setExperienceLevel(source.getExperienceLevel());
+        if (source.getExperienceJson() != null)         target.setExperienceJson(source.getExperienceJson());
         if (source.getEducationJson() != null)          target.setEducationJson(source.getEducationJson());
         if (source.getSkillsJson() != null)             target.setSkillsJson(source.getSkillsJson());
         if (source.getProjectsJson() != null)           target.setProjectsJson(source.getProjectsJson());
@@ -113,6 +114,10 @@ public class ResumeService {
         if (source.getLineSpacing() != null)            target.setLineSpacing(source.getLineSpacing());
         if (source.getPhotoSize() != null)              target.setPhotoSize(source.getPhotoSize());
         if (source.getAdditionalSectionsJson() != null) target.setAdditionalSectionsJson(source.getAdditionalSectionsJson());
+        if (source.getCertifications() != null)         target.setCertifications(source.getCertifications());
+        if (source.getLanguages() != null)              target.setLanguages(source.getLanguages());
+        if (source.getAwards() != null)                 target.setAwards(source.getAwards());
+        if (source.getInterests() != null)              target.setInterests(source.getInterests());
         if (source.getUploadedCvParsedJson() != null)   target.setUploadedCvParsedJson(source.getUploadedCvParsedJson());
         if (source.getStatus() != null)                 target.setStatus(source.getStatus());
         if (source.getResumeName() != null)             target.setResumeName(source.getResumeName());

@@ -7995,10 +7995,46 @@ function downloadAsPlainText(fileName) {
 // ============================================================
 // PRINT / SHARE / SAVE
 // ============================================================
-function printResume() {
+async function printResume() {
     const resumeDoc = document.getElementById('resumeDoc');
     if (!resumeDoc) {
         showToast('Resume preview is not ready.', 'error');
+        return;
+    }
+    if (!isLoggedIn) {
+        redirectToLoginForDownload();
+        return;
+    }
+    if (!isPaidPlan(userPlan) && Number(resumeDownloads || 0) >= 1) {
+        showUpgradePlanPopup('DOWNLOAD_LIMIT');
+        return;
+    }
+    if (!resumeId) {
+        showToast('Please save your resume before printing.', 'error');
+        return;
+    }
+    try {
+        const res = await fetch(`${API_BASE}/${resumeId}/download`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ format: 'print' })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.success === false) {
+            if (data.requireLogin) {
+                redirectToLoginForDownload();
+                return;
+            }
+            if (data.upgradeRequired) {
+                showUpgradePlanPopup(data.reason || 'DOWNLOAD_LIMIT');
+                return;
+            }
+            showToast(data.message || 'Print is not available right now.', 'error');
+            return;
+        }
+        resumeDownloads += 1;
+    } catch (e) {
+        showToast('Print failed. Check your connection.', 'error');
         return;
     }
 

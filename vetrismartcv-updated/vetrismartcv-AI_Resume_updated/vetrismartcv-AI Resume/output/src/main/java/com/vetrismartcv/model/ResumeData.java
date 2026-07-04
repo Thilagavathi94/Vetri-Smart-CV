@@ -25,6 +25,9 @@ public class ResumeData {
     // Step 2 — Experience Level
     private String experienceLevel;
 
+    @Column(columnDefinition = "TEXT")
+    private String experienceJson;
+
     // Step 3 — Education (stored as JSON string)
     @Column(columnDefinition = "TEXT")
     private String educationJson;
@@ -70,6 +73,15 @@ public class ResumeData {
 
     @Column(columnDefinition = "TEXT")
     private String additionalSectionsJson;
+
+    @Column(columnDefinition = "TEXT")
+    private String certifications;
+    @Column(columnDefinition = "TEXT")
+    private String languages;
+    @Column(columnDefinition = "TEXT")
+    private String awards;
+    @Column(columnDefinition = "TEXT")
+    private String interests;
 
     // Uploaded CV parsed data
     @Column(columnDefinition = "TEXT")
