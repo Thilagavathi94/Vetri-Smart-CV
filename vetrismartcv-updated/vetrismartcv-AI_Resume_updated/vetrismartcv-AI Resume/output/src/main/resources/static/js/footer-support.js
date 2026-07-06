@@ -81,7 +81,7 @@
         document.querySelectorAll('.footer-socials').forEach(group => {
             group.style.justifyContent = 'center';
             group.style.alignItems = 'center';
-            group.querySelectorAll('.social-linkedin, .social-twitter, .social-youtube, .social-github').forEach(link => {
+            group.querySelectorAll('.social-instagram, .social-linkedin, .social-twitter, .social-youtube, .social-github').forEach(link => {
                 link.style.display = 'none';
             });
             group.querySelectorAll('a').forEach(link => {
