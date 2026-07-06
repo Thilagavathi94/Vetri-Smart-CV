@@ -509,6 +509,10 @@ body { background: #f4f5f7; }
 .social-youtube{color:#ff0000!important}
 .social-github{color:#24292f!important}
 .footer-brand-col .footer-socials a:hover{color:#fff!important}
+.footer-socials .social-linkedin,
+.footer-socials .social-twitter,
+.footer-socials .social-youtube,
+.footer-socials .social-github{display:none!important}
 .footer-modal-section{margin-bottom:22px}
 .footer-modal-section h4{font-size:15px;font-weight:700;color:#1a1a2e;margin:0 0 8px}
 .footer-modal-section p{margin:0 0 8px}
