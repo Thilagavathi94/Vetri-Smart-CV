@@ -355,7 +355,7 @@ body { background: #f4f5f7; }
 .footer-brand p { font-size: 13px; line-height: 1.6; max-width: 260px; }
 .footer-col { flex: 1; min-width: 120px; }
 .footer-col h5 { color: #fff; font-size: 14px; font-weight: 700; margin: 0 0 12px; }
-.footer-col a, .footer-col p { display: block; font-size: 13px; color: #9ca3af; text-decoration: none; margin-bottom: 6px; }
+.footer-col a, .footer-col p { font-size: 13px; color: #9ca3af; text-decoration: none; margin-bottom: 6px; }
 .footer-col a:hover { color: #c4b5fd; }
 .footer-bottom { border-top: 1px solid #374151; padding-top: 20px; font-size: 12px; text-align: center; }
 
@@ -500,15 +500,15 @@ body { background: #f4f5f7; }
 .social-twitter:hover{background:#000!important;border-color:transparent!important}
 .social-youtube:hover{background:#ff0000!important;border-color:transparent!important}
 .social-github:hover{background:#333!important;border-color:transparent!important}
-.footer-socials{justify-content:center}
-.footer-socials a{display:flex;align-items:center;justify-content:center}
-.footer-socials a svg{width:17px;height:17px;margin:auto}
+.footer-brand-col .footer-socials{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:20px}
+.footer-brand-col .footer-socials a{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0;margin:0;text-decoration:none;line-height:1;box-sizing:border-box}
+.footer-brand-col .footer-socials a svg{display:block;width:19px;height:19px;margin:0;flex:0 0 auto}
 .social-instagram{color:#e1306c!important}
 .social-linkedin{color:#0a66c2!important}
 .social-twitter{color:#111827!important}
 .social-youtube{color:#ff0000!important}
 .social-github{color:#24292f!important}
-.footer-socials a:hover{color:#fff!important}
+.footer-brand-col .footer-socials a:hover{color:#fff!important}
 .footer-modal-section{margin-bottom:22px}
 .footer-modal-section h4{font-size:15px;font-weight:700;color:#1a1a2e;margin:0 0 8px}
 .footer-modal-section p{margin:0 0 8px}

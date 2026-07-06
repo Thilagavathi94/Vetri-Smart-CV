@@ -398,10 +398,24 @@ public class ResumeController {
     private String extractLocation(List<String> lines) {
         for (int i = 0; i < Math.min(lines.size(), 8); i++) {
             String line = lines.get(i);
-            if (line.contains("@") || line.matches(".*\\d{8,}.*")) continue;
-            if (line.contains(",") && line.length() < 90) return line;
+            if (line.contains("@") || line.matches(".*\\d{8,}.*") || isSectionHeading(line) || looksLikeContactLine(line)) continue;
+            if (looksLikeAddressLine(line)) return stripBullet(line);
         }
         return null;
+    }
+
+    private boolean looksLikeAddressLine(String line) {
+        String value = line == null ? "" : stripBullet(line);
+        String lower = value.toLowerCase(Locale.ROOT);
+        if (value.length() < 4 || value.length() > 100) return false;
+        if (looksLikeSentence(value)) return false;
+        if (lower.matches(".*\\b(support|customer|service|expert|engineer|developer|manager|analyst|summary|profile|skill)\\b.*")) return false;
+
+        boolean hasGeoToken = lower.matches(".*\\b(india|tamil nadu|kerala|karnataka|chennai|surandai|tenkasi|tirunelveli|coimbatore|madurai|bangalore|bengaluru|hyderabad|mumbai|delhi|pune)\\b.*");
+        boolean hasAddressWord = lower.matches(".*\\b(street|road|nagar|city|district|state|pin|pincode|address|near|bus stand|complex|market)\\b.*");
+        boolean hasPostalCode = value.matches(".*\\b\\d{5,6}\\b.*");
+        boolean compactCommaPlace = value.contains(",") && value.split("\\s+").length <= 8;
+        return hasGeoToken || hasAddressWord || hasPostalCode || compactCommaPlace;
     }
 
     private boolean isSectionHeading(String line) {

@@ -81,6 +81,17 @@
         document.querySelectorAll('.footer-socials').forEach(group => {
             group.style.justifyContent = 'center';
             group.style.alignItems = 'center';
+            group.querySelectorAll('a').forEach(link => {
+                link.style.display = 'inline-flex';
+                link.style.alignItems = 'center';
+                link.style.justifyContent = 'center';
+                link.style.padding = '0';
+                link.style.lineHeight = '1';
+            });
+            group.querySelectorAll('svg').forEach(svg => {
+                svg.style.display = 'block';
+                svg.style.margin = '0';
+            });
         });
 
         document.querySelectorAll('.footer-col').forEach((column) => {
@@ -90,9 +101,9 @@
             column.querySelectorAll('.footer-contact-item').forEach(item => item.remove());
             column.querySelectorAll('ul').forEach(list => list.remove());
             column.insertAdjacentHTML('beforeend', `
-                <div class="footer-contact-item"><div class="contact-icon">Phone</div><a href="${supportConfig.phoneLink}">${supportConfig.phoneDisplay}</a></div>
-                <div class="footer-contact-item"><div class="contact-icon">Email</div><a href="mailto:${supportConfig.email}">${supportConfig.email}</a></div>
-                ${addresses().map(address => `<div class="footer-contact-item"><div class="contact-icon">Map</div><a href="${supportConfig.mapUrl}" target="_blank" rel="noopener noreferrer">${address}</a></div>`).join('')}
+                <div class="footer-contact-item"><div class="contact-icon">☎</div><a href="${supportConfig.phoneLink}">${supportConfig.phoneDisplay}</a></div>
+                <div class="footer-contact-item"><div class="contact-icon">@</div><a href="mailto:${supportConfig.email}">${supportConfig.email}</a></div>
+                ${addresses().map(address => `<div class="footer-contact-item"><div class="contact-icon">⌖</div><a href="${supportConfig.mapUrl}" target="_blank" rel="noopener noreferrer">${address}</a></div>`).join('')}
             `);
         });
     }
