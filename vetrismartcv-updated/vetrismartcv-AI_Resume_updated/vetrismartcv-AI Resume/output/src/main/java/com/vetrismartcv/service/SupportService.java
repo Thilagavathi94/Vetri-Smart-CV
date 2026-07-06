@@ -18,19 +18,19 @@ public class SupportService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${support.phone-display:+91 98765 43210}")
+    @Value("${support.phone-display:8438164827 / 8438781327}")
     private String supportPhoneDisplay;
 
-    @Value("${support.phone-link:tel:+919876543210}")
+    @Value("${support.phone-link:tel:+918438164827}")
     private String supportPhoneLink;
 
-    @Value("${support.email:support@vetrismartcv.com}")
+    @Value("${support.email:vetritechnologysolutions@gmail.com}")
     private String supportEmail;
 
-    @Value("${support.address:Chennai, Tamil Nadu, India}")
+    @Value("${support.address:April's Complex, Bus Stand Backside, Surandai - 627859 | Shanthi's Complex, Surandai Old Market, Near Bus Stand, Surandai - 627859}")
     private String supportAddress;
 
-    @Value("${support.map-url:https://maps.google.com/?q=Chennai,Tamil%20Nadu,India}")
+    @Value("${support.map-url:https://maps.google.com/?q=Surandai,Tamil+Nadu+627859}")
     private String supportMapUrl;
 
     @Value("${support.hours:Mon-Fri, 9am-6pm IST}")

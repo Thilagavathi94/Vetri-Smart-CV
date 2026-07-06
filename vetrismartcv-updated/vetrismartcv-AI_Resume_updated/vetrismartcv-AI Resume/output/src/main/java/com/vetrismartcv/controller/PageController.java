@@ -199,4 +199,10 @@ public class PageController {
     public String forgotPassword(Model model) {
         return "forgot-password";
     }
+
+    @GetMapping("/reset-password")
+    public String resetPassword(@RequestParam(required = false) String token, Model model) {
+        model.addAttribute("token", token == null ? "" : token);
+        return "reset-password";
+    }
 }

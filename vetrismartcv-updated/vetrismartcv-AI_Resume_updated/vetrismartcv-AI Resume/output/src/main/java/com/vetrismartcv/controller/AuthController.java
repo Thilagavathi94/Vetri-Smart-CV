@@ -205,6 +205,27 @@ public class AuthController {
         }
     }
 
+    /* ---- POST /api/auth/reset-password ---- */
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, Object>> resetPassword(
+            @RequestBody Map<String, String> body) {
+
+        String token = body.get("token");
+        String password = body.get("password");
+
+        try {
+            Map<String, Object> result = userService.resetPassword(token, password);
+            Object statusObj = result.get("status");
+            int status = statusObj instanceof Number ? ((Number) statusObj).intValue() : 200;
+            result.remove("status");
+            return ResponseEntity.status(status).body(result);
+        } catch (Exception e) {
+            log.error("Password reset failed for token {}", token, e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("success", false, "message", "Could not reset password. Please try again later."));
+        }
+    }
+
     /* ---- POST /api/auth/upgrade ---- */
     @PostMapping("/upgrade")
     public ResponseEntity<Map<String, Object>> upgrade(

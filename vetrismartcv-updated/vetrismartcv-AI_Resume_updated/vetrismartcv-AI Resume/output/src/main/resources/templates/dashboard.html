@@ -526,7 +526,7 @@
 </style>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-const footerModalContents = {
+window.footerModalContents = {
     help: {
         icon: '❓',
         title: 'Help Center',
@@ -630,7 +630,7 @@ const footerModalContents = {
 };
 
 function openFooterModal(type) {
-    const content = footerModalContents[type];
+    const content = window.footerModalContents[type];
     if (!content) return;
     document.getElementById('footerModalIcon').textContent  = content.icon;
     document.getElementById('footerModalTitle').textContent = content.title;
@@ -855,5 +855,6 @@ function showToast(msg, type = 'success') {
     setTimeout(() => { if (t) t.style.opacity = '0'; }, 3000);
 }
 </script>
+<script src="/js/footer-support.js"></script>
 </body>
 </html>

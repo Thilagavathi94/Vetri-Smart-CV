@@ -652,7 +652,7 @@
 </style>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-const footerModalContents = {
+window.footerModalContents = {
     help: {
         icon: '❓',
         title: 'Help Center',
@@ -756,7 +756,7 @@ const footerModalContents = {
 };
 
 function openFooterModal(type) {
-    const content = footerModalContents[type];
+    const content = window.footerModalContents[type];
     if (!content) return;
     document.getElementById('footerModalIcon').textContent  = content.icon;
     document.getElementById('footerModalTitle').textContent = content.title;
@@ -813,6 +813,7 @@ function submitContactForm() {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFooterModal(); });
 </script>
 <script src="/js/session-monitor.js"></script>
+<script src="/js/footer-support.js"></script>
 <script src="/js/builder.js"></script>
 </body>
 </html>

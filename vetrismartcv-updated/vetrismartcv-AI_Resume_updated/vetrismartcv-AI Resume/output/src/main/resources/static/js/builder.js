@@ -1318,6 +1318,7 @@ function hasMeaningfulParsedCvData(parsed) {
     if (Array.isArray(parsed.education) && parsed.education.length) return true;
     if (Array.isArray(parsed.experience) && parsed.experience.length) return true;
     if (Array.isArray(parsed.projects) && parsed.projects.length) return true;
+    if (parsed.additionalSections && Object.values(parsed.additionalSections).some(v => Array.isArray(v) && v.length)) return true;
     return false;
 }
 

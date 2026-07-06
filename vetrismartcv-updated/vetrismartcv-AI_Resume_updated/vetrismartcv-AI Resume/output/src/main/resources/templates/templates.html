@@ -6369,7 +6369,7 @@
 </div>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js" defer></script><script>
-const footerModalContents = {
+window.footerModalContents = {
   help: {
     icon:'❓', title:'Help Center',
     html:`<div class="footer-modal-section"><h4>Frequently Asked Questions</h4>
@@ -6444,7 +6444,7 @@ const footerModalContents = {
 };
 
 function openFooterModal(type) {
-  const c = footerModalContents[type];
+  const c = window.footerModalContents[type];
   if (!c) return;
   document.getElementById('footerModalIcon').textContent  = c.icon;
   document.getElementById('footerModalTitle').textContent = c.title;
@@ -6491,5 +6491,6 @@ function submitContactForm() {
     console.log('Confirmation email sent to: ' + email + ' — Subject: Support Request Received');
 }
 </script>   
+<script src="/js/footer-support.js"></script>
 </body>
 </html>

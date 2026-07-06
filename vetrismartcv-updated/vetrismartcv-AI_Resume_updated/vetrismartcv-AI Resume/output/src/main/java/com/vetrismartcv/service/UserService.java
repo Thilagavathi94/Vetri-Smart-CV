@@ -435,6 +435,56 @@ public class UserService {
         return m;
     }
 
+    public Map<String, Object> resetPassword(String token, String newPassword) {
+        Map<String, Object> result = new HashMap<>();
+        String safeToken = safeTrim(token);
+
+        if (safeToken.isBlank() || newPassword == null || newPassword.isBlank()) {
+            result.put("success", false);
+            result.put("message", "Reset token and new password are required.");
+            result.put("status", 400);
+            return result;
+        }
+
+        if (newPassword.length() < 6) {
+            result.put("success", false);
+            result.put("message", "Password must be at least 6 characters long.");
+            result.put("status", 400);
+            return result;
+        }
+
+        Optional<User> opt = userRepository.findByPasswordResetToken(safeToken);
+        if (opt.isEmpty()) {
+            result.put("success", false);
+            result.put("message", "This reset link is invalid or has already been used.");
+            result.put("status", 404);
+            return result;
+        }
+
+        User user = opt.get();
+        LocalDateTime expiresAt = user.getPasswordResetTokenExpiresAt();
+        if (expiresAt == null || expiresAt.isBefore(LocalDateTime.now())) {
+            user.setPasswordResetToken(null);
+            user.setPasswordResetTokenExpiresAt(null);
+            userRepository.save(user);
+            result.put("success", false);
+            result.put("message", "This reset link has expired. Please request a new password reset link.");
+            result.put("status", 410);
+            return result;
+        }
+
+        user.setPassword(hashPassword(newPassword));
+        user.setProvider(user.getProvider() == null || user.getProvider().isBlank() ? "LOCAL" : user.getProvider());
+        user.setPasswordResetToken(null);
+        user.setPasswordResetTokenExpiresAt(null);
+        userRepository.save(user);
+
+        result.put("success", true);
+        result.put("message", "Password reset successfully. You can now log in with your new password.");
+        result.put("status", 200);
+        return result;
+    }
+
     public Map<String, Object> adminUser(User user) {
         Map<String, Object> m = safeUser(user);
         m.put("updatedAt", user.getUpdatedAt());
