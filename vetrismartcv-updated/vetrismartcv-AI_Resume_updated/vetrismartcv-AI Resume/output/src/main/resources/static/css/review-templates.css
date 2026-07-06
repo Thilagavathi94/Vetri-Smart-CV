@@ -732,7 +732,7 @@
     .t1-skill { display: inline-block; font-size: 10px; background: #ede9fe; color: #5b21b6; padding: 3px 8px; border-radius: 4px; margin: 2px; font-weight: 600; }
     .t1-job { margin-bottom: 14px; }
     .t1-job-title { font-size: 12px; font-weight: 800; color: #1a1a2e; }
-    .t1-job-date { font-size: 10px; color: #999; }
+    .t1-job-date { display: block; font-size: 10px; color: #999; margin-bottom: 7px; }
     .t1-job-desc { font-size: 11px; color: #666; line-height: 1.5; margin-top: 4px; }
     .t1-project-item { display: flex; gap: 7px; align-items: flex-start; font-size: 11px; line-height: 1.55; margin-bottom: 7px; color: #555; }
     .t1-project-bullet { flex: 0 0 auto; font-weight: 900; }

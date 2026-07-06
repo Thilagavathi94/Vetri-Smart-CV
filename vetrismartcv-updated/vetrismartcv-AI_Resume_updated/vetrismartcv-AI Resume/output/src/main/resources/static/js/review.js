@@ -3287,8 +3287,9 @@ function template1ProjectItems(projects) {
     projects.forEach(project => {
         const title = cleanTemplate1Text(project.title || project.name || '');
         const description = cleanTemplate1Text(project.description || '');
-        if (title && !description && title.includes(',')) {
-            title.split(',').map(cleanTemplate1Text).filter(Boolean).forEach(name => items.push({ title: name, description: '', tools: '' }));
+        const splitTitles = splitTemplate1ProjectTitles(title);
+        if (title && !description && splitTitles.length > 1) {
+            splitTitles.forEach(name => items.push({ title: name, description: '', tools: '' }));
             return;
         }
         if (title || description || project.tools) {
@@ -3296,6 +3297,34 @@ function template1ProjectItems(projects) {
         }
     });
     return items;
+}
+
+function splitTemplate1ProjectTitles(value) {
+    const text = cleanTemplate1Text(value);
+    if (!text) return [];
+    const simple = text.split(/\s*(?:[,;|•·]|\s+-\s+)\s*/).map(cleanTemplate1Text).filter(Boolean);
+    if (simple.length > 1) return simple;
+    const matches = text.match(/.+?(?:Management System|Learning Portal|Enterprise Portal|E-Commerce Platform|Portal|Platform|System|Website|Application|App)(?=\s+[A-Z]|$)/g);
+    return matches && matches.length > 1 ? matches.map(cleanTemplate1Text) : [text];
+}
+
+function template1EducationParts(item) {
+    const year = cleanTemplate1Year(item.year || item.endYear || item.graduationYear || '');
+    let degree = cleanTemplate1Text(item.degree || item.field || '');
+    let school = cleanTemplate1Text(item.school || item.university || item.institution || '');
+    if (year) {
+        degree = degree.replace(new RegExp(`\\(?\\b${year.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b\\)?`, 'g'), '').trim();
+        school = school.replace(new RegExp(`\\(?\\b${year.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b\\)?`, 'g'), '').trim();
+    }
+    if (!school && degree.includes(',')) {
+        const parts = degree.split(/\s*,\s*/);
+        degree = cleanTemplate1Text(parts.shift());
+        school = cleanTemplate1Text(parts.join(', '));
+    }
+    if (school && degree.toLowerCase().includes(school.toLowerCase())) {
+        degree = cleanTemplate1Text(degree.replace(new RegExp(school.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '').replace(/,\s*$/, ''));
+    }
+    return { degree, school, year };
 }
 
 function buildTemplate1Template({ resumeData: d, edu, skills, projects, experience, color }) {
@@ -3317,7 +3346,7 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
         ? skills.map(s=>`<span class="t1-skill" style="background:${accent}22;color:${accent};">${s.name||s}</span>`).join('')
         : `<span class="t1-skill" style="color:#9ca3af;cursor:pointer;" ${editBtn('skillsJson','Skills','')}>Add skills ✏</span>`;
     const eduHTML = edu.length
-        ? edu.map(e=>`<div class="t1-edu-item"><div class="t1-edu-deg">${cleanTemplate1Text(e.degree || e.field || '')}</div><div class="t1-edu-name">${cleanTemplate1Text(e.school || e.university || '')}</div>${e.year?`<div class="t1-edu-date">${cleanTemplate1Year(e.year)}</div>`:''}</div>`).join('')
+        ? edu.map(e=>{ const ep = template1EducationParts(e); return `<div class="t1-edu-item">${ep.degree?`<div class="t1-edu-deg">${ep.degree}</div>`:''}${ep.school?`<div class="t1-edu-name">${ep.school}</div>`:''}${ep.year?`<div class="t1-edu-date">${ep.year}</div>`:''}</div>`; }).join('')
         : `<div style="font-size:10px;color:#9ca3af;cursor:pointer;" ${editBtn('educationJson','Education','')}>Add education ✏</div>`;
     const expHTML = experience.length
         ? experience.map(e=>`<div class="t1-job"><div class="t1-job-title" style="color:${accent};">${stripTemplate1DateNoise(e.jobTitle||e.role||e.title||'')}</div><div class="t1-job-date">${[stripTemplate1DateNoise(e.company||''), template1DateRange(e)].filter(Boolean).join(' | ')}</div><div class="t1-job-desc">${(e.description||e.bullets||'').toString().split('\n').map(stripTemplate1DateNoise).filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')

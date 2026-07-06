@@ -448,7 +448,7 @@ public class ResumeController {
         if (Set.of("education", "academic background", "academics", "educational qualification", "educational qualifications", "qualification", "qualifications").contains(compact)) return "education";
         if (Set.of("skills", "technical skills", "core skills", "key skills", "professional skills", "areas of expertise", "competencies", "soft skills", "it proficiency", "technical proficiency", "computer proficiency").contains(compact)) return "skills";
         if (Set.of("projects", "project", "personal projects", "academic projects", "key projects", "project details", "academic project").contains(compact)) return "projects";
-        if (Set.of("certifications", "certification", "certificates", "licenses", "licences", "courses").contains(compact)) return "certifications";
+        if (Set.of("certifications", "certification", "certification details", "certificates", "licenses", "licences", "courses", "professional certifications", "certifications and licenses", "certifications and licences").contains(compact)) return "certifications";
         if (Set.of("languages", "language").contains(compact)) return "languages";
         if (Set.of("training", "trainings", "professional training", "coursework", "workshops").contains(compact)) return "training";
         if (Set.of("contact", "contact information", "personal details", "personal information").contains(compact)) return "contact";
@@ -573,15 +573,31 @@ public class ResumeController {
 
         LinkedHashSet<String> skills = new LinkedHashSet<>();
         for (String line : skillLines) {
-            if (looksLikeContactLine(line) || looksLikeSentence(line)) continue;
-            for (String part : line.split("[,|/;•·\\u2022\\u00B7]")) {
+            if (looksLikeContactLine(line)) continue;
+            line = stripSkillCategory(line);
+            if (line.isBlank()) continue;
+            String[] parts = line.split("[,|/;•·\\u2022\\u00B7]|\\s{2,}");
+            if (parts.length == 1 && line.length() <= 140 && !looksLikeSentence(line)) {
+                parts = line.split("\\s+(?=(?:[A-Z][A-Za-z.+#-]*|REST\\b|AWS\\b|SQL\\b|HTML\\b|CSS\\b))");
+            }
+            for (String part : parts) {
                 String skill = stripBullet(part);
-                if (skill.length() >= 2 && skill.length() <= 45 && !looksLikeContactLine(skill) && !looksLikeSentence(skill) && !isSectionHeading(skill)) {
+                if (skill.length() >= 2 && skill.length() <= 45 && !looksLikeContactLine(skill) && !looksLikeSentence(skill) && !isSectionHeading(skill) && !looksLikeSkillCategory(skill)) {
                     skills.add(skill);
                 }
             }
         }
         return skills.stream().limit(40).toList();
+    }
+
+    private String stripSkillCategory(String line) {
+        String value = stripBullet(line);
+        return value.replaceFirst("(?i)^(programming languages|languages|frameworks|databases|database|tools|devops|cloud|frontend|front end|backend|back end|technologies|technical skills|skills)\\s*[:\\-]\\s*", "").trim();
+    }
+
+    private boolean looksLikeSkillCategory(String value) {
+        String lower = value == null ? "" : value.toLowerCase(Locale.ROOT).replace(":", "").trim();
+        return Set.of("programming languages", "languages", "frameworks", "databases", "database", "tools", "devops", "cloud", "frontend", "front end", "backend", "back end", "technologies", "technical skills", "skills").contains(lower);
     }
 
     private List<Map<String, String>> parseEducationImproved(List<String> educationLines) {
@@ -593,13 +609,16 @@ public class ResumeController {
             if (line.length() > 120) continue;
             String lower = line.toLowerCase(Locale.ROOT);
             String year = extractYearRange(line);
+            String clean = stripBullet(removeYearText(line));
             if (lower.matches(".*(college|university|school|institute|academy|polytechnic).*")) {
                 if (!current.isEmpty()) items.add(current);
                 current = new LinkedHashMap<>();
-                current.put("school", stripBullet(line));
+                String[] degreeSchool = splitDegreeAndSchool(clean);
+                if (degreeSchool[0] != null && !degreeSchool[0].isBlank()) current.put("degree", degreeSchool[0]);
+                current.put("school", degreeSchool[1] != null && !degreeSchool[1].isBlank() ? degreeSchool[1] : clean);
                 if (year != null) current.put("year", year);
             } else if (!current.containsKey("degree")) {
-                current.put("degree", stripBullet(line));
+                current.put("degree", clean);
                 if (year != null) current.putIfAbsent("year", year);
             } else if (year != null) {
                 current.putIfAbsent("year", year);
@@ -609,6 +628,20 @@ public class ResumeController {
         }
         if (!current.isEmpty()) items.add(current);
         return items.stream().filter(map -> !map.isEmpty()).limit(6).toList();
+    }
+
+    private String[] splitDegreeAndSchool(String line) {
+        String[] result = new String[] { null, line };
+        String[] parts = line.split("\\s*,\\s*", 2);
+        if (parts.length == 2 && parts[1].toLowerCase(Locale.ROOT).matches(".*(college|university|school|institute|academy|polytechnic).*")) {
+            result[0] = parts[0].trim();
+            result[1] = parts[1].trim();
+        }
+        return result;
+    }
+
+    private String removeYearText(String line) {
+        return line == null ? "" : line.replaceAll("\\(?\\b(?:19|20)\\d{2}\\b\\)?", "").replaceAll("\\s{2,}", " ").replaceAll("\\s*,\\s*$", "").trim();
     }
 
     private List<Map<String, String>> parseExperienceImproved(List<String> experienceLines) {
@@ -621,24 +654,26 @@ public class ResumeController {
             if (line.isBlank() || looksLikeContactLine(line)) continue;
             String mappedHeading = mapSectionHeading(line);
             if (mappedHeading != null && !"experience".equals(mappedHeading)) continue;
-            boolean startsNewEntry = !entry.isEmpty() && (extractYearRange(line) != null
-                    || line.toLowerCase(Locale.ROOT).matches(".*(developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect).*"));
+            String clean = stripBullet(line);
+            String dates = extractYearRange(clean);
+            boolean dateOnly = dates != null && clean.replace(dates, "").replaceAll("[()\\-–—|,]", "").trim().isBlank();
+            boolean startsNewEntry = looksLikeExperienceTitle(clean) && entry.containsKey("jobTitle") && (!description.isEmpty() || entry.containsKey("company") || entry.containsKey("startDate"));
             if (startsNewEntry) {
                 entry.put("description", String.join("\n", description));
                 items.add(entry);
                 entry = new LinkedHashMap<>();
                 description = new ArrayList<>();
             }
-            if (!entry.containsKey("jobTitle")) {
-                entry.put("jobTitle", stripBullet(line));
-                String dates = extractYearRange(line);
-                if (dates != null) entry.put("startDate", dates);
+            if (dateOnly && !entry.isEmpty()) {
+                putDateRange(entry, dates);
+            } else if (!entry.containsKey("jobTitle")) {
+                entry.put("jobTitle", cleanExperienceTitle(clean));
+                if (dates != null) putDateRange(entry, dates);
             } else if (!entry.containsKey("company") && line.length() <= 90 && !line.startsWith("-") && !line.startsWith("•")) {
-                entry.put("company", stripBullet(line));
-                String dates = extractYearRange(line);
-                if (dates != null) entry.put("endDate", dates);
+                entry.put("company", removeYearText(clean));
+                if (dates != null) putDateRange(entry, dates);
             } else {
-                description.add(stripBullet(line));
+                description.add(clean);
             }
         }
         if (!entry.isEmpty()) {
@@ -646,6 +681,27 @@ public class ResumeController {
             items.add(entry);
         }
         return items.stream().limit(8).toList();
+    }
+
+    private boolean looksLikeExperienceTitle(String line) {
+        String lower = line == null ? "" : line.toLowerCase(Locale.ROOT);
+        return line.length() <= 100
+                && !looksLikeSentence(line)
+                && lower.matches(".*\\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect|administrator|tester|qa|support)\\b.*");
+    }
+
+    private String cleanExperienceTitle(String line) {
+        String dates = extractYearRange(line);
+        String clean = dates == null ? line : line.replace(dates, "");
+        return clean.replaceAll("\\s*[-â€“â€”|,]\\s*$", "").trim();
+    }
+
+    private void putDateRange(Map<String, String> entry, String dates) {
+        if (dates == null || dates.isBlank()) return;
+        String clean = dates.replaceAll("\\s*to\\s*", " - ").replaceAll("\\s*[â€“â€”–-]+\\s*", " - ").trim();
+        String[] parts = clean.split("\\s+-\\s+", 2);
+        if (parts.length > 0 && !parts[0].isBlank()) entry.put("startDate", parts[0].trim());
+        if (parts.length > 1 && !parts[1].isBlank()) entry.put("endDate", parts[1].trim());
     }
 
     private List<Map<String, String>> parseProjectsImproved(List<String> projectLines) {
@@ -656,6 +712,19 @@ public class ResumeController {
         for (String line : projectLines) {
             if (line.length() < 3) continue;
             String clean = stripBullet(line);
+            List<String> splitTitles = splitProjectTitles(clean);
+            if (splitTitles.size() > 1) {
+                if (!current.isEmpty()) {
+                    items.add(current);
+                    current = new LinkedHashMap<>();
+                }
+                for (String title : splitTitles) {
+                    Map<String, String> item = new LinkedHashMap<>();
+                    item.put("title", title);
+                    items.add(item);
+                }
+                continue;
+            }
             boolean newProject = current.isEmpty() || (!line.trim().startsWith("-") && !line.trim().startsWith("•") && clean.length() <= 90);
             if (newProject && !current.isEmpty()) {
                 items.add(current);
@@ -671,6 +740,26 @@ public class ResumeController {
         return items.stream().limit(12).toList();
     }
 
+    private List<String> splitProjectTitles(String line) {
+        String value = stripBullet(line);
+        if (value.isBlank()) return List.of();
+        List<String> simple = Arrays.stream(value.split("\\s*(?:[,;|\\u2022\\u00B7â€¢Â·]|\\s+-\\s+)\\s*"))
+                .map(String::trim)
+                .filter(part -> part.length() >= 3)
+                .toList();
+        if (simple.size() > 1) return simple;
+
+        List<String> titles = new ArrayList<>();
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile(".+?(?:Management System|Learning Portal|Enterprise Portal|E-Commerce Platform|Portal|Platform|System|Website|Application|App)(?=\\s+[A-Z]|$)")
+                .matcher(value);
+        while (matcher.find()) {
+            String title = matcher.group().trim();
+            if (title.length() >= 3) titles.add(title);
+        }
+        return titles.size() > 1 ? titles : List.of(value);
+    }
+
     private Map<String, List<String>> extractAdditionalSections(Map<String, List<String>> sections) {
         Map<String, List<String>> additional = new LinkedHashMap<>();
         for (String key : List.of("certifications", "languages", "training", "extracurricular activities",
@@ -684,6 +773,22 @@ public class ResumeController {
                     .limit(20)
                     .toList();
             if (!cleaned.isEmpty()) additional.put(key, cleaned);
+        }
+        List<String> fallbackCerts = sections.values().stream()
+                .flatMap(List::stream)
+                .map(this::stripBullet)
+                .filter(value -> value.length() >= 5 && value.length() <= 100)
+                .filter(value -> value.toLowerCase(Locale.ROOT).matches(".*\\b(certified|certification|certificate|oracle|aws)\\b.*"))
+                .filter(value -> !isSectionHeading(value) && !looksLikeContactLine(value))
+                .distinct()
+                .limit(10)
+                .toList();
+        if (!fallbackCerts.isEmpty()) {
+            additional.merge("certifications", fallbackCerts, (oldVal, newVal) -> {
+                LinkedHashSet<String> merged = new LinkedHashSet<>(oldVal);
+                merged.addAll(newVal);
+                return new ArrayList<>(merged);
+            });
         }
         return additional;
     }
