@@ -3391,7 +3391,7 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
       <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
       ${projectItems.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projectItems.map(p=>`<div class="t1-project-item"><span class="t1-project-bullet" style="color:${accent};">•</span><span><strong style="color:${accent};">${p.title}</strong>${p.tools?`<span class="t1-job-date"> | Tools: ${p.tools}</span>`:''}${p.description?`<span class="t1-job-desc"> - ${p.description}</span>`:''}</span></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
       ${certificationItems.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Certifications</div><div class="section-block editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.7;" ${editBtn('certifications','Certifications',d.certifications||'')}>${certificationItems.map(c=>`<div>• ${c}</div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
-      ${buildExtraSections(accent)}
+      ${buildExtraSections(accent, '', ['languages', 'certifications', 'certificates'])}
     </div>
   </div>
 </div>`;
@@ -6256,13 +6256,55 @@ function buildTraditionalTemplate({ resumeData: d, edu, skills, projects, experi
 // ============================================================
 // EXTRA SECTIONS (custom / optional)
 // ============================================================
-function buildExtraSections(color, titleStyle = '') {
+function buildExtraSections(color, titleStyle = '', skipNames = []) {
     let html = '';
     const builtIn = ['experience','skills','education','projects','profile','contact','summary'];
+    const skipped = new Set((skipNames || []).map(normalizeSectionKey));
+    const builtinAdditional = {
+        languages: { field: 'languages', label: 'Languages' },
+        certificates: { field: 'certifications', label: 'Certifications' },
+        certifications: { field: 'certifications', label: 'Certifications' },
+        awards: { field: 'awards', label: 'Awards & Honors' },
+        interests: { field: 'interests', label: 'Interests / Hobbies' },
+        interest: { field: 'interests', label: 'Interests / Hobbies' },
+        tools: { field: 'tools', label: 'Tools / Platforms' },
+        qualities: { field: 'qualities', label: 'Key Qualities' }
+    };
+    const sectionEntries = new Map();
+
     Object.entries(activeSections).forEach(([name, show]) => {
         if (!show) return;
+        sectionEntries.set(normalizeSectionKey(name), name);
+    });
+    Object.values(builtinAdditional).forEach(meta => {
+        if ((resumeData[meta.field] || '').trim()) sectionEntries.set(meta.field, meta.label);
+    });
+
+    sectionEntries.forEach((name, normalizedKey) => {
         const key = (name || '').toLowerCase().trim();
+        if (skipped.has(normalizedKey) || skipped.has(key)) return;
         if (builtIn.includes(key)) return; // skip core sections — they're rendered by template directly
+        const builtin = builtinAdditional[normalizedKey] || builtinAdditional[key];
+        if (builtin) {
+            const savedContent = (resumeData[builtin.field] || '').trim();
+            if (!savedContent && !activeSections[normalizedKey] && !activeSections[key]) return;
+            const lines = savedContent.split(/\r?\n|,/).map(v => v.trim()).filter(Boolean);
+            const displayContent = lines.length
+                ? `<div style="font-size:11px;color:#444;line-height:1.7;white-space:pre-wrap;">${lines.map(v => `<div>${esc(v)}</div>`).join('')}</div>`
+                : `<em style="color:#9ca3af;font-size:11px;">Click Edit to add content</em>`;
+            const sectionId = normalizedKey.replace(/[^a-z0-9]+/g,'-');
+            html += `
+                <div class="section-block extra-user-section" id="rv-section-${sectionId}" style="position:relative;">
+                    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:${color};border-bottom:2px solid ${color};padding-bottom:3px;margin-bottom:10px;margin-top:16px;${titleStyle};display:flex;align-items:center;justify-content:space-between;">
+                        <span>${builtin.label}</span>
+                        <button title="Edit ${builtin.label}" style="background:none;border:1px solid ${color};color:${color};border-radius:5px;font-size:10px;cursor:pointer;padding:2px 7px;" onclick="openEditModal('${builtin.field}','${builtin.label}','${escapeQ(savedContent)}')">Edit</button>
+                    </div>
+                    <div class="extra-section-content" id="content-${sectionId}" style="cursor:pointer;" onclick="openEditModal('${builtin.field}','${builtin.label}','${escapeQ(savedContent)}')">
+                        ${displayContent}
+                    </div>
+                </div>`;
+            return;
+        }
         const contentKey = 'extra_' + key.replace(/[^a-z0-9]+/g, '_');
         const savedContent = resumeData[contentKey] || '';
         const displayContent = savedContent
@@ -6909,6 +6951,7 @@ function saveExtraTab() {
     ['languages','awards','interests','certifications','qualities'].forEach(f => {
         const el = document.getElementById('ep_'+f);
         if (el) resumeData[f] = el.value.trim();
+        if ((resumeData[f] || '').trim()) activeSections[f] = true;
     });
     persistFields({ languages:resumeData.languages, awards:resumeData.awards, interests:resumeData.interests, certifications:resumeData.certifications, qualities:resumeData.qualities });
     renderResume(); closeEditModal(); showToast('✓ Additional info saved!');
@@ -7054,6 +7097,7 @@ function saveExtraTab() {
     ['languages','awards','interests','certifications','qualities','tools'].forEach(f => {
         const el = document.getElementById('ep_'+f);
         if (el) resumeData[f] = el.value.trim();
+        if ((resumeData[f] || '').trim()) activeSections[f] = true;
     });
     persistFields({
         languages: resumeData.languages,

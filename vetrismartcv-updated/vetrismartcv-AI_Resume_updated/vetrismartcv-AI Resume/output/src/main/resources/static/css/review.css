@@ -585,7 +585,7 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 .footer-col a, .footer-col p { display: block; font-size: 13px; color: #9ca3af; text-decoration: none; margin-bottom: 6px; }
 .footer-col a:hover { color: #c4b5fd; }
 .footer-bottom { border-top: 1px solid #374151; padding-top: 20px; font-size: 12px; text-align: center; }
-.footer-socials { justify-content: center; }
+.footer-socials { display: none !important; justify-content: center; }
 .footer-socials a { display: flex; align-items: center; justify-content: center; }
 .footer-socials a svg { width: 17px; height: 17px; margin: auto; }
 .social-instagram { color: #e1306c !important; }
