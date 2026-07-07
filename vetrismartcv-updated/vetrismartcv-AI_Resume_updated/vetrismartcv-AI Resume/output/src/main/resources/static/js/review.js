@@ -3302,10 +3302,19 @@ function template1ProjectItems(projects) {
 function splitTemplate1ProjectTitles(value) {
     const text = cleanTemplate1Text(value);
     if (!text) return [];
-    const simple = text.split(/\s*(?:[,;|•·]|\s+-\s+)\s*/).map(cleanTemplate1Text).filter(Boolean);
-    if (simple.length > 1) return simple;
-    const matches = text.match(/.+?(?:Management System|Learning Portal|Enterprise Portal|E-Commerce Platform|Portal|Platform|System|Website|Application|App)(?=\s+[A-Z]|$)/g);
+    const simple = text.split(/\s*(?:[,;|•·]|\s+[-–—]+\s+)\s*/).map(cleanTemplate1Text).filter(Boolean);
+    if (simple.length > 1) return simple.flatMap(part => splitTemplate1ProjectTitleRun(part)).filter(Boolean);
+    const matches = splitTemplate1ProjectTitleRun(text);
+    return matches.length > 1 ? matches : [text];
+}
+
+function splitTemplate1ProjectTitleRun(text) {
+    const matches = text.match(/.+?(?:Management System|Learning Portal|Enterprise Portal|E-Commerce Platform|Portal|Platform|System|Website UI|Website|Application|App Redesign|Appointment App|App|Dashboard)(?=\s+[A-Z]|$)/g);
     return matches && matches.length > 1 ? matches.map(cleanTemplate1Text) : [text];
+}
+
+function template1SimpleLines(value) {
+    return (value || '').toString().split(/\r?\n|,/).map(cleanTemplate1Text).filter(Boolean);
 }
 
 function template1EducationParts(item) {
@@ -3352,6 +3361,8 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
         ? experience.map(e=>`<div class="t1-job"><div class="t1-job-title" style="color:${accent};">${stripTemplate1DateNoise(e.jobTitle||e.role||e.title||'')}</div><div class="t1-job-date">${[stripTemplate1DateNoise(e.company||''), template1DateRange(e)].filter(Boolean).join(' | ')}</div><div class="t1-job-desc">${(e.description||e.bullets||'').toString().split('\n').map(stripTemplate1DateNoise).filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
     const projectItems = template1ProjectItems(projects);
+    const certificationItems = template1SimpleLines(d.certifications);
+    const languageItems = template1SimpleLines(d.languages);
     return `<div class="resume-t1">
   <div class="t1-header" style="background:linear-gradient(135deg,${accent}dd 0%,${accent} 100%);">
     <div class="t1-header-bg"></div>
@@ -3372,13 +3383,14 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
       <div class="editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>${skillsHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
       <div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Education</div>
       <div class="section-block editable-field" style="cursor:pointer;" ${editBtn('educationJson','Education','')}>${eduHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
+      ${languageItems.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Languages</div><div class="section-block editable-field" style="cursor:pointer;font-size:10px;color:#555;line-height:1.8;" ${editBtn('languages','Languages',d.languages||'')}>${languageItems.map(l=>`<div>${l}</div>`).join('')} <span class="edit-pen" style="font-size:10px;">✏</span></div>`:''}
     </div>
     <div class="t1-right">
       ${summary?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};">Profile Summary</div><div class="t1-job-desc t1-summary-text editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.6;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
       <div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:${summary?'14px':'0'};">Experience</div>
       <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
       ${projectItems.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projectItems.map(p=>`<div class="t1-project-item"><span class="t1-project-bullet" style="color:${accent};">•</span><span><strong style="color:${accent};">${p.title}</strong>${p.tools?`<span class="t1-job-date"> | Tools: ${p.tools}</span>`:''}${p.description?`<span class="t1-job-desc"> - ${p.description}</span>`:''}</span></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
-      ${d.certifications?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Certifications</div><div class="section-block editable-field" style="cursor:pointer;font-size:11px;color:#555;" ${editBtn('certifications','Certifications',d.certifications||'')}>${d.certifications} <span class="edit-pen">✏</span></div>`:''}
+      ${certificationItems.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Certifications</div><div class="section-block editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.7;" ${editBtn('certifications','Certifications',d.certifications||'')}>${certificationItems.map(c=>`<div>• ${c}</div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
       ${buildExtraSections(accent)}
     </div>
   </div>

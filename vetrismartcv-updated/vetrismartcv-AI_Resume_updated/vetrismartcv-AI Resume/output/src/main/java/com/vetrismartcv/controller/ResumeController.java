@@ -668,7 +668,7 @@ public class ResumeController {
         List<Map<String, String>> items = new ArrayList<>();
         Map<String, String> entry = new LinkedHashMap<>();
         List<String> description = new ArrayList<>();
-        for (String line : experienceLines) {
+        for (String line : expandEmbeddedExperienceLines(experienceLines)) {
             if (line.isBlank() || looksLikeContactLine(line)) continue;
             String mappedHeading = mapSectionHeading(line);
             if (mappedHeading != null && !"experience".equals(mappedHeading)) continue;
@@ -707,6 +707,24 @@ public class ResumeController {
         return items.stream().limit(8).toList();
     }
 
+    private List<String> expandEmbeddedExperienceLines(List<String> lines) {
+        List<String> expanded = new ArrayList<>();
+        java.util.regex.Pattern embeddedTitle = java.util.regex.Pattern.compile(
+                "(?i)^(.+?[.!?])\\s+((?:senior|junior|lead|principal|associate|assistant)?\\s*(?:ui/ux|ui|ux|product|graphic|web|software|full stack|frontend|backend|data|business|marketing|sales|hr|project|customer)?\\s*(?:developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect|administrator|tester|qa|support)\\b.*)$"
+        );
+        for (String line : lines) {
+            String clean = stripBullet(line);
+            java.util.regex.Matcher matcher = embeddedTitle.matcher(clean);
+            if (matcher.matches()) {
+                expanded.add(matcher.group(1).trim());
+                expanded.add(matcher.group(2).trim());
+            } else {
+                expanded.add(line);
+            }
+        }
+        return expanded;
+    }
+
     private boolean looksLikeExperienceTitle(String line) {
         String lower = line == null ? "" : line.toLowerCase(Locale.ROOT);
         return line.length() <= 100
@@ -722,8 +740,31 @@ public class ResumeController {
         if (parts.length == 2 && looksLikeExperienceTitle(parts[0]) && parts[1].length() <= 90) {
             result.put("jobTitle", cleanExperienceTitle(parts[0]));
             result.put("company", parts[1].trim());
+            return result;
+        }
+
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
+                "(?i)^(.+?\\b(?:developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect|administrator|tester|qa|support)\\b)\\s+(.{2,90})$"
+        ).matcher(withoutDates);
+        if (matcher.matches()) {
+            String title = matcher.group(1).trim();
+            String company = matcher.group(2).trim();
+            if (looksLikeExperienceTitle(title) && looksLikeCompanyName(company)) {
+                result.put("jobTitle", cleanExperienceTitle(title));
+                result.put("company", company);
+            }
         }
         return result;
+    }
+
+    private boolean looksLikeCompanyName(String value) {
+        String text = value == null ? "" : value.trim();
+        String lower = text.toLowerCase(Locale.ROOT);
+        return text.length() >= 2
+                && text.length() <= 90
+                && !looksLikeSentence(text)
+                && (lower.matches(".*\\b(studio|pvt|private|ltd|limited|inc|llc|corp|company|solutions|technologies|systems|agency|labs)\\b.*")
+                    || text.matches(".*[A-Z][a-z]+\\s+[A-Z][A-Za-z]+.*"));
     }
 
     private String cleanExperienceTitle(String line) {
