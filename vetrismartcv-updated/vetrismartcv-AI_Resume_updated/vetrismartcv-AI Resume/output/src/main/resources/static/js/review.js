@@ -2915,6 +2915,25 @@ function renderResume() {
     });
     projects = projects.filter(p => p && (p.title || p.name || p.description || p.tools));
     experience = experience.filter(e => e && (e.jobTitle || e.role || e.title || e.company || e.description || e.bullets));
+    const cleanResumeValue = value => String(value || '').replace(/^\s*\(\s*\)\s*$/, '').trim();
+    projects = projects.map(p => ({
+        ...p,
+        title: cleanResumeValue(p.title || p.name),
+        name: cleanResumeValue(p.name || p.title),
+        tools: cleanResumeValue(p.tools || p.tech || p.stack),
+        description: cleanResumeValue(p.description || p.desc)
+    })).filter(p => p.title || p.name || p.description || p.tools);
+    experience = experience.map(e => ({
+        ...e,
+        jobTitle: cleanResumeValue(e.jobTitle || e.role || e.title),
+        role: cleanResumeValue(e.role || e.jobTitle || e.title),
+        title: cleanResumeValue(e.title || e.jobTitle || e.role),
+        company: cleanResumeValue(e.company),
+        location: cleanResumeValue(e.location),
+        startDate: cleanResumeValue(e.startDate || e.from),
+        endDate: cleanResumeValue(e.endDate || e.to),
+        description: cleanResumeValue(e.description || e.bullets)
+    })).filter(e => e.jobTitle || e.role || e.title || e.company || e.description);
 
     const ctx = { resumeData, edu, skills, projects, experience, color: currentColor };
 
@@ -7660,13 +7679,30 @@ function downloadAsPDF(fileName) {
           .resume-doc {
             width: 794px !important;
             max-width: 794px !important;
-            min-height: auto !important;
+            min-height: 1122px !important;
+            height: auto !important;
+            max-height: none !important;
             margin: 0 auto !important;
             box-shadow: none !important;
             border-radius: 0 !important;
+            overflow: visible !important;
+            page-break-after: auto;
+            break-after: auto;
+          }
+          .section-block,
+          .rv-exact-section,
+          .rv-exact-appended,
+          [class*="job"],
+          [class*="project"],
+          [class*="edu"],
+          [class*="cert"] {
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
           .rv-stb,
           .rv-line-actions,
+          button[onclick*="openEditModal"],
+          button[onclick*="openExtraSectionEdit"],
           .edit-pen,
           .photo-controls { display:none !important; }
           .editable-field { cursor:default !important; }
@@ -7674,13 +7710,17 @@ function downloadAsPDF(fileName) {
             html, body { margin:0; padding:0; background:#fff !important; }
             body { display:block; }
             .resume-doc {
-              width: 100% !important;
-              max-width: 100% !important;
+              width: 794px !important;
+              max-width: 794px !important;
+              min-height: 1122px !important;
+              height: auto !important;
+              max-height: none !important;
+              overflow: visible !important;
             }
           }
         </style></head>
         <body>${getPrintableResumeHtml(resumeDoc)}
-        <script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
+        <script>window.onload=()=>{document.querySelectorAll('.rv-stb,.rv-line-actions,.edit-pen,.photo-controls,.template-edit-btn,[data-rv-toolbar],button[onclick*="openEditModal"],button[onclick*="openExtraSectionEdit"]').forEach(el=>el.remove());window.print();window.close();}<\/script></body></html>`);
     printWindow.document.close();
     showToast('✓ PDF download initiated!');
 }
@@ -7708,7 +7748,7 @@ function cloneResumeWithInlineStyles(resumeDoc) {
     const clone = resumeDoc.cloneNode(true);
     const sourceNodes = [resumeDoc, ...resumeDoc.querySelectorAll('*')];
     const cloneNodes = [clone, ...clone.querySelectorAll('*')];
-    const removeSelector = '.rv-stb, .rv-line-actions, .edit-pen, .photo-controls, .template-edit-btn, [data-rv-toolbar]';
+    const removeSelector = '.rv-stb, .rv-line-actions, .edit-pen, .photo-controls, .template-edit-btn, [data-rv-toolbar], button[onclick*="openEditModal"], button[onclick*="openExtraSectionEdit"]';
 
     clone.querySelectorAll(removeSelector).forEach(node => node.remove());
     clone.classList.add('resume-doc-word-export');
@@ -7745,7 +7785,9 @@ function getPrintableResumeHtml(resumeDoc) {
         '.edit-pen',
         '.photo-controls',
         '.template-edit-btn',
-        '[data-rv-toolbar]'
+        '[data-rv-toolbar]',
+        'button[onclick*="openEditModal"]',
+        'button[onclick*="openExtraSectionEdit"]'
     ].join(', ');
 
     clone.querySelectorAll(removeSelector).forEach(node => node.remove());
@@ -8223,13 +8265,30 @@ async function printResume() {
           .resume-doc {
             width: 794px !important;
             max-width: 794px !important;
-            min-height: auto !important;
+            min-height: 1122px !important;
+            height: auto !important;
+            max-height: none !important;
             margin: 0 auto !important;
             box-shadow: none !important;
             border-radius: 0 !important;
+            overflow: visible !important;
+            page-break-after: auto;
+            break-after: auto;
+          }
+          .section-block,
+          .rv-exact-section,
+          .rv-exact-appended,
+          [class*="job"],
+          [class*="project"],
+          [class*="edu"],
+          [class*="cert"] {
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
           .rv-stb,
           .rv-line-actions,
+          button[onclick*="openEditModal"],
+          button[onclick*="openExtraSectionEdit"],
           .edit-pen,
           .photo-controls { display:none !important; }
           .editable-field { cursor:default !important; }
@@ -8237,13 +8296,17 @@ async function printResume() {
             html, body { margin:0; padding:0; background:#fff !important; }
             body { display:block; padding:0; }
             .resume-doc {
-              width: 100% !important;
-              max-width: 100% !important;
+              width: 794px !important;
+              max-width: 794px !important;
+              min-height: 1122px !important;
+              height: auto !important;
+              max-height: none !important;
+              overflow: visible !important;
             }
           }
         </style></head>
         <body>${getPrintableResumeHtml(resumeDoc)}
-        <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}<\/script></body></html>`);
+        <script>window.onload=()=>{document.querySelectorAll('.rv-stb,.rv-line-actions,.edit-pen,.photo-controls,.template-edit-btn,[data-rv-toolbar],button[onclick*="openEditModal"],button[onclick*="openExtraSectionEdit"]').forEach(el=>el.remove());window.print();window.onafterprint=()=>window.close();}<\/script></body></html>`);
     printWindow.document.close();
 }
 function shareEmail() {

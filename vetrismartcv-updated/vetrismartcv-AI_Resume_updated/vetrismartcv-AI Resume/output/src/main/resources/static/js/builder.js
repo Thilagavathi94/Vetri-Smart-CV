@@ -1271,6 +1271,8 @@ function normalizeParsedCvPayload(parsed) {
     if (parsed.profileSummary) payload.profileSummary = parsed.profileSummary;
     if (parsed.certifications) payload.certifications = parsed.certifications;
     if (parsed.languages) payload.languages = parsed.languages;
+    if (parsed.awards) payload.awards = parsed.awards;
+    if (parsed.interests) payload.interests = parsed.interests;
 
     if (Array.isArray(parsed.skills) && parsed.skills.length) {
         payload.skillsJson = JSON.stringify(parsed.skills);

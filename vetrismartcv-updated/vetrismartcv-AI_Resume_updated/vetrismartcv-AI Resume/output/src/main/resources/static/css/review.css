@@ -436,12 +436,14 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 }
 
 .resume-doc {
+    --resume-a4-width: 794px;
+    --resume-a4-height: 1122px;
     background: #fff;
-    width: 660px;
-    min-height: 1000px;
+    width: var(--resume-a4-width);
+    min-height: var(--resume-a4-height);
     box-shadow: 0 4px 30px rgba(0,0,0,0.12);
     border-radius: 4px;
-    overflow: hidden;
+    overflow: visible;
     font-size: 13px;
     line-height: 1.5;
     font-family: 'Inter', sans-serif;
@@ -1443,12 +1445,60 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
 }
 
 @media print {
+    @page {
+        size: A4;
+        margin: 0;
+    }
+
+    html,
+    body {
+        width: 794px;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        overflow: visible !important;
+    }
+
+    .resume-doc {
+        width: 794px !important;
+        max-width: 794px !important;
+        min-height: 1122px !important;
+        height: auto !important;
+        max-height: none !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        page-break-after: auto;
+        break-after: auto;
+    }
+
+    .resume-doc,
+    .resume-doc * {
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+
+    .section-block,
+    .rv-exact-section,
+    .rv-exact-appended,
+    [class*="job"],
+    [class*="project"],
+    [class*="edu"],
+    [class*="cert"] {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
     .rv-stb,
     .rv-line-actions,
     .edit-pen,
     .photo-controls,
     .template-edit-btn,
-    [data-rv-toolbar] {
+    [data-rv-toolbar],
+    button[onclick*="openEditModal"],
+    button[onclick*="openExtraSectionEdit"] {
         display: none !important;
     }
 
@@ -1456,4 +1506,10 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
         cursor: default !important;
         outline: none !important;
     }
+}
+
+.resume-doc [class*="skill"],
+.resume-doc [class*="project"],
+.resume-doc [class*="desc"] {
+    overflow-wrap: anywhere;
 }
