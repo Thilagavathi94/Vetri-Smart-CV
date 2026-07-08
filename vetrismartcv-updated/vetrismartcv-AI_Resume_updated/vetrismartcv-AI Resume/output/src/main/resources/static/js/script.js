@@ -114,6 +114,40 @@ function normalizeImportedResumePayload(parsed) {
     payload.projectsJson = JSON.stringify(parsed.projects);
   }
 
+  // Certifications / languages / awards / interests / any other detected
+  // sections (previously dropped entirely by the homepage import flow).
+  if (parsed.certifications) payload.certifications = parsed.certifications;
+  if (parsed.languages) payload.languages = parsed.languages;
+
+  if (parsed.additionalSections && typeof parsed.additionalSections === 'object') {
+    payload.additionalSectionsJson = JSON.stringify(parsed.additionalSections);
+
+    var sectionText = function (keys, separator) {
+      separator = separator || '\n';
+      var values = [];
+      keys.forEach(function (key) {
+        var list = parsed.additionalSections[key];
+        if (Array.isArray(list)) {
+          list.forEach(function (v) {
+            var text = String(v || '').trim();
+            if (text) values.push(text);
+          });
+        }
+      });
+      return values.join(separator);
+    };
+
+    var certifications = sectionText(['certifications', 'training']);
+    var languages = sectionText(['languages'], ', ');
+    var awards = sectionText(['awards', 'honors', 'honours', 'achievements']);
+    var interests = sectionText(['interests', 'hobbies', 'activities', 'extracurricular activities', 'extra curricular activities']);
+
+    if (certifications) payload.certifications = certifications;
+    if (languages) payload.languages = languages;
+    if (awards) payload.awards = awards;
+    if (interests) payload.interests = interests;
+  }
+
   payload.uploadedCvParsedJson = JSON.stringify(parsed);
   return payload;
 }
@@ -121,10 +155,14 @@ function normalizeImportedResumePayload(parsed) {
 function hasMeaningfulImportedResumeData(parsed) {
   if (!parsed || typeof parsed !== 'object') return false;
   if (parsed.fullName || parsed.jobTitle || parsed.email || parsed.phone || parsed.profileSummary) return true;
+  if (parsed.certifications || parsed.languages) return true;
   if (Array.isArray(parsed.skills) && parsed.skills.length) return true;
   if (Array.isArray(parsed.education) && parsed.education.length) return true;
   if (Array.isArray(parsed.experience) && parsed.experience.length) return true;
   if (Array.isArray(parsed.projects) && parsed.projects.length) return true;
+  if (parsed.additionalSections && Object.keys(parsed.additionalSections).some(function (k) {
+    return Array.isArray(parsed.additionalSections[k]) && parsed.additionalSections[k].length;
+  })) return true;
   return false;
 }
 
@@ -142,10 +180,15 @@ function buildImportedResumeData(parsed) {
     website: '',
     linkedin: '',
     profileSummary: '',
+    certifications: '',
+    languages: '',
+    awards: '',
+    interests: '',
     skillsJson: '[]',
     educationJson: '[]',
     experienceJson: '[]',
-    projectsJson: '[]'
+    projectsJson: '[]',
+    additionalSectionsJson: '{}'
   }, payload);
   resumeData.templateName = templateName;
   return resumeData;

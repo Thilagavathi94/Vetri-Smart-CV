@@ -1193,52 +1193,6 @@ async function handleCvUpload(event) {
     }
 }
 
-function showUploadParseModal(parsed) {
-    const preview = document.getElementById('parsedDataPreview');
-    preview.innerHTML = '';
-
-    const fields = [
-        { key: 'fullName', label: '👤 Name' },
-        { key: 'email',    label: '✉ Email' },
-        { key: 'phone',    label: '📞 Phone' },
-        { key: 'skillsHint', label: '🛠 Skills hint' }
-    ];
-
-    fields.forEach(f => {
-        if (parsed[f.key]) {
-            const row = document.createElement('div');
-            row.className = 'parsed-row';
-            row.innerHTML = `<span class="parsed-label">${f.label}</span><span class="parsed-val">${parsed[f.key]}</span>`;
-            preview.appendChild(row);
-        }
-    });
-
-    if (preview.innerHTML === '') {
-        preview.innerHTML = '<p style="color:#6b7280;text-align:center;">We could extract some data. Click Apply to pre-fill what we found.</p>';
-    }
-
-    document.getElementById('uploadParseModal').style.display = 'flex';
-}
-
-function applyParsedData() {
-    if (parsedCvData.fullName) {
-        document.getElementById('fullName').value = parsedCvData.fullName;
-        resumeData.fullName = parsedCvData.fullName;
-    }
-    if (parsedCvData.email) {
-        document.getElementById('emailAddr').value = parsedCvData.email;
-        resumeData.email = parsedCvData.email;
-    }
-    if (parsedCvData.phone) {
-        document.getElementById('phoneNum').value = parsedCvData.phone;
-        resumeData.phone = parsedCvData.phone;
-    }
-    document.getElementById('uploadParseModal').style.display = 'none';
-    showToast('✓ CV data applied! Please review and fill in missing fields.');
-    // Jump to personal details step
-    showStep(6);
-}
-
 // ============================================================
 // TOAST
 // ============================================================
@@ -1271,8 +1225,6 @@ function normalizeParsedCvPayload(parsed) {
     if (parsed.profileSummary) payload.profileSummary = parsed.profileSummary;
     if (parsed.certifications) payload.certifications = parsed.certifications;
     if (parsed.languages) payload.languages = parsed.languages;
-    if (parsed.awards) payload.awards = parsed.awards;
-    if (parsed.interests) payload.interests = parsed.interests;
 
     if (Array.isArray(parsed.skills) && parsed.skills.length) {
         payload.skillsJson = JSON.stringify(parsed.skills);

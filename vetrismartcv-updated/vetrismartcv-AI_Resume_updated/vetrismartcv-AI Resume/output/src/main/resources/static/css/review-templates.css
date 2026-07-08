@@ -1649,3 +1649,42 @@
     .t10-skill-fill { height: 100%; background: linear-gradient(90deg,#f59e0b,#fbbf24); border-radius: 99px; }
     .t10-footer { display: flex; justify-content: space-between; padding: 12px 20px 14px; background: #1f2937; border-top: 1px solid rgba(255,255,255,.1); }
     .t10-footer-item { font-size: 10px; color: #9ca3af; display: flex; align-items: center; gap: 5px; }
+
+/* =====================================================================
+   FIX: long resumes were getting clipped / misaligned.
+   Every template wrapper (.resume-doc, .resume-t1 … .resume-t52+) was
+   set to overflow:hidden with a fixed-ish min-height that matched a
+   "typical" one-page resume. Any content beyond that (long experience
+   lists, many projects, extra sections, etc.) was silently cut off
+   instead of the page growing/splitting to fit it.
+   This override lets every template wrapper grow to fit ALL parsed
+   content and keeps section alignment intact when printed/exported,
+   while leaving small internal elements (photo circles, skill bars,
+   etc.) untouched since those intentionally clip to a fixed shape.
+   ===================================================================== */
+.resume-doc,
+[class^="resume-t"],
+[class*=" resume-t"] {
+    overflow: visible !important;
+    height: auto !important;
+}
+
+/* When printed/exported to PDF, make sure the browser is free to break
+   the resume across multiple physical pages at natural section
+   boundaries instead of squashing everything into one page. */
+@media print {
+    .resume-doc,
+    [class^="resume-t"],
+    [class*=" resume-t"] {
+        overflow: visible !important;
+        height: auto !important;
+        min-height: 0 !important;
+    }
+    .resume-doc > *,
+    [class*="-section"],
+    [class*="-sec-"],
+    .section-block {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}

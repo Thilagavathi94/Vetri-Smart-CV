@@ -436,11 +436,11 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 }
 
 .resume-doc {
-    --resume-a4-width: 794px;
+    --resume-preview-width: 660px;
     --resume-a4-height: 1122px;
     background: #fff;
-    width: var(--resume-a4-width);
-    min-height: var(--resume-a4-height);
+    width: var(--resume-preview-width);
+    min-height: 1000px;
     box-shadow: 0 4px 30px rgba(0,0,0,0.12);
     border-radius: 4px;
     overflow: visible;
