@@ -1441,3 +1441,19 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
 #resumeDoc .photo-controls {
     display: none !important;
 }
+
+@media print {
+    .rv-stb,
+    .rv-line-actions,
+    .edit-pen,
+    .photo-controls,
+    .template-edit-btn,
+    [data-rv-toolbar] {
+        display: none !important;
+    }
+
+    .editable-field {
+        cursor: default !important;
+        outline: none !important;
+    }
+}

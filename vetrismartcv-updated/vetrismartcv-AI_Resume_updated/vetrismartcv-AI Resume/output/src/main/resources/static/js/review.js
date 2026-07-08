@@ -7666,6 +7666,7 @@ function downloadAsPDF(fileName) {
             border-radius: 0 !important;
           }
           .rv-stb,
+          .rv-line-actions,
           .edit-pen,
           .photo-controls { display:none !important; }
           .editable-field { cursor:default !important; }
@@ -7678,7 +7679,7 @@ function downloadAsPDF(fileName) {
             }
           }
         </style></head>
-        <body>${resumeDoc.outerHTML}
+        <body>${getPrintableResumeHtml(resumeDoc)}
         <script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
     printWindow.document.close();
     showToast('✓ PDF download initiated!');
@@ -7707,7 +7708,7 @@ function cloneResumeWithInlineStyles(resumeDoc) {
     const clone = resumeDoc.cloneNode(true);
     const sourceNodes = [resumeDoc, ...resumeDoc.querySelectorAll('*')];
     const cloneNodes = [clone, ...clone.querySelectorAll('*')];
-    const removeSelector = '.rv-stb, .edit-pen, .photo-controls, .template-edit-btn, [data-rv-toolbar]';
+    const removeSelector = '.rv-stb, .rv-line-actions, .edit-pen, .photo-controls, .template-edit-btn, [data-rv-toolbar]';
 
     clone.querySelectorAll(removeSelector).forEach(node => node.remove());
     clone.classList.add('resume-doc-word-export');
@@ -7734,6 +7735,28 @@ function cloneResumeWithInlineStyles(resumeDoc) {
     });
 
     return clone;
+}
+
+function getPrintableResumeHtml(resumeDoc) {
+    const clone = resumeDoc.cloneNode(true);
+    const removeSelector = [
+        '.rv-stb',
+        '.rv-line-actions',
+        '.edit-pen',
+        '.photo-controls',
+        '.template-edit-btn',
+        '[data-rv-toolbar]'
+    ].join(', ');
+
+    clone.querySelectorAll(removeSelector).forEach(node => node.remove());
+    clone.querySelectorAll('[data-rv-tb-host], [data-rv-line-host], .editable-field').forEach(node => {
+        node.removeAttribute('onclick');
+        node.removeAttribute('contenteditable');
+        node.style.cursor = 'default';
+        node.style.outline = 'none';
+    });
+
+    return clone.outerHTML;
 }
 
 function buildResumeWordHtml(resumeDoc) {
@@ -8206,6 +8229,7 @@ async function printResume() {
             border-radius: 0 !important;
           }
           .rv-stb,
+          .rv-line-actions,
           .edit-pen,
           .photo-controls { display:none !important; }
           .editable-field { cursor:default !important; }
@@ -8218,7 +8242,7 @@ async function printResume() {
             }
           }
         </style></head>
-        <body>${resumeDoc.outerHTML}
+        <body>${getPrintableResumeHtml(resumeDoc)}
         <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}<\/script></body></html>`);
     printWindow.document.close();
 }
