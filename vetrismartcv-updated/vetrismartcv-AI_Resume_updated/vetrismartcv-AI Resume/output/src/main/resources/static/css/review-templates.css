@@ -1704,23 +1704,8 @@
        not be split apart across two pages either. */
     [class*="-job"],
     [class*="-edu-item"],
-    [class*="-project-item"],
-    .rv-exact-project-item,
     [class*="-lang"],
     [class*="-skill-item"] {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    /* Let the projects section itself flow across pages, but keep each
-       project title/tools/description group together. If the whole
-       section is unbreakable, Chrome can move all project content to the
-       next page and leave only the PROJECTS heading behind. */
-    #rv-projects-section {
-        break-inside: auto !important;
-        page-break-inside: auto !important;
-    }
-    #rv-projects-section > * {
         break-inside: avoid;
         page-break-inside: avoid;
     }
@@ -1745,5 +1730,74 @@
         max-width: 100% !important;
         flex: none !important;
         box-sizing: border-box !important;
+    }
+}
+
+
+/* =====================================================================
+   MANUAL "START ON A NEW PAGE" CONTROLS
+   Lets a person force a whole section (via the existing hover toolbar's
+   new "New page" button) or a single entry — one job, one project, one
+   education line (via a small corner button on hover) — to begin on a
+   fresh printed/downloaded page, instead of relying only on automatic
+   pagination.
+   ===================================================================== */
+.rv-stb-btn.rv-stb-pb {
+    background: #f3ebff;
+    color: #7c3aed;
+}
+.rv-stb-btn.rv-stb-pb.rv-stb-pb-active,
+.rv-line-pb-btn.rv-line-pb-active {
+    background: #7c3aed !important;
+    color: #fff !important;
+}
+.rv-line-pb-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 11;
+    border: none;
+    background: #f3ebff;
+    color: #7c3aed;
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(124,58,237,0.14);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .16s ease;
+}
+
+/* On-screen indicator so it's obvious a page break was placed here. */
+@media screen {
+    [data-force-page-break="true"] {
+        position: relative;
+    }
+    [data-force-page-break="true"]::before {
+        content: "\2702  Starts on a new printed page";
+        display: block;
+        margin: 10px 0 8px;
+        padding: 4px 10px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .4px;
+        color: #7c3aed;
+        background: #f5f3ff;
+        border: 1px dashed #a78bfa;
+        border-radius: 6px;
+        text-align: center;
+    }
+}
+
+/* The actual page break, applied only when printing/downloading. */
+@media print {
+    .rv-stb, .rv-line-actions, .rv-line-pb-btn, .edit-pen, .photo-controls {
+        display: none !important;
+    }
+    [data-force-page-break="true"] {
+        break-before: page !important;
+        page-break-before: always !important;
     }
 }

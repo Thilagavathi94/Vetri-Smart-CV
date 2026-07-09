@@ -3091,10 +3091,12 @@ function finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, s
     injectEditOverlays(ctx);
     if (doc && doc.dataset.exactTemplate === 'true') {
         setTimeout(() => bindExactTemplateLineClicks(), 60);
+        setTimeout(() => injectLinePageBreakControls(), 90);
     } else {
         setTimeout(() => injectSectionToolbars(), 60);
         setTimeout(() => injectLineItemControls(), 90);
         setTimeout(() => bindExactTemplateLineClicks(), 120);
+        setTimeout(() => injectLinePageBreakControls(), 130);
     }
     setTimeout(() => {
         if (renderSeq !== reviewRenderSeq || reviewRecoveryAttempts >= 2) return;
@@ -7673,16 +7675,6 @@ function downloadAsPDF(fileName) {
           .edit-pen,
           .photo-controls { display:none !important; }
           .editable-field { cursor:default !important; }
-          #rv-projects-section {
-            break-inside: auto !important;
-            page-break-inside: auto !important;
-          }
-          #rv-projects-section > *,
-          [class*="-project-item"],
-          .rv-exact-project-item {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
           @media print {
             html, body { margin:0; padding:0; background:#fff !important; }
             body { display:block; }
@@ -7721,7 +7713,7 @@ function cloneResumeWithInlineStyles(resumeDoc) {
     const clone = resumeDoc.cloneNode(true);
     const sourceNodes = [resumeDoc, ...resumeDoc.querySelectorAll('*')];
     const cloneNodes = [clone, ...clone.querySelectorAll('*')];
-    const removeSelector = '.rv-stb, .rv-line-actions, .edit-pen, .photo-controls, .template-edit-btn, [data-rv-toolbar]';
+    const removeSelector = '.rv-stb, .rv-line-actions, .rv-line-pb-btn, .edit-pen, .photo-controls, .template-edit-btn, [data-rv-toolbar]';
 
     clone.querySelectorAll(removeSelector).forEach(node => node.remove());
     clone.classList.add('resume-doc-word-export');
@@ -7755,6 +7747,7 @@ function getPrintableResumeHtml(resumeDoc) {
     const removeSelector = [
         '.rv-stb',
         '.rv-line-actions',
+        '.rv-line-pb-btn',
         '.edit-pen',
         '.photo-controls',
         '.template-edit-btn',
@@ -8246,16 +8239,6 @@ async function printResume() {
           .edit-pen,
           .photo-controls { display:none !important; }
           .editable-field { cursor:default !important; }
-          #rv-projects-section {
-            break-inside: auto !important;
-            page-break-inside: auto !important;
-          }
-          #rv-projects-section > *,
-          [class*="-project-item"],
-          .rv-exact-project-item {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
           @media print {
             html, body { margin:0; padding:0; background:#fff !important; }
             body { display:block; padding:0; }
@@ -11120,6 +11103,89 @@ let _rvUndoTimer  = null;
 const _EDIT_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
 const _DEL_SVG  = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
 
+// ============================================================
+// MANUAL "START ON NEW PAGE" CONTROLS (sections + individual lines)
+// ============================================================
+function _rvPageBreakKey(field, index) {
+    return 'pb__' + String(field || 'section') + (index !== null && index !== undefined && index !== '' ? ('__' + index) : '');
+}
+
+function _rvApplyPageBreakState(el, key) {
+    if (!el) return false;
+    resumeData.pageBreaks = resumeData.pageBreaks || {};
+    const active = !!resumeData.pageBreaks[key];
+    if (active) el.setAttribute('data-force-page-break', 'true');
+    else el.removeAttribute('data-force-page-break');
+    return active;
+}
+
+function _rvTogglePageBreak(el, key, btn, activeClass) {
+    resumeData.pageBreaks = resumeData.pageBreaks || {};
+    const nowActive = !resumeData.pageBreaks[key];
+    if (nowActive) resumeData.pageBreaks[key] = true;
+    else delete resumeData.pageBreaks[key];
+    _rvApplyPageBreakState(el, key);
+    try { sessionStorage.setItem('resumeData', JSON.stringify(resumeData)); } catch (e) {}
+    if (typeof persistField === 'function') { try { persistField('pageBreaksJson', JSON.stringify(resumeData.pageBreaks)); } catch (e) {} }
+    if (btn) {
+        btn.classList.toggle(activeClass || 'rv-stb-pb-active', nowActive);
+        btn.title = nowActive ? 'Remove page break' : 'Start this on a new printed page';
+        const labelEl = btn.querySelector('.rv-pb-label');
+        if (labelEl) labelEl.textContent = nowActive ? 'On new page' : 'New page';
+        else btn.textContent = nowActive ? '✓ New page' : '⤓ New page';
+    }
+    if (typeof showToast === 'function') {
+        showToast(nowActive ? '✓ Will start on a new page when printed/downloaded' : 'Page break removed');
+    }
+}
+
+// Adds a small hover-only "New page" toggle to individual entries (one job,
+// one project, one education line) so a specific entry — not just a whole
+// section — can be pushed to start on a fresh printed page.
+function injectLinePageBreakControls() {
+    const doc = document.getElementById('resumeDoc');
+    if (!doc) return;
+    doc.querySelectorAll('.rv-line-pb-btn').forEach(b => b.remove());
+
+    const groups = [
+        { field: 'experienceJson', selector: '#rv-experience-section [class*="-job"]' },
+        { field: 'projectsJson',   selector: '#rv-projects-section [class*="-job"], #rv-projects-section [class*="-project-item"]' },
+        { field: 'educationJson',  selector: '[class*="-edu-item"]' }
+    ];
+
+    groups.forEach(g => {
+        const items = doc.querySelectorAll(g.selector);
+        items.forEach((itemEl, idx) => {
+            if (itemEl.querySelector(':scope > .rv-line-pb-btn')) return;
+            if (!itemEl.style.position || itemEl.style.position === 'static') itemEl.style.position = 'relative';
+            const key = _rvPageBreakKey(g.field, idx);
+            const active = _rvApplyPageBreakState(itemEl, key);
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'rv-line-pb-btn' + (active ? ' rv-line-pb-active' : '');
+            btn.textContent = active ? '✓ New page' : '⤓ New page';
+            btn.title = active ? 'Remove page break' : 'Start this entry on a new printed page';
+            btn.addEventListener('click', e => {
+                e.stopPropagation();
+                _rvTogglePageBreak(itemEl, key, btn, 'rv-line-pb-active');
+            });
+
+            const show = () => { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; };
+            const hide = (evt) => {
+                if (evt?.relatedTarget && (itemEl.contains(evt.relatedTarget) || btn.contains(evt.relatedTarget))) return;
+                btn.style.opacity = '0'; btn.style.pointerEvents = 'none';
+            };
+            itemEl.addEventListener('mouseenter', show);
+            itemEl.addEventListener('mouseleave', hide);
+            btn.addEventListener('mouseenter', show);
+            btn.addEventListener('mouseleave', hide);
+
+            itemEl.appendChild(btn);
+        });
+    });
+}
+
 function _makeToolbar(field, label, canDelete, sectionEl) {
     const tb = document.createElement('div');
     tb.className = 'rv-stb';
@@ -11134,6 +11200,20 @@ function _makeToolbar(field, label, canDelete, sectionEl) {
         openEditModal(field, label, resumeData[field] || '');
     });
     tb.appendChild(editB);
+
+    // "New page" toggle — lets the person force this whole section to start
+    // on a fresh printed page instead of relying only on automatic pagination.
+    const pbKey = _rvPageBreakKey(field, null);
+    const pbActive = _rvApplyPageBreakState(sectionEl, pbKey);
+    const pbB = document.createElement('button');
+    pbB.className = 'rv-stb-btn rv-stb-pb' + (pbActive ? ' rv-stb-pb-active' : '');
+    pbB.innerHTML = `⤓ <span class="rv-pb-label">${pbActive ? 'On new page' : 'New page'}</span>`;
+    pbB.title = pbActive ? 'Remove page break' : 'Start this section on a new printed page';
+    pbB.addEventListener('click', e => {
+        e.stopPropagation();
+        _rvTogglePageBreak(sectionEl, pbKey, pbB);
+    });
+    tb.appendChild(pbB);
 
     if (canDelete) {
         const delB = document.createElement('button');
