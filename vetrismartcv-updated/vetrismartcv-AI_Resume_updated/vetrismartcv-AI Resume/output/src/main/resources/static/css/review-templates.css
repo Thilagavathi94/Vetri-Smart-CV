@@ -1709,4 +1709,26 @@
         break-inside: avoid;
         page-break-inside: avoid;
     }
+
+    /* ROOT CAUSE of the "PROJECTS" heading landing on one page while its
+       bullets restart on the next with a big blank gap: every template's
+       two-column layout (sidebar + main content) is a CSS flex row, and
+       Chrome's print engine does not reliably paginate content inside a
+       flex row — it can strand a heading at the page bottom and shove the
+       whole next block (which we told it not to split) onto a fresh page,
+       leaving the gap behind. Flex columns of very different heights are
+       exactly the case that triggers this.
+       Fix: for print only, un-flex each "*-body" row and stack its
+       columns as normal full-width blocks. Normal block flow paginates
+       correctly, so headings and their content always stay together. */
+    [class$="-body"] {
+        display: block !important;
+    }
+    [class$="-body"] > * {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: none !important;
+        box-sizing: border-box !important;
+    }
 }
