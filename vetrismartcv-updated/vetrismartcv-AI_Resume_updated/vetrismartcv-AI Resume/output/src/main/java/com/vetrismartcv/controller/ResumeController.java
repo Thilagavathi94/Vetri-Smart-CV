@@ -424,7 +424,7 @@ public class ResumeController {
         boolean hasGeoToken = lower.matches(".*\\b(india|tamil nadu|kerala|karnataka|chennai|surandai|tenkasi|tirunelveli|coimbatore|madurai|bangalore|bengaluru|hyderabad|mumbai|delhi|pune)\\b.*");
         boolean hasAddressWord = lower.matches(".*\\b(street|road|nagar|city|district|state|pin|pincode|address|near|bus stand|complex|market)\\b.*");
         boolean hasPostalCode = value.matches(".*\\b\\d{5,6}\\b.*");
-        boolean compactCommaPlace = value.contains(",") && value.split("\\s+").length <= 8 && !value.matches(".*\\b[A-Z]{2,}\\b.*");
+        boolean compactCommaPlace = !value.contains(":") && value.contains(",") && value.split("\\s+").length <= 8 && !value.matches(".*\\b[A-Z]{2,}\\b.*");
         return hasGeoToken || hasAddressWord || hasPostalCode || compactCommaPlace;
     }
 
@@ -456,7 +456,7 @@ public class ResumeController {
     private String[] splitInlineSectionHeading(String line) {
         String value = line == null ? "" : line.trim();
         java.util.regex.Matcher matcher = java.util.regex.Pattern
-                .compile("(?i)^(profile\\s+summary|professional\\s+summary|career\\s+summary|summary|objective|about\\s+me|work\\s+experience|professional\\s+experience|experience|employment\\s+history|employment|education|academic\\s+background|technical\\s+skills|core\\s+skills|key\\s+skills|skills|projects?|personal\\s+projects|certifications?|certificates|licenses|licences|courses|languages?)\\b\\s*[:\\-]?\\s*(.*)$")
+                .compile("(?i)^(profile\\s+summary|professional\\s+summary|career\\s+summary|summary|objective|about\\s+me|work\\s+experience|professional\\s+experience|experience|employment\\s+history|employment|education|academic\\s+background|technical\\s+skills|core\\s+skills|key\\s+skills|skills|projects?|personal\\s+projects|certifications?|certificates|licenses|licences|courses|languages?)\\b\\s*[:\\-]\\s*(.*)$")
                 .matcher(value);
         if (!matcher.matches()) return null;
         String mapped = mapSectionHeading(matcher.group(1));

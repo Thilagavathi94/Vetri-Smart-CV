@@ -436,14 +436,12 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 }
 
 .resume-doc {
-    --resume-preview-width: 660px;
-    --resume-a4-height: 1122px;
     background: #fff;
-    width: var(--resume-preview-width);
+    width: 660px;
     min-height: 1000px;
     box-shadow: 0 4px 30px rgba(0,0,0,0.12);
     border-radius: 4px;
-    overflow: visible;
+    overflow: hidden;
     font-size: 13px;
     line-height: 1.5;
     font-family: 'Inter', sans-serif;
@@ -576,31 +574,9 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 .edit-modal-actions button:first-child { border: 1.5px solid #e5e7eb; background: #fff; color: #374151; }
 .save-edit-btn { background: linear-gradient(135deg, #7c3aed, #5b21b6); border: none; color: #fff; }
 
-/* FOOTER */
-.site-footer { background: #1a1a2e; color: #9ca3af; padding: 50px 60px 24px; }
-.footer-inner { display: flex; gap: 50px; flex-wrap: wrap; margin-bottom: 30px; }
-.footer-brand { flex: 2; min-width: 200px; }
-.footer-logo { color: #fff; font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
-.footer-brand p { font-size: 13px; line-height: 1.6; max-width: 260px; }
-.footer-col { flex: 1; min-width: 120px; }
-.footer-col h5 { color: #fff; font-size: 14px; font-weight: 700; margin: 0 0 12px; }
-.footer-col a, .footer-col p { display: block; font-size: 13px; color: #9ca3af; text-decoration: none; margin-bottom: 6px; }
-.footer-col a:hover { color: #c4b5fd; }
-.footer-bottom { border-top: 1px solid #374151; padding-top: 20px; font-size: 12px; text-align: center; }
-.footer-socials { display: none !important; justify-content: center; }
-.footer-socials a { display: flex; align-items: center; justify-content: center; }
-.footer-socials a svg { width: 17px; height: 17px; margin: auto; }
-.social-instagram { color: #e1306c !important; }
-.social-linkedin { color: #0a66c2 !important; }
-.social-twitter { color: #111827 !important; }
-.social-youtube { color: #ff0000 !important; }
-.social-github { color: #24292f !important; }
-.footer-socials a:hover { color: #fff !important; }
-.footer-socials .social-instagram,
-.footer-socials .social-linkedin,
-.footer-socials .social-twitter,
-.footer-socials .social-youtube,
-.footer-socials .social-github { display: none !important; }
+/* FOOTER: uses the shared .footer styles from style.css so builder,
+   review, and the home page all look identical. */
+
 
 /* =============================================
    RESPONSIVE
@@ -1445,60 +1421,12 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
 }
 
 @media print {
-    @page {
-        size: A4;
-        margin: 0;
-    }
-
-    html,
-    body {
-        width: 794px;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #fff !important;
-        overflow: visible !important;
-    }
-
-    .resume-doc {
-        width: 794px !important;
-        max-width: 794px !important;
-        min-height: 1122px !important;
-        height: auto !important;
-        max-height: none !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
-        overflow: visible !important;
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        page-break-after: auto;
-        break-after: auto;
-    }
-
-    .resume-doc,
-    .resume-doc * {
-        print-color-adjust: exact !important;
-        -webkit-print-color-adjust: exact !important;
-    }
-
-    .section-block,
-    .rv-exact-section,
-    .rv-exact-appended,
-    [class*="job"],
-    [class*="project"],
-    [class*="edu"],
-    [class*="cert"] {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
     .rv-stb,
     .rv-line-actions,
     .edit-pen,
     .photo-controls,
     .template-edit-btn,
-    [data-rv-toolbar],
-    button[onclick*="openEditModal"],
-    button[onclick*="openExtraSectionEdit"] {
+    [data-rv-toolbar] {
         display: none !important;
     }
 
@@ -1506,10 +1434,4 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
         cursor: default !important;
         outline: none !important;
     }
-}
-
-.resume-doc [class*="skill"],
-.resume-doc [class*="project"],
-.resume-doc [class*="desc"] {
-    overflow-wrap: anywhere;
 }

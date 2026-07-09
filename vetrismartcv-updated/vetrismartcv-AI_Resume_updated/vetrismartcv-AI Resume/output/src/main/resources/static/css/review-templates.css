@@ -1687,4 +1687,26 @@
         break-inside: avoid;
         page-break-inside: avoid;
     }
+    /* Never let a page break land right after a section heading, which
+       previously stranded titles like "PROJECTS" alone at the bottom of
+       a page while their content restarted on the next page. */
+    [class*="-section-title"],
+    [class*="-sec-title"],
+    [class$="-title"],
+    [class*="-left-title"],
+    [class*="-left-section-title"] {
+        break-after: avoid;
+        page-break-after: avoid;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    /* Each individual entry (a job, a project, an education line) should
+       not be split apart across two pages either. */
+    [class*="-job"],
+    [class*="-edu-item"],
+    [class*="-lang"],
+    [class*="-skill-item"] {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
 }
