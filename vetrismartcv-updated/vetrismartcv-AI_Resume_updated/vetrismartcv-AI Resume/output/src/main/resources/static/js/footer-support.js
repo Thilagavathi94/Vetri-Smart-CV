@@ -84,14 +84,6 @@
             group.querySelectorAll('.social-instagram, .social-linkedin, .social-twitter, .social-youtube, .social-github').forEach(link => {
                 link.style.display = 'none';
             });
-            group.querySelectorAll('a').forEach(link => {
-                if (!link.classList.contains('social-instagram')) return;
-                link.style.display = 'inline-flex';
-                link.style.alignItems = 'center';
-                link.style.justifyContent = 'center';
-                link.style.padding = '0';
-                link.style.lineHeight = '1';
-            });
             group.querySelectorAll('svg').forEach(svg => {
                 svg.style.display = 'block';
                 svg.style.margin = '0';

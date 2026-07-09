@@ -1718,18 +1718,19 @@
        whole next block (which we told it not to split) onto a fresh page,
        leaving the gap behind. Flex columns of very different heights are
        exactly the case that triggers this.
-       Fix: for print only, un-flex each "*-body" row and stack its
-       columns as normal full-width blocks. Normal block flow paginates
-       correctly, so headings and their content always stay together. */
-    [class$="-body"] {
-        display: block !important;
-    }
-    [class$="-body"] > * {
-        display: block !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        flex: none !important;
-        box-sizing: border-box !important;
+       Keep the template's own flex/grid columns intact so the printed
+       resume matches the edit preview. Let those larger layout rows split
+       naturally while keeping individual entries together. */
+    [class^="resume-t"] [class$="-body"],
+    [class*=" resume-t"] [class$="-body"],
+    [class^="resume-t"] [class*="-body"],
+    [class*=" resume-t"] [class*="-body"],
+    [class^="resume-t"] [class*="-two"],
+    [class*=" resume-t"] [class*="-two"],
+    [class^="resume-t"] [class*="-cols"],
+    [class*=" resume-t"] [class*="-cols"] {
+        break-inside: auto;
+        page-break-inside: auto;
     }
 }
 

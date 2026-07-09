@@ -1420,6 +1420,11 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
     display: none !important;
 }
 
+/* Review page footer should not show social icon buttons. */
+.footer .footer-socials {
+    display: none !important;
+}
+
 @media print {
     .rv-stb,
     .rv-line-actions,
