@@ -1704,8 +1704,23 @@
        not be split apart across two pages either. */
     [class*="-job"],
     [class*="-edu-item"],
+    [class*="-project-item"],
+    .rv-exact-project-item,
     [class*="-lang"],
     [class*="-skill-item"] {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    /* Let the projects section itself flow across pages, but keep each
+       project title/tools/description group together. If the whole
+       section is unbreakable, Chrome can move all project content to the
+       next page and leave only the PROJECTS heading behind. */
+    #rv-projects-section {
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+    }
+    #rv-projects-section > * {
         break-inside: avoid;
         page-break-inside: avoid;
     }

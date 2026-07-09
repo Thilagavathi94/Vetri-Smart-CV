@@ -7673,6 +7673,16 @@ function downloadAsPDF(fileName) {
           .edit-pen,
           .photo-controls { display:none !important; }
           .editable-field { cursor:default !important; }
+          #rv-projects-section {
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+          }
+          #rv-projects-section > *,
+          [class*="-project-item"],
+          .rv-exact-project-item {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
           @media print {
             html, body { margin:0; padding:0; background:#fff !important; }
             body { display:block; }
@@ -8236,6 +8246,16 @@ async function printResume() {
           .edit-pen,
           .photo-controls { display:none !important; }
           .editable-field { cursor:default !important; }
+          #rv-projects-section {
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+          }
+          #rv-projects-section > *,
+          [class*="-project-item"],
+          .rv-exact-project-item {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
           @media print {
             html, body { margin:0; padding:0; background:#fff !important; }
             body { display:block; padding:0; }
