@@ -353,20 +353,39 @@ public class UserService {
     }
 
     private boolean isPasswordResetMailConfigured() {
-        return isResendConfigured()
-                || (mailSender != null
-                && mailFrom != null && !mailFrom.isBlank()
-                && mailUsername != null && !mailUsername.isBlank()
-                && mailPassword != null && !mailPassword.isBlank());
+        return isResendConfigured() || isSmtpMailConfigured();
     }
 
     private void sendPasswordResetEmail(User user, String token) throws Exception {
         String resetLink = appBaseUrl.replaceAll("/+$", "") + "/reset-password?token=" + token;
+        if (isSmtpMailConfigured()) {
+            try {
+                sendPasswordResetEmailViaSmtp(user, resetLink);
+                return;
+            } catch (Exception ex) {
+                if (!isResendConfigured()) {
+                    throw ex;
+                }
+                log.warn("SMTP password reset email failed for {}; retrying with Resend.", user.getEmail(), ex);
+            }
+        }
+
         if (isResendConfigured()) {
             sendPasswordResetEmailViaResend(user, resetLink);
             return;
         }
 
+        throw new IllegalStateException("No password reset mail provider is configured.");
+    }
+
+    private boolean isSmtpMailConfigured() {
+        return mailSender != null
+                && mailFrom != null && !mailFrom.isBlank()
+                && mailUsername != null && !mailUsername.isBlank()
+                && mailPassword != null && !mailPassword.isBlank();
+    }
+
+    private void sendPasswordResetEmailViaSmtp(User user, String resetLink) throws Exception {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
         helper.setFrom(mailFrom);

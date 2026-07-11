@@ -7644,7 +7644,8 @@ function downloadAsPDF(fileName) {
         .map(l => `<link rel="stylesheet" href="${l.href}">`).join('');
     printWindow.document.write(`<!DOCTYPE html><html><head><title>${fileName}</title><base href="${window.location.origin}/">${styles}
         <style>
-          @page { size: A4; margin: 0; }
+          @page { size: A4; margin: 18px 0 18px 0; }
+          @page :first { margin-top: 0; }
           html, body {
             margin: 0;
             padding: 0;
@@ -7681,6 +7682,13 @@ function downloadAsPDF(fileName) {
             .resume-doc {
               width: 100% !important;
               max-width: 100% !important;
+            }
+            .resume-doc > * {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin-left: 0 !important;
+              margin-right: 0 !important;
+              box-sizing: border-box !important;
             }
           }
         </style></head>
@@ -8208,7 +8216,8 @@ async function printResume() {
 
     printWindow.document.write(`<!DOCTYPE html><html><head><title>Resume</title><base href="${window.location.origin}/">${styles}
         <style>
-          @page { size: A4; margin: 0; }
+          @page { size: A4; margin: 18px 0 18px 0; }
+          @page :first { margin-top: 0; }
           html, body {
             margin: 0;
             padding: 0;
@@ -8245,6 +8254,13 @@ async function printResume() {
             .resume-doc {
               width: 100% !important;
               max-width: 100% !important;
+            }
+            .resume-doc > * {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin-left: 0 !important;
+              margin-right: 0 !important;
+              box-sizing: border-box !important;
             }
           }
         </style></head>
@@ -12404,7 +12420,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
                     ${projectsBlock ? `${secHead('Projects')}${projectsBlock}` : ''}
                     ${certBlock ? `${secHead('Certifications')}${certBlock}` : ''}
                     ${awardsBlock ? `${secHead('Awards')}${awardsBlock}` : ''}
-                    ${buildExtraSections(accent)}
+                    ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
                 </div>
             </div>
         </div>`;
@@ -12440,7 +12456,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
                     ${projectsBlock ? `${secHead('Projects')}${projectsBlock}` : ''}
                     ${certBlock ? `${secHead('Certifications')}${certBlock}` : ''}
                     ${awardsBlock ? `${secHead('Awards')}${awardsBlock}` : ''}
-                    ${buildExtraSections(accent)}
+                    ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
                 </div>
             </div>
         </div>`;
@@ -12474,7 +12490,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
                     ${d.languages ? `${secHead('Languages')}<div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
                     ${certBlock ? `${secHead('Certifications')}${certBlock}` : ''}
                     ${awardsBlock ? `${secHead('Awards')}${awardsBlock}` : ''}
-                    ${buildExtraSections(accent)}
+                    ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
                 </div>
             </div>
         </div>`;
@@ -12501,7 +12517,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
             ${projectsBlock ? `${secHead('Projects')}${projectsBlock}` : ''}
             ${certBlock ? `${secHead('Certifications')}${certBlock}` : ''}
             ${awardsBlock ? `${secHead('Awards & Honors')}${awardsBlock}` : ''}
-            ${buildExtraSections(accent)}
+            ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
         </div>
     </div>`;
 }
