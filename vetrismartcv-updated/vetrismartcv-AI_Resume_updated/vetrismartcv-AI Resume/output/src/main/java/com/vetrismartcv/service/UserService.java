@@ -416,7 +416,22 @@ public class UserService {
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IllegalStateException("Resend email API failed with HTTP " + response.statusCode() + ": " + response.body());
+            String body = response.body() == null ? "" : response.body();
+            if (response.statusCode() == 403
+                    && (body.contains("own email address") || body.contains("verify a domain") || "onboarding@resend.dev".equalsIgnoreCase(safeTrim(resendFromEmail)))) {
+                // This is NOT a per-recipient bug: Resend's shared sandbox
+                // sender (onboarding@resend.dev) only ever delivers to the
+                // email address that owns the Resend API key. Every other
+                // recipient will be rejected with this same 403 until a
+                // real domain is verified in the Resend dashboard and
+                // RESEND_FROM_EMAIL is set to an address on that domain
+                // (e.g. no-reply@yourdomain.com), or SMTP env vars
+                // (GMAIL_USERNAME / GMAIL_APP_PASSWORD) are configured instead.
+                log.error("Resend rejected the recipient {} because the sender '{}' is the unverified sandbox address. "
+                                + "Verify a domain in Resend (or configure SMTP credentials) so resets work for every user, not just the account owner's own email. Response: {}",
+                        user.getEmail(), resendFromEmail, body);
+            }
+            throw new IllegalStateException("Resend email API failed with HTTP " + response.statusCode() + ": " + body);
         }
     }
 

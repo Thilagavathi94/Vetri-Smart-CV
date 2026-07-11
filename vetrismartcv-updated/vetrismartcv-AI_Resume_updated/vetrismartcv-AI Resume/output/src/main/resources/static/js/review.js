@@ -7644,11 +7644,15 @@ function downloadAsPDF(fileName) {
         .map(l => `<link rel="stylesheet" href="${l.href}">`).join('');
     printWindow.document.write(`<!DOCTYPE html><html><head><title>${fileName}</title><base href="${window.location.origin}/">${styles}
         <style>
-          @page { size: A4; margin: 18px 0 18px 0; }
-          @page :first { margin-top: 0; }
+          /* Single, uniform page margin for EVERY page (top, bottom and sides).
+             Using a "first page only" override here used to leave page 2+
+             with no top margin at all, which is why headings like
+             "PROJECTS" landed flush against the top edge on later pages.
+             One consistent rule avoids that inconsistency entirely. */
+          @page { size: A4; margin: 14mm 0; }
           html, body {
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 0 !important;
             background: #fff !important;
             print-color-adjust: exact !important;
             -webkit-print-color-adjust: exact !important;
@@ -7658,7 +7662,6 @@ function downloadAsPDF(fileName) {
             -webkit-print-color-adjust: exact !important;
           }
           body {
-            padding: 18px;
             display: flex;
             justify-content: center;
             background: #fff !important;
@@ -7667,6 +7670,8 @@ function downloadAsPDF(fileName) {
             width: 794px !important;
             max-width: 794px !important;
             min-height: auto !important;
+            height: auto !important;
+            overflow: visible !important;
             margin: 0 auto !important;
             box-shadow: none !important;
             border-radius: 0 !important;
@@ -7677,11 +7682,13 @@ function downloadAsPDF(fileName) {
           .photo-controls { display:none !important; }
           .editable-field { cursor:default !important; }
           @media print {
-            html, body { margin:0; padding:0; background:#fff !important; }
+            html, body { margin:0 !important; padding:0 !important; background:#fff !important; }
             body { display:block; }
             .resume-doc {
               width: 100% !important;
               max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
             }
             .resume-doc > * {
               width: 100% !important;
@@ -8216,11 +8223,15 @@ async function printResume() {
 
     printWindow.document.write(`<!DOCTYPE html><html><head><title>Resume</title><base href="${window.location.origin}/">${styles}
         <style>
-          @page { size: A4; margin: 18px 0 18px 0; }
-          @page :first { margin-top: 0; }
+          /* Single, uniform page margin for EVERY page (top, bottom and sides).
+             A "first page only" override here used to leave page 2+ with
+             no top margin at all, which is why headings like "PROJECTS"
+             landed flush against the top edge on later pages. One
+             consistent rule avoids that inconsistency entirely. */
+          @page { size: A4; margin: 14mm 0; }
           html, body {
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 0 !important;
             background: #fff !important;
             print-color-adjust: exact !important;
             -webkit-print-color-adjust: exact !important;
@@ -8230,7 +8241,6 @@ async function printResume() {
             -webkit-print-color-adjust: exact !important;
           }
           body {
-            padding: 18px;
             display: flex;
             justify-content: center;
             background: #fff !important;
@@ -8239,6 +8249,8 @@ async function printResume() {
             width: 794px !important;
             max-width: 794px !important;
             min-height: auto !important;
+            height: auto !important;
+            overflow: visible !important;
             margin: 0 auto !important;
             box-shadow: none !important;
             border-radius: 0 !important;
@@ -8249,11 +8261,13 @@ async function printResume() {
           .photo-controls { display:none !important; }
           .editable-field { cursor:default !important; }
           @media print {
-            html, body { margin:0; padding:0; background:#fff !important; }
-            body { display:block; padding:0; }
+            html, body { margin:0 !important; padding:0 !important; background:#fff !important; }
+            body { display:block; }
             .resume-doc {
               width: 100% !important;
               max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
             }
             .resume-doc > * {
               width: 100% !important;
