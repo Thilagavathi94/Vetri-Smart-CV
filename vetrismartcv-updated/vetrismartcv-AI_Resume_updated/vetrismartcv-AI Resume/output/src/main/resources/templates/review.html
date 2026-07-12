@@ -282,13 +282,13 @@
 
     <!-- RIGHT PANEL: Actions -->
     <div class="review-right-panel">
-        <button class="action-btn download-btn" onclick="openDownloadModal()">
+        <button class="action-btn download-btn" onclick="downloadResumePdfNow()">
             &#x1F4E5; Download Resume
         </button>
         <button class="action-btn print-btn" onclick="printResume()">
             &#x1F5A8; Print Resume
         </button>
-        <button class="action-btn share-btn" onclick="shareEmail()">
+        <button class="action-btn share-btn" onclick="openShareEmailModal()">
             &#x2709;&#xFE0F; Share via Email
         </button>
         <button class="action-btn save-btn purple" onclick="saveResume()">
@@ -325,6 +325,22 @@
         <div class="download-modal-actions">
             <button class="btn-cancel-dl" onclick="closeDownloadModal()">Cancel</button>
             <button class="btn-dl-confirm" onclick="confirmDownload()">Download</button>
+        </div>
+    </div>
+</div>
+
+<!-- SHARE VIA EMAIL MODAL -->
+<div class="modal-overlay" id="shareEmailModal" style="display:none;">
+    <div class="download-modal-box">
+        <h3>Share Resume via Email</h3>
+        <div class="form-group" style="margin-bottom:18px;">
+            <label style="font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;display:block;">Recipient Email</label>
+            <input type="email" id="shareEmailRecipient" placeholder="name@example.com" style="width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;box-sizing:border-box;">
+            <p style="font-size:12px;color:#6b7280;margin-top:8px;">We'll send a link to view this resume to the address above.</p>
+        </div>
+        <div class="download-modal-actions">
+            <button class="btn-cancel-dl" onclick="closeShareEmailModal()">Cancel</button>
+            <button class="btn-dl-confirm" id="shareEmailConfirmBtn" onclick="confirmShareEmail()">Send</button>
         </div>
     </div>
 </div>
@@ -491,7 +507,7 @@
 .contact-submit-btn:hover { opacity: 0.9; }
 </style>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 window.footerModalContents = {
     help: {
         icon: '❓',

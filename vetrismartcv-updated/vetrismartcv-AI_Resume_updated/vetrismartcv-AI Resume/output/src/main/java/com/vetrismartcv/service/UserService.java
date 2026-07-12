@@ -356,6 +356,78 @@ public class UserService {
         return isResendConfigured() || isSmtpMailConfigured();
     }
 
+    /**
+     * Whether ANY outbound email provider (SMTP or Resend) is configured.
+     * Other features (e.g. "Share Resume via Email") should check this
+     * instead of only checking the raw SMTP JavaMailSender bean, otherwise
+     * they incorrectly report "Email is not configured" whenever only the
+     * Resend fallback is set up.
+     */
+    public boolean isEmailDeliveryConfigured() {
+        return isResendConfigured() || isSmtpMailConfigured();
+    }
+
+    /**
+     * Generic plain-text email send with the same SMTP -> Resend fallback
+     * behavior used for password reset emails. Throws if neither provider
+     * is configured or if sending ultimately fails.
+     */
+    public void sendPlainEmail(String to, String subject, String textBody) throws Exception {
+        if (isSmtpMailConfigured()) {
+            try {
+                sendPlainEmailViaSmtp(to, subject, textBody);
+                return;
+            } catch (Exception ex) {
+                if (!isResendConfigured()) {
+                    throw ex;
+                }
+                log.warn("SMTP email send failed for {}; retrying with Resend.", to, ex);
+            }
+        }
+        if (isResendConfigured()) {
+            sendPlainEmailViaResend(to, subject, textBody);
+            return;
+        }
+        throw new IllegalStateException("No mail provider is configured.");
+    }
+
+    private void sendPlainEmailViaSmtp(String to, String subject, String textBody) throws Exception {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+        helper.setFrom(mailFrom);
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(textBody, false);
+        mailSender.send(message);
+    }
+
+    private void sendPlainEmailViaResend(String to, String subject, String textBody) throws Exception {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("from", resendFromEmail);
+        payload.put("to", List.of(to));
+        payload.put("subject", subject);
+        payload.put("text", textBody);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.resend.com/emails"))
+                .header("Authorization", "Bearer " + resendApiKey.trim())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload), StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            String body = response.body() == null ? "" : response.body();
+            if (response.statusCode() == 403
+                    && (body.contains("own email address") || body.contains("verify a domain") || "onboarding@resend.dev".equalsIgnoreCase(safeTrim(resendFromEmail)))) {
+                log.error("Resend rejected the recipient {} because the sender '{}' is the unverified sandbox address. "
+                                + "Verify a domain in Resend (or configure SMTP credentials) so this works for every recipient, not just the account owner's own email. Response: {}",
+                        to, resendFromEmail, body);
+            }
+            throw new IllegalStateException("Resend email API failed with HTTP " + response.statusCode() + ": " + body);
+        }
+    }
+
     private void sendPasswordResetEmail(User user, String token) throws Exception {
         String resetLink = appBaseUrl.replaceAll("/+$", "") + "/reset-password?token=" + token;
         if (isSmtpMailConfigured()) {

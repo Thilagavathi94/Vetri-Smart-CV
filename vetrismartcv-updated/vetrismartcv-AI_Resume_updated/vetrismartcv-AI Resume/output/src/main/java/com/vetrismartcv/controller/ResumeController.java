@@ -3,6 +3,7 @@ package com.vetrismartcv.controller;
 import com.vetrismartcv.model.ResumeData;
 import com.vetrismartcv.service.ResumeService;
 import com.vetrismartcv.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -105,6 +106,32 @@ public class ResumeController {
         return ResponseEntity.ok(resumeService.getByUserId(userId));
     }
 
+    /* ---- GET /api/resume/latest?template=xxx ----
+       Finds the current user's most recently updated resume, optionally
+       filtered by template. Used by the "edit" flow on the templates page
+       so a user re-opens their existing draft instead of starting over.
+       (Frontend already called this URL; the endpoint was missing.) */
+    @GetMapping("/latest")
+    public ResponseEntity<?> getLatestResume(
+            @RequestParam(required = false) String template,
+            HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
+
+        List<ResumeData> resumes = resumeService.getByUserId(userId);
+        String normalizedTemplate = normalizeTemplateId(template);
+
+        Optional<ResumeData> match = resumes.stream()
+                .filter(r -> normalizedTemplate.isBlank()
+                        || normalizedTemplate.equalsIgnoreCase(normalizeTemplateId(r.getTemplateName())))
+                .max(Comparator.comparing(
+                        ResumeData::getUpdatedAt,
+                        Comparator.nullsFirst(Comparator.naturalOrder())));
+
+        return match.<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     /* ---- PUT /api/resume/{id} ---- */
     @PutMapping("/{id}")
     public ResponseEntity<?> update(
@@ -165,6 +192,72 @@ public class ResumeController {
         return ResponseEntity.ok(Map.of("success", true, "format", body.getOrDefault("format", "pdf")));
     }
 
+    /* ---- POST /api/resume/{id}/share-email ---- */
+    @PostMapping("/{id}/share-email")
+    public ResponseEntity<Map<String, Object>> shareByEmail(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> body,
+            HttpSession session,
+            HttpServletRequest request) {
+
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of(
+                    "success", false,
+                    "requireLogin", true,
+                    "message", "Please login to share your resume."
+            ));
+        }
+        if (!userService.isEmailDeliveryConfigured()) {
+            return ResponseEntity.status(503).body(Map.of(
+                    "success", false,
+                    "message", "Email is not configured on the server."
+            ));
+        }
+
+        Optional<ResumeData> resumeOpt = resumeService.getById(id);
+        if (resumeOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "success", false,
+                    "message", "Resume not found."
+            ));
+        }
+
+        ResumeData resume = resumeOpt.get();
+        String to = body == null ? "" : safeTrim(body.get("email"));
+        if (to.isBlank()) to = safeTrim(resume.getEmail());
+        if (!isValidEmail(to)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Please add a valid email address in the resume contact section."
+            ));
+        }
+
+        String resumeUrl = body == null ? "" : safeTrim(body.get("resumeUrl"));
+        if (resumeUrl.isBlank()) {
+            resumeUrl = request.getScheme() + "://" + request.getServerName()
+                    + (request.getServerPort() > 0 ? ":" + request.getServerPort() : "")
+                    + "/review/" + id;
+        }
+
+        try {
+            String name = safeTrim(resume.getFullName()).isBlank() ? "My Resume" : safeTrim(resume.getFullName());
+            String subject = "Resume - " + name;
+            String textBody = "Hi,\n\nPlease view my resume here:\n" + resumeUrl
+                    + "\n\nRegards,\n" + name + "\nVetriSmartCV";
+            userService.sendPlainEmail(to, subject, textBody);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Resume email sent to " + to + "."
+            ));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(Map.of(
+                    "success", false,
+                    "message", "Could not send email. Please check mail configuration."
+            ));
+        }
+    }
+
     private ResponseEntity<Map<String, Object>> blockFreeTemplateIfNeeded(Long userId, HttpSession session, String templateName) {
         String normalizedTemplate = normalizeTemplateId(templateName);
         if (normalizedTemplate.isBlank() || FREE_TEMPLATE_IDS.contains(normalizedTemplate)) return null;
@@ -198,6 +291,14 @@ public class ResumeController {
     private String normalizeTemplateId(String templateName) {
         if (templateName == null) return "";
         return templateName.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String safeTrim(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private boolean isValidEmail(String email) {
+        return email != null && email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     }
 
     /* ---- POST /api/resume/upload-cv ---- */
