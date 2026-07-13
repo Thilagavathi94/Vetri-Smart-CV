@@ -951,7 +951,12 @@ function _collectExactTopCandidates(section, pattern, excludePattern = null) {
         if (excludePattern && excludePattern.test(cls)) return false;
         return node.children.length > 0 || _isExactLeafNode(node);
     });
-    return nodes.filter(node => !nodes.some(other => other !== node && other.contains(node) && other.parentElement === node.parentElement));
+    // Keep only the outermost matching wrapper in each nested chain. A bullet
+    // icon or inner label nested inside an outer project/job/experience box
+    // can also match the same loose class pattern; counting it as its own
+    // separate "block" causes titles/tools/descriptions to scramble across
+    // the wrong elements (e.g. stray bullets and misplaced bold lines).
+    return nodes.filter(node => !nodes.some(other => other !== node && other.contains(node)));
 }
 
 function _syncExactBlocks(section, pattern, count, excludePattern = null) {
@@ -3290,7 +3295,7 @@ function buildTemplate25Template({ resumeData: d, edu, skills, projects, experie
       ${projects.length?`<div class="t25-sec-title section-block" id="rv-projects-section" style="color:${accent};">Projects</div><div class="editable-field" ${editBtn('projectsJson','Projects','')}>${projectsHTML}<span class="edit-pen" style="font-size:10px;color:#9ca3af;display:block;">✏</span></div>`:''}
       ${d.certifications?`<div class="t25-sec-title section-block" style="color:${accent};">Certifications</div><div class="editable-field t25-text" style="cursor:pointer;" ${editBtn('certifications','Certifications',d.certifications||'')}>${d.certifications} <span class="edit-pen">✏</span></div>`:''}
       ${d.awards?`<div class="t25-sec-title section-block" style="color:${accent};">Awards</div><div class="editable-field t25-text" style="cursor:pointer;" ${editBtn('awards','Awards',d.awards||'')}>${d.awards} <span class="edit-pen">✏</span></div>`:''}
-      ${buildExtraSections(accent)}
+      ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
     </div>
   </div>
 </div>`;
@@ -4459,6 +4464,7 @@ function buildTemplate39Template({ resumeData: d, edu, skills, projects, experie
   <div class="t39-left">
     <div class="t39-name editable-field" ${editBtn('fullName','Full Name',name)}>${name} <span class="edit-pen">✏</span></div>
     <div class="t39-role editable-field" style="color:${accent};" ${editBtn('jobTitle','Job Title',title)}>${title} <span class="edit-pen">✏</span></div>
+    ${experience.length?`<div class="t39-sec-title-l" style="color:#1a1a1a;border-color:#e5e7eb;">Experience</div><div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML}</div>`:''}
     ${eduHTML2?`<div class="t39-sec-title-l" style="color:#1a1a1a;border-color:#e5e7eb;">Education</div>${eduHTML2}`:''}
     ${d.languages?`<div class="t39-sec-title-l" style="color:#1a1a1a;border-color:#e5e7eb;">Languages</div>${d.languages.split(',').map(l=>`<div style="font-size:10px;color:#555;margin-bottom:3px;">${l.trim()}</div>`).join('')}`:''}
   </div>
@@ -4471,8 +4477,7 @@ function buildTemplate39Template({ resumeData: d, edu, skills, projects, experie
     </div>
     ${summary?`<div class="t39-sec-title-r">Profile</div><div class="t39-about-text editable-field section-block" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
     ${skillsHTML?`<div class="t39-sec-title-r">Skills</div><div class="editable-field" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>${skillsHTML}</div>`:''}
-    ${experience.length?`<div class="t39-sec-title-r">Experience</div><div class="section-block editable-field" ${editBtn('experienceJson','Experience','')}>${expHTML}</div>`:''}
-    ${projects.length?`<div class="t39-sec-title-r">Projects</div><div class="section-block editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t39-exp-item"><div class="t39-exp-right"><div class="t39-exp-title">${p.title||p.name||''}</div><div class="t39-exp-desc">${p.tools||''}</div></div></div>`).join('')}</div>`:''}
+    ${projects.length?`<div class="t39-sec-title-r">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t39-exp-item"><div class="t39-exp-right"><div class="t39-exp-title">${p.title||p.name||''}</div>${p.tools?`<div class="t39-exp-org">Tools: ${p.tools}</div>`:''}<div class="t39-exp-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div></div>`).join('')}</div>`:''}
     ${buildExtraSections(accent)}
   </div>
 </div>`;
@@ -4811,7 +4816,7 @@ function buildTemplate45Template({ resumeData: d, edu, skills, projects, experie
         <div class="editable-field" ${editBtn('awards','Awards',d.awards||'')}>${d.awards} <span class="edit-pen">✏</span></div>
       </div>` : ''}
 
-      ${buildExtraSections(accent)}
+      ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
     </div>
   </div>
 </div>`;
@@ -6374,6 +6379,51 @@ function buildExtraSections(color, titleStyle = '', skipNames = []) {
     return html;
 }
 
+function getMissingExtraSectionsTarget(doc) {
+    if (!doc) return null;
+    const preferredColumn = doc.querySelector([
+        '.rv-main-col',
+        '.t11-right',
+        '.t12-br',
+        '.t13-right',
+        '.t14-right',
+        '.t15-right',
+        '.t16-right',
+        '.t18-col-right',
+        '.t20-right',
+        '.t21-body',
+        '.t22-right-body',
+        '.t23-right',
+        '.t24-left',
+        '.t26-right',
+        '.t27-right',
+        '.t29-right',
+        '.t30-right',
+        '.t31-main',
+        '.t32-right',
+        '.t33-right',
+        '.t34-right',
+        '.t35-right',
+        '.t36-main',
+        '.t37-right',
+        '.t38-right',
+        '.t39-right',
+        '.t40-main',
+        '.t41-main',
+        '.t42-main',
+        '.t43-main'
+    ].join(', '));
+    if (preferredColumn) return preferredColumn;
+
+    const anchor = doc.querySelector('#rv-projects-section, #rv-experience-section');
+    if (anchor) {
+        const column = anchor.closest('[class*="-right"], [class*="-main"], [class*="-body"], [class*="-br"], [class*="-left"]');
+        return column || anchor.parentElement || anchor;
+    }
+
+    return doc.querySelector('[class*="resume-t"]') || doc;
+}
+
 // ============================================================
 // Roughly a third of the template builder functions never call
 // buildExtraSections() / buildExtraSectionsHTML() at all, so any
@@ -6396,37 +6446,42 @@ function renderMissingExtraSections(doc, accent) {
     // Some templates render a "built-in additional" field (Certifications,
     // Languages, Awards, etc.) natively from resumeData, using their own
     // heading and no rv-section-* id. Only checking for the id would miss
-    // that and produce a visible duplicate heading, so also bail out if a
-    // matching heading word is already present anywhere in the template.
+    // that and produce a visible duplicate heading, so also check whether a
+    // matching heading already exists using the app's own heading-recognition
+    // map (the same one the exact-gallery-template matcher uses), plus a
+    // plain-text fallback for anything not covered by that map (e.g. Portfolio).
+    const keyToHeadingField = {
+        certificates: 'certifications', certifications: 'certifications', certification: 'certifications',
+        languages: 'languages', language: 'languages',
+        awards: 'awards',
+        interests: 'interests', interest: 'interests',
+        tools: 'tools', tool: 'tools',
+        qualities: 'qualities'
+    };
+    const existingHeadingFields = new Set();
+    doc.querySelectorAll('*').forEach(node => {
+        if (node.children.length > 2) return;
+        const norm = _rvNormalizeHeading(node.textContent || '');
+        const meta = RV_HEADING_MAP[norm];
+        if (meta) existingHeadingFields.add(meta.field);
+    });
     const bodyText = (doc.textContent || '').toLowerCase();
     const labelAliases = {
-        certificates: ['certification', 'certificate'],
-        certifications: ['certification', 'certificate'],
-        languages: ['language'],
-        awards: ['award'],
-        interests: ['interest', 'hobbies', 'hobby'],
-        interest: ['interest', 'hobbies', 'hobby'],
-        tools: ['tools', 'platform'],
-        qualities: ['quality', 'qualities'],
         portfolio: ['portfolio']
     };
 
     const missingBlocks = Array.from(temp.querySelectorAll('.extra-user-section')).filter(block => {
         if (block.id && doc.querySelector('#' + CSS.escape(block.id))) return false;
         const key = (block.id || '').replace(/^rv-section-/, '');
+        const headingField = keyToHeadingField[key];
+        if (headingField && existingHeadingFields.has(headingField)) return false;
         const aliases = labelAliases[key];
         if (aliases && aliases.some(word => bodyText.includes(word))) return false;
         return true;
     });
     if (!missingBlocks.length) return;
 
-    const templateRoot = doc.querySelector('[class*="resume-t"]') || doc;
-    // Anchor to the same column as the template's own main-content sections
-    // (Experience/Projects carry these ids in almost every template) so the
-    // appended section lines up correctly instead of floating full-width
-    // below the whole two-column layout.
-    const anchor = doc.querySelector('#rv-experience-section, #rv-projects-section');
-    const targetParent = (anchor && anchor.parentElement) || templateRoot;
+    const targetParent = getMissingExtraSectionsTarget(doc);
     missingBlocks.forEach(block => targetParent.appendChild(block));
 }
 
@@ -11187,9 +11242,9 @@ function buildTemplate22ProperTemplate({ resumeData: d, edu, skills, projects, e
       ${summary ? `<div class="t22-green-btn" style="background:${accent};">Profile</div><div class="editable-field section-block" style="font-size:10px;color:#555;line-height:1.6;margin:6px 0 12px;cursor:pointer;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>` : ''}
       <div class="t22-green-btn" style="background:${accent};">Experience</div>
       <div class="section-block editable-field" id="rv-experience-section" style="margin-top:8px;" ${editBtn('experienceJson','Experience','')}>${expHTML}<span class="edit-pen" style="font-size:10px;">✏</span></div>
-      ${projects.length ? `<div class="t22-green-btn" style="background:${accent};margin-top:12px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" style="margin-top:8px;" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t22-exp-item"><div class="t22-exp-title">${p.title||p.name||''}</div><div class="t22-exp-co">${p.tools||''}</div><div class="t22-exp-desc">${p.description||''}</div></div>`).join('')}<span class="edit-pen">✏</span></div>` : ''}
+      ${projects.length ? `<div class="t22-green-btn" style="background:${accent};margin-top:12px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" style="margin-top:8px;" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t22-exp-item"><div class="t22-exp-title">${p.title||p.name||''}</div><div class="t22-exp-co">${p.tools||''}</div><div class="t22-exp-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')}<span class="edit-pen">✏</span></div>` : ''}
       ${d.certifications ? `<div class="t22-green-btn" style="background:${accent};margin-top:12px;">Certifications</div><div class="editable-field section-block" style="font-size:10px;color:#555;margin-top:6px;cursor:pointer;" ${editBtn('certifications','Certifications',d.certifications||'')}>${d.certifications} <span class="edit-pen">✏</span></div>` : ''}
-      ${buildExtraSections(accent)}
+      ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
     </div>
   </div>
 </div>`;
@@ -12991,7 +13046,7 @@ function buildTemplate11Template({ resumeData: d, edu, skills, projects, experie
           <div class="editable-field" style="font-size:10px;color:#555;line-height:1.6;cursor:pointer;" ${editBtn('profileSummary','Profile Summary',d.profileSummary||'')}>${summary}</div></div>`:''}
           ${expItems?`<div class="t11-sec"><div class="t11-sec-title" style="color:${accent};border-color:${accent};">Experience</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div></div>`:''}
-          ${projItems?`<div class="t11-sec"><div class="t11-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
+          ${projItems?`<div class="t11-sec section-block" id="rv-projects-section"><div class="t11-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
         </div>
       </div>
@@ -13056,8 +13111,8 @@ function buildTemplate12Template({ resumeData: d, edu, skills, projects, experie
         <div class="t12-br">
           ${expItems?`<div class="t12-sec-title" style="color:${accent};border-color:${accent};">Experience</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div>`:''}
-          ${projItems?`<div class="t12-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
-          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
+          ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t12-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
+          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
         </div>
       </div>
     </div>`;
@@ -13119,8 +13174,8 @@ function buildTemplate13Template({ resumeData: d, edu, skills, projects, experie
         <div class="t13-right">
           ${expItems?`<div class="t13-sec-title" style="color:${accent};border-color:${accent};">Experience</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div>`:''}
-          ${projItems?`<div class="t13-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
-          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
+          ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t13-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
+          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
           ${edu.length?`<div class="t13-sec-title" style="color:${accent};border-color:${accent};">Education</div>
           ${edu.map(e=>`<div class="t13-edu"><div class="t13-edu-deg">${e.degree||''}</div><div class="t13-edu-uni">${e.school||e.university||''} ${e.year?`· ${e.year}`:''}</div></div>`).join('')}`:''}
         </div>
@@ -13166,6 +13221,7 @@ function buildTemplate14Template({ resumeData: d, edu, skills, projects, experie
         <div class="t14-tl-content">
           <div class="t14-tl-title">${p.title||p.name||''}</div>
           ${p.tools?`<div class="t14-tl-co" style="color:${gold};">Tools: ${p.tools}</div>`:''}
+          <div class="t14-tl-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
         </div>
     </div>`).join('');
 
@@ -13187,7 +13243,7 @@ function buildTemplate14Template({ resumeData: d, edu, skills, projects, experie
         <div class="t14-tl-desc" style="color:#aab;">${summary}</div></div>`:''}
         ${expItems?`<div class="t14-sec-r"><div class="t14-sec-title-r" style="color:${gold};">Experience</div>
         <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div></div>`:''}
-        ${projItems?`<div class="t14-sec-r"><div class="t14-sec-title-r" style="color:${gold};">Projects</div>
+        ${projItems?`<div class="t14-sec-r section-block" id="rv-projects-section"><div class="t14-sec-title-r" style="color:${gold};">Projects</div>
         <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
       </div>
     </div>`;
@@ -13211,13 +13267,13 @@ function buildTemplate15Template({ resumeData: d, edu, skills, projects, experie
           <div class="t15-pos">${e.jobTitle||e.role||e.title||''}</div></div>
           <div class="t15-date">${(e.startDate||e.from||'').split('-')[0]||''} – ${(e.endDate||e.to||'Present').split('-')[0]||'Present'}</div>
         </div>
-        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t15-bullet"><span>•</span><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
+        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t15-bullet"><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
     </div>`).join('');
 
     const projItems = projects.map(p=>`<div style="margin-bottom:10px;">
         <div class="t15-org">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t15-pos">Tools: ${p.tools}</div>`:''}
-        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t15-bullet"><span>•</span><span>${b}</span></div>`).join('')}
+        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t15-bullet"><span>${b}</span></div>`).join('')}
     </div>`).join('');
 
     const skillItems = skills.map(s=>{
@@ -13249,8 +13305,8 @@ function buildTemplate15Template({ resumeData: d, edu, skills, projects, experie
           <div style="font-size:10px;color:#555;line-height:1.6;margin-bottom:10px;">${summary}</div>`:''}
           ${expItems?`<div class="t15-sec-title">Experience</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div>`:''}
-          ${projItems?`<div class="t15-sec-title">Projects</div>
-          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
+          ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t15-sec-title">Projects</div>
+          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
         </div>
       </div>
     </div>`;
@@ -13288,6 +13344,7 @@ function buildTemplate16Template({ resumeData: d, edu, skills, projects, experie
     const projItems = projects.map(p=>`<div class="t16-exp-item">
         <div class="t16-exp-co">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t16-exp-role">Tools: ${p.tools}</div>`:''}
+        <div class="t16-exp-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
     </div>`).join('');
 
     const eduHTML = edu.map(e=>`<div style="margin-bottom:8px;">
@@ -13318,8 +13375,8 @@ function buildTemplate16Template({ resumeData: d, edu, skills, projects, experie
       <div class="t16-right">
         ${edu.length?`<div class="t16-right-sec" style="background:#e8e0d0;">Education</div>
         <div class="t16-right-body">${eduHTML}</div>`:''}
-        ${projItems?`<div class="t16-right-sec" style="background:#e8e0d0;">Projects</div>
-        <div class="t16-right-body editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
+        ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t16-right-sec" style="background:#e8e0d0;">Projects</div>
+        <div class="t16-right-body editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
       </div>
     </div>`;
 }
@@ -13383,8 +13440,8 @@ function buildTemplate18Template({ resumeData: d, edu, skills, projects, experie
           <div class="t18-col-left">
             ${empItems?`<div class="t18-sec-title" style="border-color:${accent};">Experience</div>
             <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${empItems}</div>`:''}
-            ${projItems?`<div class="t18-sec-title" style="border-color:${accent};">Projects</div>
-            <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
+            ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t18-sec-title" style="border-color:${accent};">Projects</div>
+            <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
           </div>
           <div class="t18-col-right">
             ${eduItems?`<div class="t18-sec-title" style="border-color:${accent};">Education</div>${eduItems}`:''}
@@ -13440,8 +13497,8 @@ function buildTemplate20Template({ resumeData: d, edu, skills, projects, experie
         ${summary?`<div class="t20-bio">${summary}</div>`:''}
         <div class="t20-sec-title-l">Experience</div>
         <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems||`<div style="font-size:10px;color:#aaa;">Add experience ✏</div>`}</div>
-        ${projItems?`<div class="t20-sec-title-l">Projects</div>
-        <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
+        ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t20-sec-title-l">Projects</div>
+        <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
       </div>
       <div class="t20-right" style="border-color:${accent};">
         <div class="t20-sec-title-r">Contact</div>
@@ -13477,13 +13534,13 @@ function buildTemplate21Template({ resumeData: d, edu, skills, projects, experie
         <div class="t21-org">${e.company||''}</div>
         <div class="t21-pos">${e.jobTitle||e.role||e.title||''}</div>
         <div class="t21-date-row"><span>${e.startDate||e.from||''}</span><span>${e.endDate||e.to||'Present'}</span></div>
-        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t21-bullet"><span>•</span><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
+        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t21-bullet"><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
     </div>`).join('');
 
     const projItems = projects.map(p=>`<div style="margin-bottom:10px;">
         <div class="t21-org">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t21-pos">Tools: ${p.tools}</div>`:''}
-        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t21-bullet"><span>•</span><span>${b}</span></div>`).join('')}
+        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t21-bullet"><span>${b}</span></div>`).join('')}
     </div>`).join('');
 
     const skillItems = skills.map(s=>{
@@ -13542,13 +13599,13 @@ function buildTemplate24Template({ resumeData: d, edu, skills, projects, experie
         <div class="t24-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div>
         <div class="t24-job-title">${e.jobTitle||e.role||e.title||''}</div>
         <div class="t24-job-co">${e.company||''}</div>
-        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>-</span><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
+        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
     </div>`).join('');
 
     const projItems = projects.map(p=>`<div class="t24-job">
         <div class="t24-job-title">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t24-job-co">Tools: ${p.tools}</div>`:''}
-        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>-</span><span>${b}</span></div>`).join('')}
+        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>${b}</span></div>`).join('')}
     </div>`).join('');
 
     const skillItems = skills.map(s=>{
