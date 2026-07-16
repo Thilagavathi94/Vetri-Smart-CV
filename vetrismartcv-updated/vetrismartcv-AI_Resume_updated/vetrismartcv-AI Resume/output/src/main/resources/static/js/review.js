@@ -951,12 +951,7 @@ function _collectExactTopCandidates(section, pattern, excludePattern = null) {
         if (excludePattern && excludePattern.test(cls)) return false;
         return node.children.length > 0 || _isExactLeafNode(node);
     });
-    // Keep only the outermost matching wrapper in each nested chain. A bullet
-    // icon or inner label nested inside an outer project/job/experience box
-    // can also match the same loose class pattern; counting it as its own
-    // separate "block" causes titles/tools/descriptions to scramble across
-    // the wrong elements (e.g. stray bullets and misplaced bold lines).
-    return nodes.filter(node => !nodes.some(other => other !== node && other.contains(node)));
+    return nodes.filter(node => !nodes.some(other => other !== node && other.contains(node) && other.parentElement === node.parentElement));
 }
 
 function _syncExactBlocks(section, pattern, count, excludePattern = null) {
@@ -2593,7 +2588,6 @@ function setFontSize(size) {
     if (event && event.target) event.target.classList.add('active');
     const doc = document.getElementById('resumeDoc');
     if (doc) doc.style.fontSize = size === 'small' ? '11px' : size === 'large' ? '15px' : '13px';
-    applyDesignSettingsToInnerTemplate(doc, false);
     autosaveDesign();
 }
 function applyFont(font) {
@@ -2601,7 +2595,6 @@ function applyFont(font) {
     currentFont = font;
     const doc = document.getElementById('resumeDoc');
     if (doc) doc.style.fontFamily = font + ', sans-serif';
-    applyDesignSettingsToInnerTemplate(doc, false);
     autosaveDesign();
 }
 function applySectionSpacing(val) {
@@ -2609,9 +2602,7 @@ function applySectionSpacing(val) {
     currentSectionSpacing = val;
     const el = document.getElementById('spacingVal');
     if (el) el.textContent = val + 'px';
-    const doc = document.getElementById('resumeDoc');
-    const scope = doc || document;
-    scope.querySelectorAll('.section-block, [id^="rv-"][id$="-section"], [id^="rv-section-"]').forEach(e => { e.style.marginBottom = val + 'px'; });
+    document.querySelectorAll('.section-block').forEach(e => { e.style.marginBottom = val + 'px'; });
     autosaveDesign();
 }
 function applyLetterSpacing(val) {
@@ -2621,7 +2612,6 @@ function applyLetterSpacing(val) {
     if (el) el.textContent = val + 'px';
     const doc = document.getElementById('resumeDoc');
     if (doc) doc.style.letterSpacing = val + 'px';
-    applyDesignSettingsToInnerTemplate(doc, false);
     autosaveDesign();
 }
 function applyLineSpacing(val) {
@@ -2631,7 +2621,6 @@ function applyLineSpacing(val) {
     if (el) el.textContent = val;
     const doc = document.getElementById('resumeDoc');
     if (doc) doc.style.lineHeight = val;
-    applyDesignSettingsToInnerTemplate(doc, false);
     autosaveDesign();
 }
 function applyPhotoSize(val) {
@@ -2901,11 +2890,18 @@ function renderResume() {
     const renderSeq = ++reviewRenderSeq;
     delete doc.dataset.exactTemplate;
     doc.className = 'resume-doc template-' + currentTemplate;
-    const shouldPreserveExactDesign = false;
-    doc.style.fontFamily     = currentFont + ', sans-serif';
-    doc.style.letterSpacing  = currentLetterSpacing + 'px';
-    doc.style.lineHeight     = currentLineSpacing;
-    doc.style.fontSize       = currentFontSize === 'small' ? '11px' : currentFontSize === 'large' ? '15px' : '13px';
+    const shouldPreserveExactDesign = shouldUseExactGalleryTemplate(currentTemplate) && !!templatePageMarkup;
+    if (shouldPreserveExactDesign) {
+        doc.style.fontFamily = '';
+        doc.style.letterSpacing = '';
+        doc.style.lineHeight = '';
+        doc.style.fontSize = '';
+    } else {
+        doc.style.fontFamily     = currentFont + ', sans-serif';
+        doc.style.letterSpacing  = currentLetterSpacing + 'px';
+        doc.style.lineHeight     = currentLineSpacing;
+        doc.style.fontSize       = currentFontSize === 'small' ? '11px' : currentFontSize === 'large' ? '15px' : '13px';
+    }
 
     let edu = [], skills = [], projects = [], experience = [];
     try { edu        = JSON.parse(resumeData.educationJson   || '[]'); } catch {}
@@ -2933,10 +2929,8 @@ function renderResume() {
     }
 
     if (exactRendered) {
-        try { applyDesignSettingsToInnerTemplate(doc, false); } catch (err) { console.error('applyDesignSettingsToInnerTemplate failed:', err); }
         normalizeReviewRenderArtifacts(doc);
         finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, skipCleanup: true, renderSeq });
-        try { renderMissingExtraSections(doc, ctx.color); } catch (err) { console.error('renderMissingExtraSections failed:', err); }
         return;
     }
 
@@ -3084,58 +3078,17 @@ function renderResume() {
         doc.innerHTML = buildOliviaTemplate(ctx);
     }
 
-    try { applyDesignSettingsToInnerTemplate(doc, shouldPreserveExactDesign); } catch (err) { console.error('applyDesignSettingsToInnerTemplate failed:', err); }
     normalizeReviewRenderArtifacts(doc);
     finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, renderSeq });
-    try { renderMissingExtraSections(doc, ctx.color); } catch (err) { console.error('renderMissingExtraSections failed:', err); }
-}
-
-// ============================================================
-// Every template's own root element (class="resume-tNN" etc.) declares
-// its own font-family/font-size in review-templates.css. That declaration
-// is set directly ON that element, so it always wins over the inherited
-// value coming from the outer #resumeDoc wrapper — which is why the
-// Font Family / Font Size controls silently did nothing for most
-// templates. Re-apply the current design settings directly onto that
-// inner element (with !important, defensively) so the controls actually
-// take effect for every template.
-// ============================================================
-function applyDesignSettingsToInnerTemplate(doc, shouldPreserveExactDesign) {
-    if (!doc) return;
-    const innerContainers = doc.querySelectorAll('[class*="resume-t"]');
-    if (!innerContainers.length) return;
-    if (shouldPreserveExactDesign) {
-        innerContainers.forEach(el => {
-            el.style.removeProperty('font-family');
-            el.style.removeProperty('font-size');
-            el.style.removeProperty('letter-spacing');
-            el.style.removeProperty('line-height');
-        });
-        return;
-    }
-    const fontFamilyValue = currentFont + ', sans-serif';
-    const fontSizeValue = currentFontSize === 'small' ? '11px' : currentFontSize === 'large' ? '15px' : '13px';
-    innerContainers.forEach(el => {
-        el.style.setProperty('font-family', fontFamilyValue, 'important');
-        el.style.setProperty('font-size', fontSizeValue, 'important');
-        el.style.setProperty('letter-spacing', currentLetterSpacing + 'px', 'important');
-        el.style.setProperty('line-height', String(currentLineSpacing), 'important');
-    });
-    doc.querySelectorAll('.section-block, [id^="rv-"][id$="-section"], [id^="rv-section-"]').forEach(el => {
-        el.style.marginBottom = currentSectionSpacing + 'px';
-    });
 }
 
 function finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, skipCleanup = false, renderSeq = 0 }) {
-    if (doc) {
-        doc.querySelectorAll('[data-force-page-break="true"]').forEach(node => {
-            node.removeAttribute('data-force-page-break');
-        });
-    }
     applyActiveSections();
     if (!skipCleanup) {
         cleanEmptyReviewContent(doc, { edu, skills, projects, experience });
     }
+    ensureExtraSectionsRendered(doc, (ctx && ctx.color) || currentColor);
+    applyActiveSections();
     // Inject edit buttons into ALL templates universally
     injectEditOverlays(ctx);
     if (doc && doc.dataset.exactTemplate === 'true') {
@@ -3295,7 +3248,7 @@ function buildTemplate25Template({ resumeData: d, edu, skills, projects, experie
       ${projects.length?`<div class="t25-sec-title section-block" id="rv-projects-section" style="color:${accent};">Projects</div><div class="editable-field" ${editBtn('projectsJson','Projects','')}>${projectsHTML}<span class="edit-pen" style="font-size:10px;color:#9ca3af;display:block;">✏</span></div>`:''}
       ${d.certifications?`<div class="t25-sec-title section-block" style="color:${accent};">Certifications</div><div class="editable-field t25-text" style="cursor:pointer;" ${editBtn('certifications','Certifications',d.certifications||'')}>${d.certifications} <span class="edit-pen">✏</span></div>`:''}
       ${d.awards?`<div class="t25-sec-title section-block" style="color:${accent};">Awards</div><div class="editable-field t25-text" style="cursor:pointer;" ${editBtn('awards','Awards',d.awards||'')}>${d.awards} <span class="edit-pen">✏</span></div>`:''}
-      ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
+      ${buildExtraSections(accent)}
     </div>
   </div>
 </div>`;
@@ -3304,87 +3257,6 @@ function buildTemplate25Template({ resumeData: d, edu, skills, projects, experie
 // ============================================================
 // TEMPLATE 1: JEREMY CLIFFORD — Dark Gradient Header Two-Col
 // ============================================================
-function cleanTemplate1Text(value) {
-    return String(value || '').replace(/\s+/g, ' ').trim();
-}
-
-function cleanTemplate1Year(value) {
-    const text = cleanTemplate1Text(value);
-    const yearRange = text.match(/\b(?:19|20)\d{2}\s*(?:[-–—to]+\s*(?:(?:19|20)\d{2}|Present|Current))?\b/i);
-    return yearRange ? yearRange[0].replace(/\s*to\s*/i, ' - ').replace(/\s*[-–—]\s*/g, ' - ') : text;
-}
-
-function stripTemplate1DateNoise(value) {
-    return cleanTemplate1Text(value)
-        .replace(/\(?\b(?:19|20)\d{2}\s*(?:[-–—]\s*(?:(?:19|20)\d{2}|Present|Current))?\b\)?/gi, '')
-        .replace(/\b(?:Present|Current)\b/gi, '')
-        .replace(/\s*[-–—]\s*$/g, '')
-        .replace(/\s{2,}/g, ' ')
-        .trim();
-}
-
-function template1DateRange(item) {
-    const start = cleanTemplate1Year(item.startDate || item.from || item.startYear || '');
-    const end = cleanTemplate1Year(item.endDate || item.to || item.endYear || '');
-    if (start && end) return `${start} - ${end}`;
-    if (start) return `${start} - Present`;
-    return end || '';
-}
-
-function template1ProjectItems(projects) {
-    const items = [];
-    projects.forEach(project => {
-        const title = cleanTemplate1Text(project.title || project.name || '');
-        const description = cleanTemplate1Text(project.description || '');
-        const splitTitles = splitTemplate1ProjectTitles(title);
-        if (title && !description && splitTitles.length > 1) {
-            splitTitles.forEach(name => items.push({ title: name, description: '', tools: '' }));
-            return;
-        }
-        if (title || description || project.tools) {
-            items.push({ title, description, tools: cleanTemplate1Text(project.tools || '') });
-        }
-    });
-    return items;
-}
-
-function splitTemplate1ProjectTitles(value) {
-    const text = cleanTemplate1Text(value);
-    if (!text) return [];
-    const simple = text.split(/\s*(?:[,;|•·]|\s+[-–—]+\s+)\s*/).map(cleanTemplate1Text).filter(Boolean);
-    if (simple.length > 1) return simple.flatMap(part => splitTemplate1ProjectTitleRun(part)).filter(Boolean);
-    const matches = splitTemplate1ProjectTitleRun(text);
-    return matches.length > 1 ? matches : [text];
-}
-
-function splitTemplate1ProjectTitleRun(text) {
-    const matches = text.match(/.+?(?:Management System|Learning Portal|Enterprise Portal|E-Commerce Platform|Portal|Platform|System|Website UI|Website|Application|App Redesign|Appointment App|App|Dashboard)(?=\s+[A-Z]|$)/g);
-    return matches && matches.length > 1 ? matches.map(cleanTemplate1Text) : [text];
-}
-
-function template1SimpleLines(value) {
-    return (value || '').toString().split(/\r?\n|,/).map(cleanTemplate1Text).filter(Boolean);
-}
-
-function template1EducationParts(item) {
-    const year = cleanTemplate1Year(item.year || item.endYear || item.graduationYear || '');
-    let degree = cleanTemplate1Text(item.degree || item.field || '');
-    let school = cleanTemplate1Text(item.school || item.university || item.institution || '');
-    if (year) {
-        degree = degree.replace(new RegExp(`\\(?\\b${year.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b\\)?`, 'g'), '').trim();
-        school = school.replace(new RegExp(`\\(?\\b${year.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b\\)?`, 'g'), '').trim();
-    }
-    if (!school && degree.includes(',')) {
-        const parts = degree.split(/\s*,\s*/);
-        degree = cleanTemplate1Text(parts.shift());
-        school = cleanTemplate1Text(parts.join(', '));
-    }
-    if (school && degree.toLowerCase().includes(school.toLowerCase())) {
-        degree = cleanTemplate1Text(degree.replace(new RegExp(school.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '').replace(/,\s*$/, ''));
-    }
-    return { degree, school, year };
-}
-
 function buildTemplate1Template({ resumeData: d, edu, skills, projects, experience, color }) {
     const accent = color || '#7c3aed';
     const name   = d.fullName || 'Your Name';
@@ -3404,14 +3276,11 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
         ? skills.map(s=>`<span class="t1-skill" style="background:${accent}22;color:${accent};">${s.name||s}</span>`).join('')
         : `<span class="t1-skill" style="color:#9ca3af;cursor:pointer;" ${editBtn('skillsJson','Skills','')}>Add skills ✏</span>`;
     const eduHTML = edu.length
-        ? edu.map(e=>{ const ep = template1EducationParts(e); return `<div class="t1-edu-item">${ep.degree?`<div class="t1-edu-deg">${ep.degree}</div>`:''}${ep.school?`<div class="t1-edu-name">${ep.school}</div>`:''}${ep.year?`<div class="t1-edu-date">${ep.year}</div>`:''}</div>`; }).join('')
+        ? edu.map(e=>`<div class="t1-edu-item"><div class="t1-edu-main"><div class="t1-edu-name">${e.school||e.university||''}</div><div class="t1-edu-deg">${e.degree||''}</div></div><div class="t1-edu-date">${e.year||''}</div></div>`).join('')
         : `<div style="font-size:10px;color:#9ca3af;cursor:pointer;" ${editBtn('educationJson','Education','')}>Add education ✏</div>`;
     const expHTML = experience.length
-        ? experience.map(e=>`<div class="t1-job"><div class="t1-job-title" style="color:${accent};">${stripTemplate1DateNoise(e.jobTitle||e.role||e.title||'')}</div><div class="t1-job-date">${[stripTemplate1DateNoise(e.company||''), template1DateRange(e)].filter(Boolean).join(' | ')}</div><div class="t1-job-desc">${(e.description||e.bullets||'').toString().split('\n').map(stripTemplate1DateNoise).filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')
+        ? experience.map(e=>`<div class="t1-job"><div class="t1-job-title" style="color:${accent};">${e.jobTitle||e.role||e.title||''}</div><div class="t1-job-date">${e.company||''} · ${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div><div class="t1-job-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
-    const projectItems = template1ProjectItems(projects);
-    const certificationItems = template1SimpleLines(d.certifications);
-    const languageItems = template1SimpleLines(d.languages);
     return `<div class="resume-t1">
   <div class="t1-header" style="background:linear-gradient(135deg,${accent}dd 0%,${accent} 100%);">
     <div class="t1-header-bg"></div>
@@ -3432,15 +3301,14 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
       <div class="editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>${skillsHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
       <div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Education</div>
       <div class="section-block editable-field" style="cursor:pointer;" ${editBtn('educationJson','Education','')}>${eduHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
-      ${languageItems.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Languages</div><div class="section-block editable-field" style="cursor:pointer;font-size:10px;color:#555;line-height:1.8;" ${editBtn('languages','Languages',d.languages||'')}>${languageItems.map(l=>`<div>${l}</div>`).join('')} <span class="edit-pen" style="font-size:10px;">✏</span></div>`:''}
     </div>
     <div class="t1-right">
-      ${summary?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};">Profile Summary</div><div class="t1-job-desc t1-summary-text editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.6;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
+      ${summary?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};">Profile Summary</div><div class="t1-job-desc editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.6;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
       <div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:${summary?'14px':'0'};">Experience</div>
       <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
-      ${projectItems.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projectItems.map(p=>`<div class="t1-project-item"><span class="t1-project-bullet" style="color:${accent};">•</span><span><strong style="color:${accent};">${p.title}</strong>${p.tools?`<span class="t1-job-date"> | Tools: ${p.tools}</span>`:''}${p.description?`<span class="t1-job-desc"> - ${p.description}</span>`:''}</span></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
-      ${certificationItems.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Certifications</div><div class="section-block editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.7;" ${editBtn('certifications','Certifications',d.certifications||'')}>${certificationItems.map(c=>`<div>• ${c}</div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
-      ${buildExtraSections(accent, '', ['languages', 'certifications', 'certificates'])}
+      ${projects.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t1-job"><div class="t1-job-title" style="color:${accent};">${p.title||p.name||''}</div>${p.tools?`<div class="t1-job-date">Tools: ${p.tools}</div>`:''}<div class="t1-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
+      ${d.certifications?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Certifications</div><div class="section-block editable-field" style="cursor:pointer;font-size:11px;color:#555;" ${editBtn('certifications','Certifications',d.certifications||'')}>${d.certifications} <span class="edit-pen">✏</span></div>`:''}
+      ${buildExtraSections(accent)}
     </div>
   </div>
 </div>`;
@@ -3679,7 +3547,7 @@ function buildTemplate6Template({ resumeData: d, edu, skills, projects, experien
         ? experience.map(e=>`<div class="t6-job"><div class="t6-job-head"><span class="t6-job-title">${e.jobTitle||e.role||e.title||''}</span><span class="t6-job-loc" style="color:${accent};">${e.company||''}</span></div><div class="t6-job-company">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div>${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t6-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
     return `<div class="resume-t6">
-  <div class="t6-left" style="background:${accent}ee;">
+  <div class="t6-left">
     ${photoHTML}
     <div class="t6-left-body">
       <div class="t6-left-title">Education</div>
@@ -3737,7 +3605,7 @@ function buildTemplate7Template({ resumeData: d, edu, skills, projects, experien
         ? experience.map(e=>`<div class="t7-job"><div class="t7-job-head"><span class="t7-job-title">${e.jobTitle||e.role||e.title||''}</span><span class="t7-job-loc" style="color:${accent};">${e.company||''}</span></div><div class="t7-job-company">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div>${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t7-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
     return `<div class="resume-t7">
-  <div class="t7-header" style="background:linear-gradient(135deg,${accent}dd 0%,${accent} 100%);">
+  <div class="t7-header">
     <div class="t7-header-blob"></div>
     <div class="t7-header-top">
       ${email?`<div class="t7-header-contact editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>&#9993; ${email} <span class="edit-pen">&#9997;</span></div>`:''}
@@ -3753,7 +3621,7 @@ function buildTemplate7Template({ resumeData: d, edu, skills, projects, experien
     </div>
   </div>
   <div class="t7-body">
-    <div class="t7-left" style="background:${accent}ee;">
+    <div class="t7-left">
       <div class="t7-left-section-title" style="color:rgba(255,255,255,0.7);">Education</div>
       <div class="section-block editable-field" ${editBtn('educationJson','Education','')}>
         ${edu.length?edu.map(e=>`<div class="t7-edu-item"><div class="t7-edu-degree">${e.degree||''}</div><div class="t7-edu-uni" style="color:rgba(255,255,255,0.5);">${e.school||e.university||''}</div><div class="t7-edu-years">${e.year||''}</div></div>`).join(''):`<div style="font-size:10px;color:rgba(255,255,255,0.3);cursor:pointer;">Add education ✏</div>`}
@@ -4464,7 +4332,6 @@ function buildTemplate39Template({ resumeData: d, edu, skills, projects, experie
   <div class="t39-left">
     <div class="t39-name editable-field" ${editBtn('fullName','Full Name',name)}>${name} <span class="edit-pen">✏</span></div>
     <div class="t39-role editable-field" style="color:${accent};" ${editBtn('jobTitle','Job Title',title)}>${title} <span class="edit-pen">✏</span></div>
-    ${experience.length?`<div class="t39-sec-title-l" style="color:#1a1a1a;border-color:#e5e7eb;">Experience</div><div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML}</div>`:''}
     ${eduHTML2?`<div class="t39-sec-title-l" style="color:#1a1a1a;border-color:#e5e7eb;">Education</div>${eduHTML2}`:''}
     ${d.languages?`<div class="t39-sec-title-l" style="color:#1a1a1a;border-color:#e5e7eb;">Languages</div>${d.languages.split(',').map(l=>`<div style="font-size:10px;color:#555;margin-bottom:3px;">${l.trim()}</div>`).join('')}`:''}
   </div>
@@ -4477,7 +4344,8 @@ function buildTemplate39Template({ resumeData: d, edu, skills, projects, experie
     </div>
     ${summary?`<div class="t39-sec-title-r">Profile</div><div class="t39-about-text editable-field section-block" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
     ${skillsHTML?`<div class="t39-sec-title-r">Skills</div><div class="editable-field" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>${skillsHTML}</div>`:''}
-    ${projects.length?`<div class="t39-sec-title-r">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t39-exp-item"><div class="t39-exp-right"><div class="t39-exp-title">${p.title||p.name||''}</div>${p.tools?`<div class="t39-exp-org">Tools: ${p.tools}</div>`:''}<div class="t39-exp-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div></div>`).join('')}</div>`:''}
+    ${experience.length?`<div class="t39-sec-title-r">Experience</div><div class="section-block editable-field" ${editBtn('experienceJson','Experience','')}>${expHTML}</div>`:''}
+    ${projects.length?`<div class="t39-sec-title-r">Projects</div><div class="section-block editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t39-exp-item"><div class="t39-exp-right"><div class="t39-exp-title">${p.title||p.name||''}</div><div class="t39-exp-desc">${p.tools||''}</div></div></div>`).join('')}</div>`:''}
     ${buildExtraSections(accent)}
   </div>
 </div>`;
@@ -4816,7 +4684,7 @@ function buildTemplate45Template({ resumeData: d, edu, skills, projects, experie
         <div class="editable-field" ${editBtn('awards','Awards',d.awards||'')}>${d.awards} <span class="edit-pen">✏</span></div>
       </div>` : ''}
 
-      ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
+      ${buildExtraSections(accent)}
     </div>
   </div>
 </div>`;
@@ -6305,59 +6173,54 @@ function buildTraditionalTemplate({ resumeData: d, edu, skills, projects, experi
 // ============================================================
 // EXTRA SECTIONS (custom / optional)
 // ============================================================
-function buildExtraSections(color, titleStyle = '', skipNames = []) {
+function buildExtraSections(color, titleStyle = '', includeSavedOptionals = false) {
     let html = '';
     const builtIn = ['experience','skills','education','projects','profile','contact','summary'];
-    const skipped = new Set((skipNames || []).map(normalizeSectionKey));
-    const builtinAdditional = {
-        languages: { field: 'languages', label: 'Languages' },
-        certificates: { field: 'certifications', label: 'Certifications' },
-        certifications: { field: 'certifications', label: 'Certifications' },
-        awards: { field: 'awards', label: 'Awards & Honors' },
-        interests: { field: 'interests', label: 'Interests / Hobbies' },
-        interest: { field: 'interests', label: 'Interests / Hobbies' },
-        tools: { field: 'tools', label: 'Tools / Platforms' },
-        qualities: { field: 'qualities', label: 'Key Qualities' }
-    };
-    const sectionEntries = new Map();
+    const optionalFields = [
+        ['certificates', 'Certifications', 'certifications'],
+        ['certifications', 'Certifications', 'certifications'],
+        ['languages', 'Languages', 'languages'],
+        ['awards', 'Awards', 'awards'],
+        ['interests', 'Interests', 'interests'],
+        ['tools', 'Tools', 'tools'],
+        ['qualities', 'Qualities', 'qualities'],
+        ['portfolio', 'Portfolio', 'website']
+    ];
+    const sections = new Map();
 
     Object.entries(activeSections).forEach(([name, show]) => {
         if (!show) return;
-        sectionEntries.set(normalizeSectionKey(name), name);
-    });
-    Object.values(builtinAdditional).forEach(meta => {
-        // 'languages' is rendered inline by every template's own layout already;
-        // auto-injecting it here as well produced a duplicate "Languages" block.
-        if (meta.field === 'languages') return;
-        if ((resumeData[meta.field] || '').trim()) sectionEntries.set(meta.field, meta.label);
+        const key = (name || '').toLowerCase().trim();
+        if (builtIn.includes(key)) return; // skip core sections — they're rendered by template directly
+        const optionalMatch = optionalFields.find(([optionalKey]) => optionalKey === key);
+        const optionalField = optionalMatch && (resumeData[optionalMatch[2]] || '').toString().trim()
+            ? optionalMatch[2]
+            : null;
+        sections.set(key, {
+            key,
+            name: optionalMatch ? optionalMatch[1] : name,
+            contentKey: optionalField || 'extra_' + key.replace(/[^a-z0-9]+/g, '_')
+        });
     });
 
-    sectionEntries.forEach((name, normalizedKey) => {
-        const key = (name || '').toLowerCase().trim();
-        if (skipped.has(normalizedKey) || skipped.has(key)) return;
-        if (builtIn.includes(key)) return; // skip core sections — they're rendered by template directly
-        const builtin = builtinAdditional[normalizedKey] || builtinAdditional[key];
-        if (builtin) {
-            const savedContent = (resumeData[builtin.field] || '').trim();
-            if (!savedContent && !activeSections[normalizedKey] && !activeSections[key]) return;
-            const lines = savedContent.split(/\r?\n|,/).map(v => v.trim()).filter(Boolean);
-            const displayContent = lines.length
-                ? `<div style="font-size:11px;color:#444;line-height:1.7;white-space:pre-wrap;">${lines.map(v => `<div>${esc(v)}</div>`).join('')}</div>`
-                : `<em style="color:#9ca3af;font-size:11px;">Click Edit to add content</em>`;
-            const sectionId = normalizedKey.replace(/[^a-z0-9]+/g,'-');
-            html += `
-                <div class="section-block extra-user-section" id="rv-section-${sectionId}" style="position:relative;">
-                    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:${color};border-bottom:2px solid ${color};padding-bottom:3px;margin-bottom:10px;margin-top:16px;${titleStyle};display:flex;align-items:center;justify-content:space-between;">
-                        <span>${builtin.label}</span>
-                        <button title="Edit ${builtin.label}" style="background:none;border:1px solid ${color};color:${color};border-radius:5px;font-size:10px;cursor:pointer;padding:2px 7px;" onclick="openEditModal('${builtin.field}','${builtin.label}','${escapeQ(savedContent)}')">Edit</button>
-                    </div>
-                    <div class="extra-section-content" id="content-${sectionId}" style="cursor:pointer;" onclick="openEditModal('${builtin.field}','${builtin.label}','${escapeQ(savedContent)}')">
-                        ${displayContent}
-                    </div>
-                </div>`;
-            return;
-        }
-        const contentKey = 'extra_' + key.replace(/[^a-z0-9]+/g, '_');
+    if (includeSavedOptionals) {
+        optionalFields.forEach(([key, label, field]) => {
+            if (builtIn.includes(key)) return;
+            if (sections.has(key)) return;
+            if (!(resumeData[field] || '').toString().trim()) return;
+            sections.set(key, { key, name: label, contentKey: field });
+        });
+
+        Object.keys(resumeData || {}).forEach(field => {
+            if (!/^extra_/i.test(field) || !(resumeData[field] || '').toString().trim()) return;
+            const key = field.replace(/^extra_/i, '').replace(/_/g, ' ').trim().toLowerCase();
+            if (!key || sections.has(key)) return;
+            const label = key.replace(/\b\w/g, ch => ch.toUpperCase());
+            sections.set(key, { key, name: label, contentKey: field });
+        });
+    }
+
+    sections.forEach(({ key, name, contentKey }) => {
         const savedContent = resumeData[contentKey] || '';
         const displayContent = savedContent
             ? `<div style="font-size:11px;color:#444;line-height:1.7;white-space:pre-wrap;">${savedContent}</div>`
@@ -6366,9 +6229,9 @@ function buildExtraSections(color, titleStyle = '', skipNames = []) {
             <div class="section-block extra-user-section" id="rv-section-${key.replace(/[^a-z0-9]+/g,'-')}" style="position:relative;">
                 <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:${color};border-bottom:2px solid ${color};padding-bottom:3px;margin-bottom:10px;margin-top:16px;${titleStyle};display:flex;align-items:center;justify-content:space-between;">
                     <span>${name.charAt(0).toUpperCase()+name.slice(1)}</span>
-                    <span style="display:flex;gap:6px;">
-                        <button title="Edit ${name}" style="background:none;border:1px solid ${color};color:${color};border-radius:5px;font-size:10px;cursor:pointer;padding:2px 7px;" onclick="openExtraSectionEdit('${name}','${contentKey}')">✏ Edit</button>
-                        <button title="Delete ${name}" style="background:none;border:1px solid #e57373;color:#e57373;border-radius:5px;font-size:10px;cursor:pointer;padding:2px 7px;" onclick="deleteExtraSection('${name}')">🗑 Delete</button>
+                    <span class="extra-section-actions no-print-export" data-rv-toolbar="1" style="display:flex;gap:6px;">
+                        <button class="no-print-export" title="Edit ${name}" style="background:none;border:1px solid ${color};color:${color};border-radius:5px;font-size:10px;cursor:pointer;padding:2px 7px;" onclick="openExtraSectionEdit('${name}','${contentKey}')">✏ Edit</button>
+                        <button class="no-print-export" title="Delete ${name}" style="background:none;border:1px solid #e57373;color:#e57373;border-radius:5px;font-size:10px;cursor:pointer;padding:2px 7px;" onclick="deleteExtraSection('${name}')">🗑 Delete</button>
                     </span>
                 </div>
                 <div class="extra-section-content" id="content-${key.replace(/[^a-z0-9]+/g,'-')}" style="cursor:pointer;" onclick="openExtraSectionEdit('${name}','${contentKey}')">
@@ -6379,110 +6242,86 @@ function buildExtraSections(color, titleStyle = '', skipNames = []) {
     return html;
 }
 
-function getMissingExtraSectionsTarget(doc) {
-    if (!doc) return null;
-    const preferredColumn = doc.querySelector([
-        '.rv-main-col',
+function ensureExtraSectionsRendered(doc, color) {
+    if (!doc) return;
+
+    const extraHtml = buildExtraSections(color || currentColor || '#7c3aed', '', true);
+    if (!extraHtml.trim()) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'rv-extra-sections-host';
+    wrapper.innerHTML = extraHtml;
+    Array.from(wrapper.children).forEach(section => {
+        const rawKey = (section.id || '').replace(/^rv-section-/, '');
+        const existingIds = getReviewSectionIds(rawKey);
+        if (existingIds.some(id => doc.querySelector('#' + id)) || hasRenderedSectionTitle(doc, rawKey)) {
+            section.remove();
+        }
+    });
+    if (!wrapper.children.length) return;
+
+    const afterAnchor = doc.querySelector(
+        '#rv-projects-section, #rv-experience-section, ' +
+        '.projects-section, .experience-section, ' +
+        '[id*="projects" i], [id*="experience" i]'
+    );
+
+    if (afterAnchor && afterAnchor.parentElement) {
+        afterAnchor.insertAdjacentElement('afterend', wrapper);
+        return;
+    }
+
+    const mainColumn = doc.querySelector([
         '.t11-right',
         '.t12-br',
         '.t13-right',
         '.t14-right',
         '.t15-right',
-        '.t16-right',
-        '.t18-col-right',
-        '.t20-right',
-        '.t21-body',
-        '.t22-right-body',
-        '.t23-right',
-        '.t24-left',
-        '.t26-right',
-        '.t27-right',
-        '.t29-right',
-        '.t30-right',
-        '.t31-main',
-        '.t32-right',
-        '.t33-right',
-        '.t34-right',
-        '.t35-right',
-        '.t36-main',
-        '.t37-right',
-        '.t38-right',
-        '.t39-right',
-        '.t40-main',
-        '.t41-main',
-        '.t42-main',
-        '.t43-main'
+        '.t16-left',
+        '.t18-col-left',
+        '.t20-main',
+        '.right-col',
+        '.right-column',
+        '.main-col',
+        '.main-column',
+        '.resume-main',
+        '.content',
+        '[class*="-right"]',
+        '[class*="-main"]',
+        '[class*="-body"]'
     ].join(', '));
-    if (preferredColumn) return preferredColumn;
 
-    const anchor = doc.querySelector('#rv-projects-section, #rv-experience-section');
-    if (anchor) {
-        const column = anchor.closest('[class*="-right"], [class*="-main"], [class*="-body"], [class*="-br"], [class*="-left"]');
-        return column || anchor.parentElement || anchor;
-    }
-
-    return doc.querySelector('[class*="resume-t"]') || doc;
+    (mainColumn || doc).appendChild(wrapper);
 }
 
-// ============================================================
-// Roughly a third of the template builder functions never call
-// buildExtraSections() / buildExtraSectionsHTML() at all, so any
-// section a user adds via "Add Section" (custom section, Awards,
-// Interests, Portfolio, etc.) simply never appears for those
-// templates. Rather than patch every individual template function,
-// re-use buildExtraSections() to compute the full set of sections
-// that *should* be showing, detect which ones are missing from the
-// DOM (every section block carries a stable id="rv-section-*"), and
-// append just those — so "Add Section" works the same for every
-// template regardless of whether its builder function supports it.
-// ============================================================
-function renderMissingExtraSections(doc, accent) {
-    if (!doc) return;
-    const fullHTML = buildExtraSections(accent || currentColor || '#7c3aed');
-    if (!fullHTML || !fullHTML.trim()) return;
-    const temp = document.createElement('div');
-    temp.innerHTML = fullHTML;
-
-    // Some templates render a "built-in additional" field (Certifications,
-    // Languages, Awards, etc.) natively from resumeData, using their own
-    // heading and no rv-section-* id. Only checking for the id would miss
-    // that and produce a visible duplicate heading, so also check whether a
-    // matching heading already exists using the app's own heading-recognition
-    // map (the same one the exact-gallery-template matcher uses), plus a
-    // plain-text fallback for anything not covered by that map (e.g. Portfolio).
-    const keyToHeadingField = {
-        certificates: 'certifications', certifications: 'certifications', certification: 'certifications',
-        languages: 'languages', language: 'languages',
-        awards: 'awards',
-        interests: 'interests', interest: 'interests',
-        tools: 'tools', tool: 'tools',
-        qualities: 'qualities'
+function hasRenderedSectionTitle(doc, rawKey) {
+    const key = normalizeSectionKey(rawKey);
+    const aliases = {
+        certificates: ['certificate', 'certificates', 'certification', 'certifications'],
+        certifications: ['certificate', 'certificates', 'certification', 'certifications'],
+        languages: ['language', 'languages'],
+        awards: ['award', 'awards', 'awards & honors'],
+        interests: ['interest', 'interests', 'hobbies'],
+        tools: ['tool', 'tools'],
+        qualities: ['quality', 'qualities'],
+        portfolio: ['portfolio', 'portfolio / websites']
     };
-    const existingHeadingFields = new Set();
-    doc.querySelectorAll('*').forEach(node => {
-        if (node.children.length > 2) return;
-        const norm = _rvNormalizeHeading(node.textContent || '');
-        const meta = RV_HEADING_MAP[norm];
-        if (meta) existingHeadingFields.add(meta.field);
+    const accepted = aliases[key] || [key];
+    const titleNodes = doc.querySelectorAll([
+        '.t1-section-title',
+        '.section-title',
+        '.section-block > div:first-child',
+        '[class*="-sec-title"]',
+        '[class*="section-title"]',
+        'h1',
+        'h2',
+        'h3',
+        'h4'
+    ].join(','));
+    return Array.from(titleNodes).some(node => {
+        const text = normalizeSectionKey((node.textContent || '').replace(/[^\w\s/&-]/g, ' '));
+        return accepted.some(alias => text === normalizeSectionKey(alias));
     });
-    const bodyText = (doc.textContent || '').toLowerCase();
-    const labelAliases = {
-        portfolio: ['portfolio']
-    };
-
-    const missingBlocks = Array.from(temp.querySelectorAll('.extra-user-section')).filter(block => {
-        if (block.id && doc.querySelector('#' + CSS.escape(block.id))) return false;
-        const key = (block.id || '').replace(/^rv-section-/, '');
-        const headingField = keyToHeadingField[key];
-        if (headingField && existingHeadingFields.has(headingField)) return false;
-        const aliases = labelAliases[key];
-        if (aliases && aliases.some(word => bodyText.includes(word))) return false;
-        return true;
-    });
-    if (!missingBlocks.length) return;
-
-    const targetParent = getMissingExtraSectionsTarget(doc);
-    missingBlocks.forEach(block => targetParent.appendChild(block));
 }
 
 function applyActiveSections() {
@@ -7109,7 +6948,6 @@ function saveExtraTab() {
     ['languages','awards','interests','certifications','qualities'].forEach(f => {
         const el = document.getElementById('ep_'+f);
         if (el) resumeData[f] = el.value.trim();
-        if ((resumeData[f] || '').trim()) activeSections[f] = true;
     });
     persistFields({ languages:resumeData.languages, awards:resumeData.awards, interests:resumeData.interests, certifications:resumeData.certifications, qualities:resumeData.qualities });
     renderResume(); closeEditModal(); showToast('✓ Additional info saved!');
@@ -7255,7 +7093,6 @@ function saveExtraTab() {
     ['languages','awards','interests','certifications','qualities','tools'].forEach(f => {
         const el = document.getElementById('ep_'+f);
         if (el) resumeData[f] = el.value.trim();
-        if ((resumeData[f] || '').trim()) activeSections[f] = true;
     });
     persistFields({
         languages: resumeData.languages,
@@ -7735,135 +7572,6 @@ function closeDownloadModal() {
     const dm = document.getElementById('downloadModal');
     if (dm) dm.style.display = 'none';
 }
-
-async function downloadResumePdfNow() {
-    const fileName = sanitizeDownloadName((resumeData.fullName || 'My_Resume') + '_Resume');
-    if (!isLoggedIn) {
-        redirectToLoginForDownload();
-        return;
-    }
-    if (!isPaidPlan(userPlan) && Number(resumeDownloads || 0) >= 1) {
-        showUpgradePlanPopup('DOWNLOAD_LIMIT');
-        return;
-    }
-    if (!resumeId) {
-        showToast('Please save your resume before downloading.', 'error');
-        return;
-    }
-    try {
-        const res = await fetch(`${API_BASE}/${resumeId}/download`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ format: 'pdf', fileName })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || data.success === false) {
-            if (data.requireLogin) {
-                redirectToLoginForDownload();
-                return;
-            }
-            if (data.upgradeRequired) {
-                showUpgradePlanPopup(data.reason || 'DOWNLOAD_LIMIT');
-                return;
-            }
-            showToast(data.message || 'Download failed. Please try again.', 'error');
-            return;
-        }
-        resumeDownloads += 1;
-        await downloadAsPDF(fileName);
-    } catch (e) {
-        showToast('Download failed. Check your connection.', 'error');
-    }
-}
-
-function getResumePrintCss(browserPrint = false) {
-    return `
-          @page { size: A4; margin: ${browserPrint ? '14mm 6mm 12mm 6mm' : '18mm 6mm 14mm 6mm'}; }
-          html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #fff !important;
-            print-color-adjust: exact !important;
-            -webkit-print-color-adjust: exact !important;
-          }
-          * {
-            print-color-adjust: exact !important;
-            -webkit-print-color-adjust: exact !important;
-            box-sizing: border-box;
-          }
-          body {
-            display: block;
-            background: #fff !important;
-          }
-          .resume-doc {
-            width: 100% !important;
-            max-width: 100% !important;
-            min-height: auto !important;
-            height: auto !important;
-            overflow: visible !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            box-shadow: none !important;
-            border-radius: 0 !important;
-          }
-          .resume-doc > *,
-          .resume-doc [style*="width:660px"],
-          .resume-doc [style*="width: 660px"] {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            box-sizing: border-box !important;
-          }
-          .rv-stb,
-          .rv-line-actions,
-          .rv-line-pb-btn,
-          .edit-pen,
-          .photo-controls,
-          .template-edit-btn,
-          [data-rv-toolbar],
-          button[onclick*="openExtraSectionEdit"],
-          button[onclick*="openEditModal"],
-          button[title^="Edit"] {
-            display: none !important;
-          }
-          .editable-field {
-            cursor: default !important;
-            outline: none !important;
-          }
-          #rv-projects-section,
-          #rv-edu-section {
-            display: block !important;
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-            -webkit-column-break-inside: avoid !important;
-          }
-          #rv-projects-section,
-          #rv-edu-section,
-          #rv-projects-section + .section-block,
-          #rv-section-certificates {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-            -webkit-column-break-inside: avoid !important;
-          }
-          .rv-main-col {
-            padding-left: 24px !important;
-          }
-          .rv-sidebar-col {
-            padding-right: 20px !important;
-          }
-          .rv-main-col > :first-child,
-          .rv-sidebar-col > :first-child,
-          #rv-projects-section > :first-child,
-          #rv-edu-section > :first-child {
-            margin-top: 0 !important;
-          }
-          @media print {
-            html, body { margin:0 !important; padding:0 !important; background:#fff !important; }
-          }
-        `;
-}
-
 async function confirmDownload() {
     const format   = document.querySelector('input[name="dlFormat"]:checked')?.value || 'pdf';
     const fileName = document.getElementById('downloadFileName')?.value.trim() || 'My_Resume';
@@ -7911,153 +7619,443 @@ async function confirmDownload() {
         downloadAsPlainText(fileName);
     }
 }
-
-function loadScriptOnce(src) {
-    return new Promise((resolve, reject) => {
-        const existing = Array.from(document.scripts).find(script => script.src === src);
-        if (existing) {
-            if (existing.dataset.loaded === 'true') resolve();
-            else existing.addEventListener('load', resolve, { once: true });
-            return;
-        }
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = true;
-        script.dataset.loaded = 'false';
-        script.onload = () => {
-            script.dataset.loaded = 'true';
-            resolve();
-        };
-        script.onerror = () => reject(new Error('Could not load PDF generator.'));
-        document.head.appendChild(script);
-    });
-}
-
-function keepPdfSectionTogether(target, selector) {
-    const section = target.querySelector(selector);
-    if (!section) return;
-    const targetRect = target.getBoundingClientRect();
-    const sectionRect = section.getBoundingClientRect();
-    const contentWidth = targetRect.width || 1;
-    const pageContentHeight = contentWidth * (265 / 198);
-    const sectionTop = Math.max(0, sectionRect.top - targetRect.top);
-    const sectionHeight = sectionRect.height;
-    const offsetOnPage = sectionTop % pageContentHeight;
-    const crossesPage = offsetOnPage + sectionHeight > pageContentHeight - 18;
-    const orphanHeadingZone = offsetOnPage > pageContentHeight - 90;
-    if (!crossesPage && !orphanHeadingZone) return;
-    const pushBy = pageContentHeight - offsetOnPage + 16;
-    section.style.marginTop = `${pushBy}px`;
-    section.style.breakInside = 'avoid';
-    section.style.pageBreakInside = 'avoid';
-}
-
-async function generateResumePdf(fileName) {
+// ── SHARED: build a full-bleed, full-width print/PDF window ──
+// We can't know ahead of time which paper size the user's print driver will
+// actually use (Letter vs A4 vs custom) — some drivers (e.g. "Microsoft
+// Print to PDF") silently ignore a custom @page size and fall back to a
+// standard one. So instead of guessing a size in JS, we force the resume
+// (both the outer wrapper AND its inner template div, which has its own
+// hard-coded pixel width) to 100% width using CSS. The browser's print
+// engine resolves "100%" against whatever paper it actually ends up using,
+// at render time — guaranteeing edge-to-edge fill no matter what.
+function buildResumePrintWindow(title, onReadyToast, closeAfterPrint) {
     const resumeDoc = document.getElementById('resumeDoc');
     if (!resumeDoc) {
         showToast('Resume preview is not ready.', 'error');
         return null;
     }
-    const cleanFileName = sanitizeDownloadName(fileName) + '.pdf';
-    const printableHtml = getPrintableResumeHtml(resumeDoc);
-    let holder = null;
-    try {
-        await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
-        holder = document.createElement('div');
-        holder.style.position = 'fixed';
-        holder.style.left = '-10000px';
-        holder.style.top = '0';
-        holder.style.width = '198mm';
-        holder.style.background = '#fff';
-        const style = document.createElement('style');
-        style.textContent = getResumePrintCss();
-        holder.appendChild(style);
-        const shell = document.createElement('div');
-        shell.innerHTML = printableHtml;
-        holder.appendChild(shell);
-        document.body.appendChild(holder);
-        const target = holder.querySelector('.resume-doc') || shell.firstElementChild;
-        target.style.width = '198mm';
-        target.style.maxWidth = '198mm';
-        target.style.margin = '0';
-        target.style.padding = '0';
-        keepPdfSectionTogether(target, '#rv-projects-section');
-        const worker = html2pdf().set({
-            margin: [18, 6, 14, 6],
-            filename: cleanFileName,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                scrollX: 0,
-                scrollY: 0
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: {
-                mode: ['css', 'legacy'],
-                avoid: ['#rv-projects-section', '#rv-edu-section', '#rv-section-certificates', '.section-block']
-            }
-        }).from(target).toPdf();
-        const pdf = await worker.get('pdf');
-        const totalPages = pdf.internal.getNumberOfPages();
-        for (let page = 1; page <= totalPages; page += 1) {
-            pdf.setPage(page);
-            pdf.setFontSize(8);
-            pdf.setTextColor(107, 114, 128);
-            pdf.text(`Page ${page}`, 197, 292, { align: 'right' });
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        showToast('Please allow pop-ups to print/download the resume.', 'error');
+        return null;
+    }
+
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+        .map(l => `<link rel="stylesheet" href="${l.href}">`).join('');
+
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>${title}</title><base href="${window.location.origin}/">${styles}
+        <style>
+          @page { margin: 0; }
+          * {
+            box-sizing: border-box;
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
+          }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            background: #fff !important;
+          }
+          /* Outer wrapper */
+          .resume-doc {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            min-height: auto !important;
+          }
+          /* Inner template div (resume-t1, resume-t33, ...) — this is the
+             one that has a hard-coded fixed pixel width in review-templates.css,
+             which is what was leaving blank space on the right. */
+          .resume-doc > [class^="resume-t"],
+          .resume-doc > [class*=" resume-t"] {
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          .rv-stb,
+          .rv-line-actions,
+          .edit-pen,
+          .photo-controls,
+          .template-edit-btn,
+          .extra-section-actions,
+          .no-print-export,
+          [data-rv-toolbar] { display:none !important; }
+          .editable-field { cursor:default !important; }
+          /* Keep headings and list/entry blocks from splitting awkwardly across pages */
+          .resume-doc h1, .resume-doc h2, .resume-doc h3, .resume-doc h4,
+          [class*="-item"], [class*="-block"], [class*="section"] {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          @media print {
+            html, body { margin:0 !important; padding:0 !important; background:#fff !important; }
+          }
+        </style></head>
+        <body>${resumeDoc.outerHTML}
+        <script>
+          // Chrome's print engine does not reliably fragment CSS flexbox
+          // layouts across page breaks — a flex child pushed to page 2 can
+          // shrink to its content width instead of staying stretched,
+          // which is what causes a narrow, centered block with dead space
+          // on both sides. Table layout paginates correctly, so right
+          // before printing we convert any flex container found in the
+          // resume into an equivalent table layout (same visual columns).
+          function convertFlexToTableForPrint() {
+            document.querySelectorAll('body *').forEach(function(el) {
+              var cs = window.getComputedStyle(el);
+              if (cs.display !== 'flex' || !el.children.length) return;
+              var isColumn = cs.flexDirection === 'column' || cs.flexDirection === 'column-reverse';
+              if (isColumn) return; // table conversion only helps row (side-by-side) layouts
+              el.style.display = 'table';
+              el.style.width = '100%';
+              el.style.tableLayout = 'auto';
+              el.style.borderSpacing = '0';
+              Array.from(el.children).forEach(function(child) {
+                var ccs = window.getComputedStyle(child);
+                var grow = parseFloat(ccs.flexGrow) || 0;
+                child.style.display = 'table-cell';
+                child.style.verticalAlign = 'top';
+                child.style.float = 'none';
+                if (grow > 0) { child.style.width = 'auto'; }
+              });
+            });
+          }
+          window.onload=()=>{
+            convertFlexToTableForPrint();
+            window.print();
+            ${closeAfterPrint ? 'window.onafterprint=()=>window.close();' : ''}
+          };
+        <\/script></body></html>`);
+    printWindow.document.close();
+    if (onReadyToast) showToast(onReadyToast);
+    return printWindow;
+}
+
+function createResumePdfExportClone(resumeDoc) {
+    const clone = resumeDoc.cloneNode(true);
+    const rect = resumeDoc.getBoundingClientRect();
+    const width = Math.ceil(rect.width || resumeDoc.scrollWidth || 660);
+    const height = Math.ceil(resumeDoc.scrollHeight || rect.height || width * 1.4142);
+
+    clone.querySelectorAll('.rv-stb, .rv-line-actions, .edit-pen, .photo-controls, .template-edit-btn, .extra-section-actions, .no-print-export, [data-rv-toolbar]').forEach(node => node.remove());
+    clone.removeAttribute('contenteditable');
+    clone.style.setProperty('width', width + 'px', 'important');
+    clone.style.setProperty('max-width', width + 'px', 'important');
+    clone.style.setProperty('min-height', '0', 'important');
+    clone.style.setProperty('margin', '0', 'important');
+    clone.style.setProperty('padding', '0', 'important');
+    clone.style.setProperty('box-shadow', 'none', 'important');
+    clone.style.setProperty('border-radius', '0', 'important');
+    clone.style.setProperty('background', '#ffffff', 'important');
+
+    clone.querySelectorAll('[class^="resume-t"], [class*=" resume-t"], .resume-frame').forEach(inner => {
+        inner.style.setProperty('margin', '0', 'important');
+        inner.style.setProperty('box-shadow', 'none', 'important');
+    });
+    markPdfNoBreakElements(clone);
+    normalizePdfAvatarPlaceholders(clone);
+
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '0';
+    wrapper.style.top = '0';
+    wrapper.style.zIndex = '-1000';
+    wrapper.style.width = width + 'px';
+    wrapper.style.margin = '0';
+    wrapper.style.padding = '0';
+    wrapper.style.background = '#fff';
+    wrapper.style.overflow = 'hidden';
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    return { wrapper, clone, width, height };
+}
+
+function refreshPdfExportNodeSize(exportNode) {
+    if (!exportNode || !exportNode.clone) return exportNode;
+    exportNode.height = Math.ceil(exportNode.clone.scrollHeight || exportNode.clone.getBoundingClientRect().height || exportNode.height);
+    return exportNode;
+}
+
+function applyPdfCompactMode(exportNode) {
+    if (!exportNode || !exportNode.clone || exportNode.clone.classList.contains('pdf-compact-export')) return;
+    const clone = exportNode.clone;
+    clone.classList.add('pdf-compact-export');
+    clone.querySelectorAll('*').forEach(node => {
+        if (!(node instanceof HTMLElement)) return;
+        const computed = window.getComputedStyle(node);
+        const fontSize = parseFloat(computed.fontSize);
+        if (Number.isFinite(fontSize) && fontSize >= 8) {
+            node.style.setProperty('font-size', Math.max(7.5, fontSize * 0.98).toFixed(2) + 'px', 'important');
         }
-        return { worker, pdf, cleanFileName };
-    } catch (e) {
-        showToast('PDF generator unavailable. Opening print dialog instead.', 'error');
+        const lineHeight = parseFloat(computed.lineHeight);
+        if (Number.isFinite(lineHeight) && lineHeight > 10) {
+            node.style.setProperty('line-height', Math.max(9, lineHeight * 0.98).toFixed(2) + 'px', 'important');
+        }
+        ['marginTop', 'marginBottom', 'paddingTop', 'paddingBottom'].forEach(prop => {
+            const value = parseFloat(computed[prop]);
+            if (Number.isFinite(value) && value > 3) {
+                node.style.setProperty(prop.replace(/[A-Z]/g, m => '-' + m.toLowerCase()), Math.max(1, value * 0.92).toFixed(2) + 'px', 'important');
+            }
+        });
+    });
+    refreshPdfExportNodeSize(exportNode);
+}
+
+function markPdfNoBreakElements(clone) {
+    clone.querySelectorAll('.resume-section, .experience-item, .section-block, .t1-job').forEach(node => {
+        node.style.setProperty('break-inside', 'auto', 'important');
+        node.style.setProperty('page-break-inside', 'auto', 'important');
+    });
+
+    clone.querySelectorAll([
+        '.project-item',
+        '.education-item',
+        '.certification-item',
+        '.extra-user-section',
+        '.t1-edu-item',
+        '.t25-job',
+        '[class*="-edu-item"]',
+        '[class*="-project"]'
+    ].join(',')).forEach(node => {
+        node.classList.add('no-break');
+        node.style.setProperty('break-inside', 'avoid', 'important');
+        node.style.setProperty('page-break-inside', 'avoid', 'important');
+    });
+
+    clone.querySelectorAll('.t1-section-title, [class*="-sec-title"], h1, h2, h3, h4').forEach(node => {
+        node.classList.add('no-break-heading');
+        node.style.setProperty('break-after', 'avoid', 'important');
+        node.style.setProperty('page-break-after', 'avoid', 'important');
+    });
+}
+
+function normalizePdfAvatarPlaceholders(clone) {
+    const name = (resumeData && resumeData.fullName ? resumeData.fullName : 'Resume').trim();
+    const initial = (name || 'R').charAt(0).toUpperCase();
+    clone.querySelectorAll('.t1-avatar-wrap').forEach(wrap => {
+        wrap.querySelectorAll('img').forEach(img => img.remove());
+        wrap.textContent = initial;
+        wrap.style.setProperty('display', 'flex', 'important');
+        wrap.style.setProperty('align-items', 'center', 'important');
+        wrap.style.setProperty('justify-content', 'center', 'important');
+        wrap.style.setProperty('background', 'linear-gradient(135deg,#7c3aed,#4f46e5)', 'important');
+        wrap.style.setProperty('color', '#ffffff', 'important');
+        wrap.style.setProperty('font-size', '28px', 'important');
+        wrap.style.setProperty('font-weight', '800', 'important');
+        wrap.style.setProperty('line-height', '1', 'important');
+        wrap.style.setProperty('text-align', 'center', 'important');
+        wrap.style.setProperty('overflow', 'visible', 'important');
+        wrap.style.setProperty('box-shadow', '0 4px 16px rgba(0,0,0,.18)', 'important');
+    });
+    clone.querySelectorAll('.t1-avatar-placeholder').forEach(avatar => {
+        avatar.textContent = avatar.textContent.trim() || initial;
+        avatar.style.setProperty('display', 'flex', 'important');
+        avatar.style.setProperty('align-items', 'center', 'important');
+        avatar.style.setProperty('justify-content', 'center', 'important');
+        avatar.style.setProperty('width', '100%', 'important');
+        avatar.style.setProperty('height', '100%', 'important');
+        avatar.style.setProperty('border-radius', '50%', 'important');
+        avatar.style.setProperty('background', 'linear-gradient(135deg,#7c3aed,#4f46e5)', 'important');
+        avatar.style.setProperty('color', '#ffffff', 'important');
+        avatar.style.setProperty('font-size', '28px', 'important');
+        avatar.style.setProperty('font-weight', '800', 'important');
+        avatar.style.setProperty('line-height', '1', 'important');
+    });
+}
+
+function getPdfSafeBreaks(exportNode, pageHeightPx, scale, repeatedPageTopPaddingPx = 0) {
+    const safeBreaks = [];
+    const firstPageHeightCss = pageHeightPx / scale;
+    const repeatedPageHeightCss = (pageHeightPx - repeatedPageTopPaddingPx) / scale;
+    const rootRect = exportNode.clone.getBoundingClientRect();
+    const headingSelector = [
+        '.t1-section-title',
+        '.section-title',
+        '.section-block > div:first-child',
+        '[class*="-sec-title"]',
+        '[class*="section-title"]',
+        'h1',
+        'h2',
+        'h3',
+        'h4'
+    ].join(',');
+    const avoidSelector = [
+        '.t1-job',
+        '.t1-edu-item',
+        '.project-item',
+        '.education-item',
+        '.certification-item',
+        '.extra-user-section',
+        '[class*="-job"]',
+        '[class*="-edu-item"]',
+        '[class*="-project"]',
+        '[class*="-skill"]'
+    ].join(',');
+    const protectedBlocks = Array.from(exportNode.clone.querySelectorAll(headingSelector))
+        .map(node => {
+            const rect = node.getBoundingClientRect();
+            return {
+                top: Math.round(rect.top - rootRect.top),
+                bottom: Math.round(rect.bottom - rootRect.top)
+            };
+        })
+        .filter(block => block.bottom > block.top && block.top > 80)
+        .sort((a, b) => a.top - b.top);
+    const candidates = protectedBlocks.map(block => block.top)
+        .sort((a, b) => a - b);
+    const avoidBlocks = Array.from(exportNode.clone.querySelectorAll(avoidSelector))
+        .map(node => {
+            const rect = node.getBoundingClientRect();
+            return {
+                top: Math.round(rect.top - rootRect.top),
+                bottom: Math.round(rect.bottom - rootRect.top),
+                height: Math.round(rect.height)
+            };
+        })
+        .filter(block => block.bottom > block.top && block.top > 120 && block.height <= repeatedPageHeightCss * 0.72)
+        .sort((a, b) => a.top - b.top);
+
+    let currentStart = 0;
+    let nextTarget = firstPageHeightCss;
+    const maxHeightCss = exportNode.height;
+    while (nextTarget < maxHeightCss - 40) {
+        const usableHeightCss = currentStart === 0 ? firstPageHeightCss : repeatedPageHeightCss;
+        const minUsefulBreak = Math.max(currentStart + 140, nextTarget - usableHeightCss + 120);
+        const boundary = nextTarget - 20;
+        const crossingBlock = avoidBlocks.find(block =>
+            block.top < boundary &&
+            block.bottom > boundary &&
+            block.top >= minUsefulBreak
+        );
+        const lower = Math.max(minUsefulBreak, nextTarget - 420);
+        const upper = nextTarget - 24;
+        const candidateBreak = candidates.filter(y => y >= lower && y <= upper).pop();
+        let safeCss = crossingBlock ? crossingBlock.top : (candidateBreak || nextTarget);
+        const tinyNextBlock = avoidBlocks.find(block =>
+            block.top >= safeCss + 8 &&
+            block.top < nextTarget + 70 &&
+            block.bottom - safeCss < 150 &&
+            block.top >= minUsefulBreak
+        );
+        if (!crossingBlock && tinyNextBlock) {
+            safeCss = tinyNextBlock.top;
+        }
+        safeBreaks.push(Math.round(safeCss * scale));
+        currentStart = safeCss;
+        nextTarget = currentStart + repeatedPageHeightCss;
+    }
+    return safeBreaks;
+}
+
+async function renderResumePdfCanvas(exportNode) {
+    refreshPdfExportNodeSize(exportNode);
+    const canvas = await html2canvas(exportNode.clone, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0,
+        width: exportNode.width,
+        height: exportNode.height,
+        windowWidth: exportNode.width,
+        windowHeight: exportNode.height
+    });
+    const pageWidth = canvas.width;
+    const pageHeight = Math.round(pageWidth * 1.4142);
+    const scale = canvas.width / exportNode.width;
+    const repeatedPageTopPadding = Math.round(pageWidth * (10 / 210));
+    const breakPoints = getPdfSafeBreaks(exportNode, pageHeight, scale, repeatedPageTopPadding);
+    const sliceStarts = [0, ...breakPoints, canvas.height];
+    const lastPageContentPx = sliceStarts.length > 1 ? Math.max(0, sliceStarts[sliceStarts.length - 1] - sliceStarts[sliceStarts.length - 2]) : canvas.height;
+    return { canvas, pageWidth, pageHeight, scale, repeatedPageTopPadding, sliceStarts, lastPageContentPx };
+}
+
+function buildPdfFromRenderedCanvas(rendered, JsPDF) {
+    const { canvas, pageWidth, pageHeight, repeatedPageTopPadding, sliceStarts } = rendered;
+    const pdf = new JsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [pageWidth, pageHeight],
+        compress: true
+    });
+    const pageCanvas = document.createElement('canvas');
+    const pageCtx = pageCanvas.getContext('2d');
+    pageCanvas.width = pageWidth;
+    pageCanvas.height = pageHeight;
+
+    for (let pageIndex = 0; pageIndex < sliceStarts.length - 1; pageIndex++) {
+        const renderedHeight = sliceStarts[pageIndex];
+        const pageTopPadding = pageIndex === 0 ? 0 : repeatedPageTopPadding;
+        const availablePageHeight = pageHeight - pageTopPadding;
+        const sliceHeight = Math.min(availablePageHeight, sliceStarts[pageIndex + 1] - renderedHeight);
+        if (sliceHeight <= 0) continue;
+        pageCtx.fillStyle = '#ffffff';
+        pageCtx.fillRect(0, 0, pageWidth, pageHeight);
+        pageCtx.drawImage(canvas, 0, renderedHeight, pageWidth, sliceHeight, 0, pageTopPadding, pageWidth, sliceHeight);
+        if (pageIndex > 0) pdf.addPage([pageWidth, pageHeight], 'portrait');
+        pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, pageWidth, pageHeight);
+    }
+    return pdf;
+}
+
+async function buildResumePdfDocument() {
+    const resumeDoc = document.getElementById('resumeDoc');
+    if (!resumeDoc) {
+        showToast('Resume preview is not ready.', 'error');
+        return null;
+    }
+    const JsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : window.jsPDF;
+    if (typeof html2canvas !== 'function' || typeof JsPDF !== 'function') {
+        showToast('PDF downloader is still loading. Please try again in a moment.', 'error');
+        return null;
+    }
+
+    const exportNode = createResumePdfExportClone(resumeDoc);
+
+    try {
+        let rendered = await renderResumePdfCanvas(exportNode);
+        const tinyTailCss = rendered.lastPageContentPx / rendered.scale;
+        if (rendered.sliceStarts.length > 1 && tinyTailCss > 0 && tinyTailCss < 180) {
+            applyPdfCompactMode(exportNode);
+            const compactRendered = await renderResumePdfCanvas(exportNode);
+            if (compactRendered.sliceStarts.length < rendered.sliceStarts.length || compactRendered.lastPageContentPx >= rendered.lastPageContentPx) {
+                rendered = compactRendered;
+            }
+        }
+        return buildPdfFromRenderedCanvas(rendered, JsPDF);
+    } catch (err) {
+        console.error('PDF generation failed:', err);
+        showToast('PDF generation failed. Please try again.', 'error');
         return null;
     } finally {
-        if (holder && holder.parentNode) holder.parentNode.removeChild(holder);
+        exportNode.wrapper.remove();
     }
 }
 
 async function downloadAsPDF(fileName) {
-    const generated = await generateResumePdf(fileName);
-    if (generated) {
-        await generated.worker.save();
+    const safeName = sanitizeDownloadName(fileName) + '.pdf';
+    const pdf = await buildResumePdfDocument();
+    if (!pdf) return;
+
+    try {
+        pdf.save(safeName);
         showToast('✓ PDF downloaded!');
-        return;
+    } catch (err) {
+        console.error('PDF download failed:', err);
+        showToast('PDF download failed. Please try again.', 'error');
     }
-
-    const resumeDoc = document.getElementById('resumeDoc');
-    if (!resumeDoc) {
-        showToast('Resume preview is not ready.', 'error');
-        return;
-    }
-    const printableHtml = getPrintableResumeHtml(resumeDoc);
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-        showToast('Please allow pop-ups to download the resume.', 'error');
-        return;
-    }
-    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-        .map(l => `<link rel="stylesheet" href="${l.href}">`).join('');
-    printWindow.document.write(`<!DOCTYPE html><html><head><title></title><base href="${window.location.origin}/">${styles}
-        <style>${getResumePrintCss(true)}</style></head>
-        <body>${printableHtml}
-        <script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
-    printWindow.document.close();
-    showToast('✓ PDF download initiated!');
 }
-
-async function openResumePdfPreview(fileName) {
-    const generated = await generateResumePdf(fileName);
-    if (!generated) return false;
-    const blobUrl = generated.pdf.output('bloburl');
-    const pdfWindow = window.open(blobUrl, '_blank');
-    if (!pdfWindow) {
-        showToast('Please allow pop-ups to open the clean PDF preview.', 'error');
-        return false;
-    }
-    showToast('Clean PDF opened. Use the PDF print button.');
-    return true;
+// Compatibility shim: some pages/buttons call downloadResumePdfNow() directly
+// (bypassing the format-selection modal) — wire it to the same working logic.
+function downloadResumePdfNow() {
+    const fileName = (resumeData.fullName || 'My_Resume').replace(/\s+/g, '_') + '_Resume';
+    downloadAsPDF(fileName);
 }
+window.downloadResumePdfNow = downloadResumePdfNow;
 // ── WORD (.docx) DOWNLOAD ────────────────────────────────────
 function downloadAsWord(fileName) {
     const resumeDoc = document.getElementById('resumeDoc');
@@ -8082,7 +8080,7 @@ function cloneResumeWithInlineStyles(resumeDoc) {
     const clone = resumeDoc.cloneNode(true);
     const sourceNodes = [resumeDoc, ...resumeDoc.querySelectorAll('*')];
     const cloneNodes = [clone, ...clone.querySelectorAll('*')];
-    const removeSelector = '.rv-stb, .rv-line-actions, .rv-line-pb-btn, .edit-pen, .photo-controls, .template-edit-btn, [data-rv-toolbar], button[onclick*="openExtraSectionEdit"], button[onclick*="openEditModal"], button[title^="Edit"]';
+    const removeSelector = '.rv-stb, .rv-line-actions, .edit-pen, .photo-controls, .template-edit-btn, .extra-section-actions, .no-print-export, [data-rv-toolbar]';
 
     clone.querySelectorAll(removeSelector).forEach(node => node.remove());
     clone.classList.add('resume-doc-word-export');
@@ -8111,66 +8109,13 @@ function cloneResumeWithInlineStyles(resumeDoc) {
     return clone;
 }
 
-function getPrintableResumeHtml(resumeDoc) {
-    const clone = resumeDoc.cloneNode(true);
-    const removeSelector = [
-        '.rv-stb',
-        '.rv-line-actions',
-        '.rv-line-pb-btn',
-        '.edit-pen',
-        '.photo-controls',
-        '.template-edit-btn',
-        '[data-rv-toolbar]',
-        'button[onclick*="openExtraSectionEdit"]',
-        'button[onclick*="openEditModal"]',
-        'button[title^="Edit"]'
-    ].join(', ');
-
-    clone.querySelectorAll(removeSelector).forEach(node => node.remove());
-    clone.querySelectorAll('[data-force-page-break="true"]').forEach(node => {
-        node.removeAttribute('data-force-page-break');
-    });
-    const pullHeadingIntoSection = (selector, label) => clone.querySelectorAll(selector).forEach(section => {
-        const prev = section.previousElementSibling;
-        if (prev && new RegExp(`^${label}$`, 'i').test((prev.textContent || '').trim())) {
-            section.insertBefore(prev, section.firstChild);
-        }
-    });
-    const wrapLooseHeadingWithContent = (label, id) => {
-        Array.from(clone.querySelectorAll('div, section, article')).forEach(heading => {
-            if (heading.id === id || heading.closest(`#${id}`)) return;
-            if (!new RegExp(`^${label}$`, 'i').test((heading.textContent || '').trim())) return;
-            const content = heading.nextElementSibling;
-            if (!content || content.id || /^(projects|certifications|skills|experience|profile|summary|contact|education)$/i.test((content.textContent || '').trim())) return;
-            const wrapper = document.createElement('div');
-            wrapper.id = id;
-            wrapper.className = 'section-block';
-            heading.parentNode.insertBefore(wrapper, heading);
-            wrapper.appendChild(heading);
-            wrapper.appendChild(content);
-        });
-    };
-    pullHeadingIntoSection('#rv-projects-section', 'projects');
-    pullHeadingIntoSection('#rv-edu-section', 'education');
-    wrapLooseHeadingWithContent('education', 'rv-edu-section');
-    wrapLooseHeadingWithContent('projects', 'rv-projects-section');
-    clone.querySelectorAll('[data-rv-tb-host], [data-rv-line-host], .editable-field').forEach(node => {
-        node.removeAttribute('onclick');
-        node.removeAttribute('contenteditable');
-        node.style.cursor = 'default';
-        node.style.outline = 'none';
-    });
-
-    return clone.outerHTML;
-}
-
 function buildResumeWordHtml(resumeDoc) {
     const clone = cloneResumeWithInlineStyles(resumeDoc);
     return `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
 <meta charset="utf-8">
-<title></title>
+<title>Resume</title>
 <style>
 @page WordSection1 { size: 8.27in 11.69in; margin: 0.25in; }
 body { margin:0; padding:0; background:#ffffff; }
@@ -8553,115 +8498,26 @@ function downloadAsPlainText(fileName) {
 // PRINT / SHARE / SAVE
 // ============================================================
 async function printResume() {
-    const resumeDoc = document.getElementById('resumeDoc');
-    if (!resumeDoc) {
-        showToast('Resume preview is not ready.', 'error');
-        return;
-    }
-    if (!isLoggedIn) {
-        redirectToLoginForDownload();
-        return;
-    }
-    if (!isPaidPlan(userPlan) && Number(resumeDownloads || 0) >= 1) {
-        showUpgradePlanPopup('DOWNLOAD_LIMIT');
-        return;
-    }
-    if (!resumeId) {
-        showToast('Please save your resume before printing.', 'error');
-        return;
-    }
-    try {
-        const res = await fetch(`${API_BASE}/${resumeId}/download`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ format: 'print' })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || data.success === false) {
-            if (data.requireLogin) {
-                redirectToLoginForDownload();
-                return;
-            }
-            if (data.upgradeRequired) {
-                showUpgradePlanPopup(data.reason || 'DOWNLOAD_LIMIT');
-                return;
-            }
-            showToast(data.message || 'Print is not available right now.', 'error');
-            return;
-        }
-        resumeDownloads += 1;
-    } catch (e) {
-        showToast('Print failed. Check your connection.', 'error');
-        return;
-    }
-
-    const openedCleanPdf = await openResumePdfPreview((resumeData.fullName || 'My_Resume') + '_Resume');
-    if (openedCleanPdf) return;
-
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-        showToast('Please allow pop-ups to print the resume.', 'error');
+        showToast('Please allow pop-ups to open the printable PDF.', 'error');
         return;
     }
-
-    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-        .map(link => `<link rel="stylesheet" href="${link.href}">`)
-        .join('');
-
-    printWindow.document.write(`<!DOCTYPE html><html><head><title></title><base href="${window.location.origin}/">${styles}
-        <style>${getResumePrintCss(true)}</style></head>
-        <body>${getPrintableResumeHtml(resumeDoc)}
-        <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}<\/script></body></html>`);
-    printWindow.document.close();
+    printWindow.document.write('<!DOCTYPE html><title>Preparing resume...</title><body style="font-family:Arial,sans-serif;padding:24px;">Preparing resume PDF...</body>');
+    const pdf = await buildResumePdfDocument();
+    if (!pdf) {
+        printWindow.close();
+        return;
+    }
+    const blob = pdf.output('blob');
+    const url = URL.createObjectURL(blob);
+    printWindow.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
-function openShareEmailModal() {
-    if (!isLoggedIn) {
-        redirectToLoginForDownload();
-        return;
-    }
-    if (!resumeId) {
-        showToast('Please save your resume before sharing.', 'error');
-        return;
-    }
-    const modal = document.getElementById('shareEmailModal');
-    const input = document.getElementById('shareEmailRecipient');
-    if (input) input.value = (resumeData.email || '').trim();
-    if (modal) modal.style.display = 'flex';
-    setTimeout(() => { if (input) input.focus(); }, 100);
-}
-
-function closeShareEmailModal() {
-    const modal = document.getElementById('shareEmailModal');
-    if (modal) modal.style.display = 'none';
-}
-
-async function confirmShareEmail() {
-    const input = document.getElementById('shareEmailRecipient');
-    const email = (input ? input.value : '').trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        showToast('Please enter a valid email address.', 'error');
-        return;
-    }
-    const btn = document.getElementById('shareEmailConfirmBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-    try {
-        const res = await fetch(`${API_BASE}/${resumeId}/share-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, resumeUrl: window.location.href })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || data.success === false) {
-            showToast(data.message || 'Could not send resume email.', 'error');
-            return;
-        }
-        showToast(data.message || 'Resume email sent!');
-        closeShareEmailModal();
-    } catch (e) {
-        showToast('Could not send resume email. Please try again.', 'error');
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
-    }
+function shareEmail() {
+    const subject = encodeURIComponent('My Resume - ' + (resumeData.fullName || ''));
+    const body    = encodeURIComponent('View my resume at: ' + window.location.href);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
 }
 async function saveResume() {
     if (!isLoggedIn) {
@@ -11242,9 +11098,9 @@ function buildTemplate22ProperTemplate({ resumeData: d, edu, skills, projects, e
       ${summary ? `<div class="t22-green-btn" style="background:${accent};">Profile</div><div class="editable-field section-block" style="font-size:10px;color:#555;line-height:1.6;margin:6px 0 12px;cursor:pointer;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>` : ''}
       <div class="t22-green-btn" style="background:${accent};">Experience</div>
       <div class="section-block editable-field" id="rv-experience-section" style="margin-top:8px;" ${editBtn('experienceJson','Experience','')}>${expHTML}<span class="edit-pen" style="font-size:10px;">✏</span></div>
-      ${projects.length ? `<div class="t22-green-btn" style="background:${accent};margin-top:12px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" style="margin-top:8px;" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t22-exp-item"><div class="t22-exp-title">${p.title||p.name||''}</div><div class="t22-exp-co">${p.tools||''}</div><div class="t22-exp-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')}<span class="edit-pen">✏</span></div>` : ''}
+      ${projects.length ? `<div class="t22-green-btn" style="background:${accent};margin-top:12px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" style="margin-top:8px;" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t22-exp-item"><div class="t22-exp-title">${p.title||p.name||''}</div><div class="t22-exp-co">${p.tools||''}</div><div class="t22-exp-desc">${p.description||''}</div></div>`).join('')}<span class="edit-pen">✏</span></div>` : ''}
       ${d.certifications ? `<div class="t22-green-btn" style="background:${accent};margin-top:12px;">Certifications</div><div class="editable-field section-block" style="font-size:10px;color:#555;margin-top:6px;cursor:pointer;" ${editBtn('certifications','Certifications',d.certifications||'')}>${d.certifications} <span class="edit-pen">✏</span></div>` : ''}
-      ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
+      ${buildExtraSections(accent)}
     </div>
   </div>
 </div>`;
@@ -11508,89 +11364,6 @@ let _rvUndoTimer  = null;
 
 const _EDIT_SVG = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
 const _DEL_SVG  = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
-
-// ============================================================
-// MANUAL "START ON NEW PAGE" CONTROLS (sections + individual lines)
-// ============================================================
-function _rvPageBreakKey(field, index) {
-    return 'pb__' + String(field || 'section') + (index !== null && index !== undefined && index !== '' ? ('__' + index) : '');
-}
-
-function _rvApplyPageBreakState(el, key) {
-    if (!el) return false;
-    resumeData.pageBreaks = resumeData.pageBreaks || {};
-    const active = !!resumeData.pageBreaks[key];
-    if (active) el.setAttribute('data-force-page-break', 'true');
-    else el.removeAttribute('data-force-page-break');
-    return active;
-}
-
-function _rvTogglePageBreak(el, key, btn, activeClass) {
-    resumeData.pageBreaks = resumeData.pageBreaks || {};
-    const nowActive = !resumeData.pageBreaks[key];
-    if (nowActive) resumeData.pageBreaks[key] = true;
-    else delete resumeData.pageBreaks[key];
-    _rvApplyPageBreakState(el, key);
-    try { sessionStorage.setItem('resumeData', JSON.stringify(resumeData)); } catch (e) {}
-    if (typeof persistField === 'function') { try { persistField('pageBreaksJson', JSON.stringify(resumeData.pageBreaks)); } catch (e) {} }
-    if (btn) {
-        btn.classList.toggle(activeClass || 'rv-stb-pb-active', nowActive);
-        btn.title = nowActive ? 'Remove page break' : 'Start this on a new printed page';
-        const labelEl = btn.querySelector('.rv-pb-label');
-        if (labelEl) labelEl.textContent = nowActive ? 'On new page' : 'New page';
-        else btn.textContent = nowActive ? '✓ New page' : '⤓ New page';
-    }
-    if (typeof showToast === 'function') {
-        showToast(nowActive ? '✓ Will start on a new page when printed/downloaded' : 'Page break removed');
-    }
-}
-
-// Adds a small hover-only "New page" toggle to individual entries (one job,
-// one project, one education line) so a specific entry — not just a whole
-// section — can be pushed to start on a fresh printed page.
-function injectLinePageBreakControls() {
-    const doc = document.getElementById('resumeDoc');
-    if (!doc) return;
-    doc.querySelectorAll('.rv-line-pb-btn').forEach(b => b.remove());
-
-    const groups = [
-        { field: 'experienceJson', selector: '#rv-experience-section [class*="-job"]' },
-        { field: 'projectsJson',   selector: '#rv-projects-section [class*="-job"], #rv-projects-section [class*="-project-item"]' },
-        { field: 'educationJson',  selector: '[class*="-edu-item"]' }
-    ];
-
-    groups.forEach(g => {
-        const items = doc.querySelectorAll(g.selector);
-        items.forEach((itemEl, idx) => {
-            if (itemEl.querySelector(':scope > .rv-line-pb-btn')) return;
-            if (!itemEl.style.position || itemEl.style.position === 'static') itemEl.style.position = 'relative';
-            const key = _rvPageBreakKey(g.field, idx);
-            const active = _rvApplyPageBreakState(itemEl, key);
-
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'rv-line-pb-btn' + (active ? ' rv-line-pb-active' : '');
-            btn.textContent = active ? '✓ New page' : '⤓ New page';
-            btn.title = active ? 'Remove page break' : 'Start this entry on a new printed page';
-            btn.addEventListener('click', e => {
-                e.stopPropagation();
-                _rvTogglePageBreak(itemEl, key, btn, 'rv-line-pb-active');
-            });
-
-            const show = () => { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; };
-            const hide = (evt) => {
-                if (evt?.relatedTarget && (itemEl.contains(evt.relatedTarget) || btn.contains(evt.relatedTarget))) return;
-                btn.style.opacity = '0'; btn.style.pointerEvents = 'none';
-            };
-            itemEl.addEventListener('mouseenter', show);
-            itemEl.addEventListener('mouseleave', hide);
-            btn.addEventListener('mouseenter', show);
-            btn.addEventListener('mouseleave', hide);
-
-            itemEl.appendChild(btn);
-        });
-    });
-}
 
 function _makeToolbar(field, label, canDelete, sectionEl) {
     const tb = document.createElement('div');
@@ -12755,9 +12528,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
         ? `<div class="editable-field section-block" style="font-size:12px;color:#555;line-height:1.7;cursor:pointer;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`
         : '';
     const experienceBlock = `<div class="section-block" id="rv-experience-section"><div class="editable-field" ${editBtn('experienceJson','Experience','')}>${experienceHTML || `<div style="font-size:11px;color:#9ca3af;cursor:pointer;">Add work experience ✏</div>`}<span class="edit-pen" style="font-size:10px;">✏</span></div></div>`;
-    const educationMainBlock = `<div class="section-block" id="rv-edu-section">${secHead('Education')}<div class="editable-field" style="cursor:pointer;font-size:11px;color:#374151;" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="font-size:10px;color:#9ca3af;">Add education</div>`}<span class="edit-pen">✏</span></div></div>`;
-    const educationSideBlock = `<div class="section-block" id="rv-edu-section">${sideHead('Education')}<div class="editable-field" style="cursor:pointer;font-size:11px;color:#334155;" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="font-size:10px;color:#94a3b8;">Add education</div>`}<span class="edit-pen">✏</span></div></div>`;
-    const projectsBlock = projectsHTML ? `<div class="section-block" id="rv-projects-section">${secHead('Projects')}<div class="editable-field" ${editBtn('projectsJson','Projects','')}>${projectsHTML}<span class="edit-pen">✏</span></div></div>` : '';
+    const projectsBlock = projectsHTML ? `<div class="section-block" id="rv-projects-section"><div class="editable-field" ${editBtn('projectsJson','Projects','')}>${projectsHTML}<span class="edit-pen">✏</span></div></div>` : '';
     const certBlock = d.certifications ? `<div class="editable-field section-block" style="font-size:12px;color:#374151;line-height:1.7;cursor:pointer;" ${editBtn('certifications','Certifications',d.certifications || '')}>${d.certifications} <span class="edit-pen">✏</span></div>` : '';
     const awardsBlock = d.awards ? `<div class="editable-field section-block" style="font-size:12px;color:#374151;line-height:1.7;cursor:pointer;" ${editBtn('awards','Awards',d.awards || '')}>${d.awards} <span class="edit-pen">✏</span></div>` : '';
 
@@ -12784,20 +12555,21 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
             </div>
             ${summaryBlock ? `${secHead('Profile')}${summaryBlock}` : ''}
             <div style="display:flex;gap:22px;align-items:flex-start;">
-                <div class="rv-sidebar-col" style="width:200px;flex-shrink:0;">
-                    ${educationMainBlock}
+                <div style="width:200px;flex-shrink:0;">
+                    ${secHead('Education')}
+                    <div class="editable-field section-block" style="cursor:pointer;font-size:11px;color:#374151;" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="font-size:10px;color:#9ca3af;">Add education</div>`}<span class="edit-pen">✏</span></div>
                     ${secHead('Skills')}
                     <div class="editable-field section-block" style="cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson || '[]')}>${skillTags}<span class="edit-pen">✏</span></div>
                     ${secHead('Languages')}
                     <div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>
                 </div>
-                <div class="rv-main-col" style="flex:1;min-width:0;">
+                <div style="flex:1;min-width:0;">
                     ${secHead('Experience')}
                     ${experienceBlock}
-                    ${projectsBlock}
+                    ${projectsBlock ? `${secHead('Projects')}${projectsBlock}` : ''}
                     ${certBlock ? `${secHead('Certifications')}${certBlock}` : ''}
                     ${awardsBlock ? `${secHead('Awards')}${awardsBlock}` : ''}
-                    ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
+                    ${buildExtraSections(accent)}
                 </div>
             </div>
         </div>`;
@@ -12818,21 +12590,22 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
                 </div>
             </div>
             <div style="display:flex;min-height:770px;">
-                <div class="rv-sidebar-col" style="width:230px;flex-shrink:0;background:${theme.dark ? '#f8fafc' : panelBg};padding:22px 18px;">
+                <div style="width:230px;flex-shrink:0;background:${theme.dark ? '#f8fafc' : panelBg};padding:22px 18px;">
                     ${summaryBlock ? `${sideHead('Profile')}${summaryBlock}` : ''}
                     ${sideHead('Skills')}
                     <div class="editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson || '[]')}>${skillTags}<span class="edit-pen">✏</span></div>
-                    ${educationSideBlock}
+                    ${sideHead('Education')}
+                    <div class="editable-field section-block" style="cursor:pointer;font-size:11px;color:#334155;" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="font-size:10px;color:#94a3b8;">Add education</div>`}<span class="edit-pen">✏</span></div>
                     ${sideHead('Languages')}
                     <div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>
                 </div>
-                <div class="rv-main-col" style="flex:1;min-width:0;padding:22px 20px;">
+                <div style="flex:1;min-width:0;padding:22px 20px;">
                     ${secHead('Experience')}
                     ${experienceBlock}
-                    ${projectsBlock}
+                    ${projectsBlock ? `${secHead('Projects')}${projectsBlock}` : ''}
                     ${certBlock ? `${secHead('Certifications')}${certBlock}` : ''}
                     ${awardsBlock ? `${secHead('Awards')}${awardsBlock}` : ''}
-                    ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
+                    ${buildExtraSections(accent)}
                 </div>
             </div>
         </div>`;
@@ -12851,28 +12624,29 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:18px;">
-                <div class="rv-sidebar-col" style="background:${theme.dark ? '#f8fafc' : panelBg};padding:16px;border-top:4px solid ${accent};">
+                <div style="background:${theme.dark ? '#f8fafc' : panelBg};padding:16px;border-top:4px solid ${accent};">
                     ${secHead('Contact')}
                     <div class="editable-field section-block" style="font-size:11px;color:#475569;line-height:1.8;cursor:pointer;" ${editBtn('email','Email','')}>${contactHTML || 'Add contact'} <span class="edit-pen">✏</span></div>
                     ${secHead('Skills')}
                     <div class="editable-field section-block" style="cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson || '[]')}>${skillBars}<span class="edit-pen">✏</span></div>
-                    ${educationSideBlock}
+                    ${secHead('Education')}
+                    <div class="editable-field section-block" style="cursor:pointer;font-size:11px;color:#334155;" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="font-size:10px;color:#94a3b8;">Add education</div>`}<span class="edit-pen">✏</span></div>
                 </div>
-                <div class="rv-main-col" style="background:#fff;padding:16px;border-top:4px solid ${accent};">
+                <div style="background:#fff;padding:16px;border-top:4px solid ${accent};">
                     ${secHead('Experience')}
                     ${experienceBlock}
-                    ${projectsBlock}
+                    ${projectsBlock ? `${secHead('Projects')}${projectsBlock}` : ''}
                     ${d.languages ? `${secHead('Languages')}<div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
                     ${certBlock ? `${secHead('Certifications')}${certBlock}` : ''}
                     ${awardsBlock ? `${secHead('Awards')}${awardsBlock}` : ''}
-                    ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
+                    ${buildExtraSections(accent)}
                 </div>
             </div>
         </div>`;
     }
 
     return `<div style="display:flex;min-height:1040px;font-family:inherit;background:#fff;width:660px;">
-        <div class="rv-sidebar-col" style="width:210px;flex-shrink:0;background:${sidebarBg};padding:24px 16px;display:flex;flex-direction:column;align-items:center;">
+        <div style="width:210px;flex-shrink:0;background:${sidebarBg};padding:24px 16px;display:flex;flex-direction:column;align-items:center;">
             <div class="editable-field" style="cursor:pointer;text-align:center;" ${editBtn('profilePhoto','Profile Photo','')}>${photoHTML}</div>
             <div class="editable-field" style="font-size:18px;font-weight:900;color:${theme.dark ? '#fff' : '#0f172a'};text-align:center;margin-bottom:3px;cursor:pointer;width:100%;" ${editBtn('fullName','Full Name',name)}>${name} <span class="edit-pen" style="font-size:12px;">✏</span></div>
             <div class="editable-field" style="font-size:11px;color:${sidebarMuted};text-align:center;margin-bottom:16px;cursor:pointer;width:100%;" ${editBtn('jobTitle','Job Title',title)}>${title} <span class="edit-pen">✏</span></div>
@@ -12880,18 +12654,19 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
             <div style="width:100%;font-size:10px;color:${sidebarText};line-height:2;">${contactHTML || `<div style="font-size:10px;color:${sidebarMuted};cursor:pointer;" ${editBtn('phone','Phone','')}>Add contact ✏</div>`}</div>
             ${sideHead('Skills')}
             <div class="editable-field" style="width:100%;cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson || '[]')}>${skillBars}<span class="edit-pen" style="font-size:10px;color:${sidebarMuted};">✏</span></div>
-            ${educationSideBlock}
+            ${sideHead('Education')}
+            <div class="section-block editable-field" style="width:100%;cursor:pointer;font-size:10px;color:${sidebarText};" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="color:${sidebarMuted};">Add education ✏</div>`}<span class="edit-pen">✏</span></div>
             ${sideHead('Languages')}
             <div class="editable-field" style="width:100%;font-size:10px;color:${sidebarText};cursor:pointer;line-height:1.9;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>
         </div>
-        <div class="rv-main-col" style="flex:1;padding:20px 18px;background:#fff;min-width:0;">
+        <div style="flex:1;padding:20px 18px;background:#fff;min-width:0;">
             ${summaryBlock ? `${secHead('Profile Summary')}${summaryBlock}` : ''}
             ${secHead('Experience')}
             ${experienceBlock}
-            ${projectsBlock}
+            ${projectsBlock ? `${secHead('Projects')}${projectsBlock}` : ''}
             ${certBlock ? `${secHead('Certifications')}${certBlock}` : ''}
             ${awardsBlock ? `${secHead('Awards & Honors')}${awardsBlock}` : ''}
-            ${buildExtraSections(accent, '', ['certifications', 'certificates'])}
+            ${buildExtraSections(accent)}
         </div>
     </div>`;
 }
@@ -13046,7 +12821,7 @@ function buildTemplate11Template({ resumeData: d, edu, skills, projects, experie
           <div class="editable-field" style="font-size:10px;color:#555;line-height:1.6;cursor:pointer;" ${editBtn('profileSummary','Profile Summary',d.profileSummary||'')}>${summary}</div></div>`:''}
           ${expItems?`<div class="t11-sec"><div class="t11-sec-title" style="color:${accent};border-color:${accent};">Experience</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div></div>`:''}
-          ${projItems?`<div class="t11-sec section-block" id="rv-projects-section"><div class="t11-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
+          ${projItems?`<div class="t11-sec"><div class="t11-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
         </div>
       </div>
@@ -13111,8 +12886,8 @@ function buildTemplate12Template({ resumeData: d, edu, skills, projects, experie
         <div class="t12-br">
           ${expItems?`<div class="t12-sec-title" style="color:${accent};border-color:${accent};">Experience</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div>`:''}
-          ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t12-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
-          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
+          ${projItems?`<div class="t12-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
+          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
         </div>
       </div>
     </div>`;
@@ -13174,8 +12949,8 @@ function buildTemplate13Template({ resumeData: d, edu, skills, projects, experie
         <div class="t13-right">
           ${expItems?`<div class="t13-sec-title" style="color:${accent};border-color:${accent};">Experience</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div>`:''}
-          ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t13-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
-          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
+          ${projItems?`<div class="t13-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
+          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
           ${edu.length?`<div class="t13-sec-title" style="color:${accent};border-color:${accent};">Education</div>
           ${edu.map(e=>`<div class="t13-edu"><div class="t13-edu-deg">${e.degree||''}</div><div class="t13-edu-uni">${e.school||e.university||''} ${e.year?`· ${e.year}`:''}</div></div>`).join('')}`:''}
         </div>
@@ -13221,7 +12996,6 @@ function buildTemplate14Template({ resumeData: d, edu, skills, projects, experie
         <div class="t14-tl-content">
           <div class="t14-tl-title">${p.title||p.name||''}</div>
           ${p.tools?`<div class="t14-tl-co" style="color:${gold};">Tools: ${p.tools}</div>`:''}
-          <div class="t14-tl-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
         </div>
     </div>`).join('');
 
@@ -13243,7 +13017,7 @@ function buildTemplate14Template({ resumeData: d, edu, skills, projects, experie
         <div class="t14-tl-desc" style="color:#aab;">${summary}</div></div>`:''}
         ${expItems?`<div class="t14-sec-r"><div class="t14-sec-title-r" style="color:${gold};">Experience</div>
         <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div></div>`:''}
-        ${projItems?`<div class="t14-sec-r section-block" id="rv-projects-section"><div class="t14-sec-title-r" style="color:${gold};">Projects</div>
+        ${projItems?`<div class="t14-sec-r"><div class="t14-sec-title-r" style="color:${gold};">Projects</div>
         <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
       </div>
     </div>`;
@@ -13267,13 +13041,13 @@ function buildTemplate15Template({ resumeData: d, edu, skills, projects, experie
           <div class="t15-pos">${e.jobTitle||e.role||e.title||''}</div></div>
           <div class="t15-date">${(e.startDate||e.from||'').split('-')[0]||''} – ${(e.endDate||e.to||'Present').split('-')[0]||'Present'}</div>
         </div>
-        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t15-bullet"><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
+        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t15-bullet"><span>•</span><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
     </div>`).join('');
 
     const projItems = projects.map(p=>`<div style="margin-bottom:10px;">
         <div class="t15-org">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t15-pos">Tools: ${p.tools}</div>`:''}
-        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t15-bullet"><span>${b}</span></div>`).join('')}
+        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t15-bullet"><span>•</span><span>${b}</span></div>`).join('')}
     </div>`).join('');
 
     const skillItems = skills.map(s=>{
@@ -13305,8 +13079,8 @@ function buildTemplate15Template({ resumeData: d, edu, skills, projects, experie
           <div style="font-size:10px;color:#555;line-height:1.6;margin-bottom:10px;">${summary}</div>`:''}
           ${expItems?`<div class="t15-sec-title">Experience</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div>`:''}
-          ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t15-sec-title">Projects</div>
-          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
+          ${projItems?`<div class="t15-sec-title">Projects</div>
+          <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
         </div>
       </div>
     </div>`;
@@ -13344,7 +13118,6 @@ function buildTemplate16Template({ resumeData: d, edu, skills, projects, experie
     const projItems = projects.map(p=>`<div class="t16-exp-item">
         <div class="t16-exp-co">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t16-exp-role">Tools: ${p.tools}</div>`:''}
-        <div class="t16-exp-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
     </div>`).join('');
 
     const eduHTML = edu.map(e=>`<div style="margin-bottom:8px;">
@@ -13375,8 +13148,8 @@ function buildTemplate16Template({ resumeData: d, edu, skills, projects, experie
       <div class="t16-right">
         ${edu.length?`<div class="t16-right-sec" style="background:#e8e0d0;">Education</div>
         <div class="t16-right-body">${eduHTML}</div>`:''}
-        ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t16-right-sec" style="background:#e8e0d0;">Projects</div>
-        <div class="t16-right-body editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
+        ${projItems?`<div class="t16-right-sec" style="background:#e8e0d0;">Projects</div>
+        <div class="t16-right-body editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
       </div>
     </div>`;
 }
@@ -13440,8 +13213,8 @@ function buildTemplate18Template({ resumeData: d, edu, skills, projects, experie
           <div class="t18-col-left">
             ${empItems?`<div class="t18-sec-title" style="border-color:${accent};">Experience</div>
             <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${empItems}</div>`:''}
-            ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t18-sec-title" style="border-color:${accent};">Projects</div>
-            <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
+            ${projItems?`<div class="t18-sec-title" style="border-color:${accent};">Projects</div>
+            <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
           </div>
           <div class="t18-col-right">
             ${eduItems?`<div class="t18-sec-title" style="border-color:${accent};">Education</div>${eduItems}`:''}
@@ -13497,8 +13270,8 @@ function buildTemplate20Template({ resumeData: d, edu, skills, projects, experie
         ${summary?`<div class="t20-bio">${summary}</div>`:''}
         <div class="t20-sec-title-l">Experience</div>
         <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems||`<div style="font-size:10px;color:#aaa;">Add experience ✏</div>`}</div>
-        ${projItems?`<div class="section-block" id="rv-projects-section"><div class="t20-sec-title-l">Projects</div>
-        <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
+        ${projItems?`<div class="t20-sec-title-l">Projects</div>
+        <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
       </div>
       <div class="t20-right" style="border-color:${accent};">
         <div class="t20-sec-title-r">Contact</div>
@@ -13534,13 +13307,13 @@ function buildTemplate21Template({ resumeData: d, edu, skills, projects, experie
         <div class="t21-org">${e.company||''}</div>
         <div class="t21-pos">${e.jobTitle||e.role||e.title||''}</div>
         <div class="t21-date-row"><span>${e.startDate||e.from||''}</span><span>${e.endDate||e.to||'Present'}</span></div>
-        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t21-bullet"><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
+        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t21-bullet"><span>•</span><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
     </div>`).join('');
 
     const projItems = projects.map(p=>`<div style="margin-bottom:10px;">
         <div class="t21-org">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t21-pos">Tools: ${p.tools}</div>`:''}
-        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t21-bullet"><span>${b}</span></div>`).join('')}
+        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t21-bullet"><span>•</span><span>${b}</span></div>`).join('')}
     </div>`).join('');
 
     const skillItems = skills.map(s=>{
@@ -13599,13 +13372,13 @@ function buildTemplate24Template({ resumeData: d, edu, skills, projects, experie
         <div class="t24-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div>
         <div class="t24-job-title">${e.jobTitle||e.role||e.title||''}</div>
         <div class="t24-job-co">${e.company||''}</div>
-        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
+        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>-</span><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
     </div>`).join('');
 
     const projItems = projects.map(p=>`<div class="t24-job">
         <div class="t24-job-title">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t24-job-co">Tools: ${p.tools}</div>`:''}
-        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>${b}</span></div>`).join('')}
+        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>-</span><span>${b}</span></div>`).join('')}
     </div>`).join('');
 
     const skillItems = skills.map(s=>{

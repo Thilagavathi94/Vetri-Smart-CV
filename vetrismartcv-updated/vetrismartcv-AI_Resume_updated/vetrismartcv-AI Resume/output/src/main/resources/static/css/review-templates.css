@@ -288,14 +288,6 @@
     .t39-skill-track { height:5px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden; }
     .t39-skill-fill { height:100%;background:#00bcd4;border-radius:3px; }
     .t39-lang-item { font-size:10px;color:rgba(255,255,255,0.8);margin-bottom:4px; }
-    .t39-right .t39-exp-date,
-    .t39-right .t39-exp-org { color:rgba(255,255,255,0.62); }
-    .t39-right .t39-exp-title { color:#fff; }
-    .t39-right .t39-exp-desc { color:rgba(255,255,255,0.78); }
-    .t39-right .extra-user-section .extra-section-content,
-    .t39-right .extra-user-section .extra-section-content div {
-      color:rgba(255,255,255,0.78) !important;
-    }
     .resume-t40 { width:660px;background:#fff;font-family:'DM Sans',sans-serif;font-size:11.5px;color:#333; overflow:hidden; box-sizing:border-box;}
     .t40-top { padding:18px 24px 12px; }
     .t40-name { font-size:26px;font-weight:900;color:#111;margin-bottom:4px; }
@@ -723,27 +715,23 @@
     .t1-name { font-size: 22px; font-weight: 900; color: #1a1a2e; letter-spacing: -.3px; line-height: 1.15; overflow-wrap: anywhere; }
     .t1-role { font-size: 12px; font-weight: 600; color: #7c3aed; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 4px; }
     .t1-body { display: flex; gap: 0; }
-    .t1-left { width: 200px; flex-shrink: 0; padding: 16px; background: #fafafa; border-right: 1px solid #f0f0f0; }
-    .t1-right { flex: 1; padding: 16px; }
+    .t1-left { width: 200px; flex-shrink: 0; padding: 16px 8px 16px 16px; background: #fafafa; border-right: 1px solid #f0f0f0; }
+    .t1-right { flex: 1; padding: 16px 16px 16px 8px; }
     .t1-section-title { font-size: 11px; font-weight: 900; color: #1a1a2e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; padding-bottom: 4px; border-bottom: 2px solid #7c3aed; }
-    .t1-field { margin-bottom: 11px; }
+    .t1-field { margin-bottom: 7px; }
     .t1-field-label { font-size: 10px; font-weight: 800; color: #7c3aed; text-transform: uppercase; letter-spacing: .5px; }
     .t1-field-val { font-size: 12px; color: #555; margin-top: 1px; }
     .t1-section { margin-bottom: 16px; }
-    .t1-left .t1-section-title,
-    .t1-right .t1-section-title { margin-left: 0; }
-    .t1-summary-text { margin-bottom: 18px; }
-    .t1-edu-item { margin-bottom: 10px; }
+    .t1-edu-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+    .t1-edu-main { flex: 1 1 auto; min-width: 0; }
     .t1-edu-name { font-size: 12px; font-weight: 800; color: #1a1a2e; }
     .t1-edu-deg { font-size: 11px; color: #555; }
-    .t1-edu-date { font-size: 10px; color: #999; text-align: left; white-space: nowrap; word-break: keep-all; overflow-wrap: normal; margin-top: 4px; }
+    .t1-edu-date { flex: 0 0 auto; min-width: 58px; font-size: 10px; color: #999; text-align: right; white-space: nowrap; word-break: keep-all; overflow-wrap: normal; }
     .t1-skill { display: inline-block; font-size: 10px; background: #ede9fe; color: #5b21b6; padding: 3px 8px; border-radius: 4px; margin: 2px; font-weight: 600; }
     .t1-job { margin-bottom: 14px; }
     .t1-job-title { font-size: 12px; font-weight: 800; color: #1a1a2e; }
-    .t1-job-date { display: block; font-size: 10px; color: #999; margin-bottom: 7px; }
+    .t1-job-date { font-size: 10px; color: #999; }
     .t1-job-desc { font-size: 11px; color: #666; line-height: 1.5; margin-top: 4px; }
-    .t1-project-item { display: flex; gap: 7px; align-items: flex-start; font-size: 11px; line-height: 1.55; margin-bottom: 7px; color: #555; }
-    .t1-project-bullet { flex: 0 0 auto; font-weight: 900; }
     .t1-logo-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
     .t1-logo { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 800; }
     .t1-logo.amazon { background: #ff9900; color: #fff; }
@@ -810,7 +798,7 @@
     .t3-photo-placeholder { width:100%; height:100%; background: linear-gradient(135deg,#e8c14a,#d4a017); display:flex; align-items:center; justify-content:center; font-size:48px; color:#fff; }
     .t3-left-body { padding: 16px 14px; }
     .t3-left-title { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #999; margin: 14px 0 8px; }
-    .t3-contact-item { font-size: 10px; color: #555; margin: 4px 0; text-decoration: underline; }
+    .t3-contact-item { font-size: 10px; color: #555; margin: 4px 0; text-decoration: none; }
     .t3-skill-item { font-size: 10px; color: #555; margin: 3px 0; display: flex; gap: 5px; align-items: center; }
     .t3-skill-item::before { content: '•'; color: #e8c14a; font-size: 14px; }
     .t3-right { flex: 1; padding: 20px; }
@@ -898,7 +886,7 @@
     .t5-left { width: 200px; flex-shrink: 0; padding: 16px; background: #fafafa; border-right: 1px solid #eee; }
     .t5-right { flex: 1; padding: 16px; }
     .t5-section-title { font-size: 10px; font-weight: 900; color: #1a1a2e; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px; padding-bottom: 4px; border-bottom: 2px solid #111; }
-    .t5-contact-item { font-size: 10px; color: #555; margin: 4px 0; text-decoration: underline; }
+    .t5-contact-item { font-size: 10px; color: #555; margin: 4px 0; text-decoration: none; }
     .t5-skill-item { font-size: 10px; color: #555; margin: 3px 0; display: flex; gap: 5px; }
     .t5-skill-item::before { content: '•'; color: #111; }
     .t5-job { margin-bottom: 12px; }
@@ -1012,15 +1000,19 @@
       width: 660px; background: #fff; font-family: 'DM Sans', sans-serif; font-size: 12px; color: #333; position: relative; overflow:hidden; box-sizing:border-box;}
     .t8-top-geo {
       position: absolute; top: 0; right: 0;
-      width: 200px; height: 200px;
+      width: 160px; height: 150px;
       background: #e8600a;
       clip-path: polygon(100% 0, 0 0, 100% 100%);
+      z-index: 0;
+      pointer-events: none;
     }
     .t8-bottom-geo {
       position: absolute; bottom: 0; left: 0;
       width: 120px; height: 120px;
       background: #888;
       clip-path: polygon(0 100%, 0 0, 100% 100%);
+      z-index: 0;
+      pointer-events: none;
     }
     .t8-header { display: flex; align-items: flex-start; gap: 16px; padding: 20px 20px 14px; position: relative; z-index: 2; max-width: 100%; }
     .t8-header > div:last-child { flex: 1; min-width: 0; overflow: hidden; max-width: calc(100% - 210px); word-break: break-word; }
@@ -1031,7 +1023,7 @@
     .t8-role { font-size: 11px; color: #888; margin-top: 3px; }
     .t8-header-contacts { display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap; }
     .t8-hc { font-size: 10px; color: #555; display: flex; align-items: center; gap: 4px; }
-    .t8-body { display: flex; }
+    .t8-body { display: flex; position: relative; z-index: 1; background: #fff; }
     .t8-left { width: 190px; flex-shrink: 0; background: #2a2d35; padding: 14px; overflow: hidden; word-break: break-word; }
     .t8-left-title { font-size: 10px; font-weight: 900; color: #e8600a; text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 8px; display: flex; align-items: center; gap: 5px; }
     .t8-edu-item { margin-bottom: 9px; }
@@ -1050,7 +1042,7 @@
     .t8-job-company { font-size: 10px; color: #888; margin: 2px 0; }
     .t8-bullet { font-size: 10px; color: #555; display: flex; gap: 5px; margin: 2px 0; }
     .t8-bullet::before { content: '•'; color: #e8600a; flex-shrink: 0; }
-    .t8-right-sidebar { width: 150px; flex-shrink: 0; padding: 14px; border-left: 1px solid #eee;; overflow: hidden; min-width: 0; word-break: break-word;}
+    .t8-right-sidebar { width: 150px; flex-shrink: 0; padding: 14px; border-left: 1px solid #eee; overflow: hidden; min-width: 0; word-break: break-word; background: #fff; position: relative; z-index: 1;}
     .t8-rs-title { font-size: 10px; font-weight: 900; color: #1a1a2e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
     .t8-rs-skill { font-size: 10px; color: #555; margin: 3px 0; }
     .t8-rs-quality { font-size: 10px; color: #555; display: flex; align-items: center; gap: 4px; margin: 3px 0; }
@@ -1498,6 +1490,7 @@
     .t27-job-co { font-size:10px;color:#1565c0; }
     .t27-job-date { font-size:9px;color:#aaa; }
     .t27-bullet { font-size:10px;color:#555;display:flex;gap:4px;margin:2px 0; }
+    .t27-bullet::before { content:'•';color:#1565c0;flex-shrink:0; }
     .t27-skill { font-size:10px;color:#555;margin:4px 0;border-bottom:1px solid #e8f0fe;padding-bottom:3px; }
     .t27-contact { font-size:10px;color:#555;margin:3px 0; }
     .t27-link { font-size:10px;color:#1565c0;margin:3px 0; }
@@ -1543,6 +1536,7 @@
     .t29-job-co { font-size:10px;color:#777; }
     .t29-job-date { font-size:9px;color:#aaa; }
     .t29-bullet { font-size:10px;color:#555;display:flex;gap:4px;margin:2px 0; }
+    .t29-bullet::before { content:'•';color:#00897b;flex-shrink:0; }
     .t29-edu-item { margin-bottom:8px; }
     .t29-edu-title { font-size:11px;font-weight:800;color:#1a1a2e; }
     .t29-edu-sub { font-size:10px;color:#777; }
@@ -1597,6 +1591,7 @@
     .t31-job-loc { font-size:10px;color:#3f51b5;font-weight:700;float:right; }
     .t31-job-co { font-size:10px;color:#777; }
     .t31-bullet { font-size:10px;color:#555;display:flex;gap:4px;margin:2px 0; }
+    .t31-bullet::before { content:'•';color:#3f51b5;flex-shrink:0; }
     .resume-t10 {
       width: 660px; background: #fff; font-family: 'DM Sans', sans-serif; font-size: 12px; color: #333; position: relative; overflow:hidden; box-sizing:border-box;}
     .t10-top-wave {
@@ -1615,6 +1610,7 @@
       width: 180px; height: 80px;
       background: #1f2937;
       clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
+      z-index: 1;
     }
     .t10-header { position: relative; z-index: 2; display: flex; align-items: flex-start; gap: 16px; padding: 20px 20px 0; }
     .t10-avatar { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; border: 4px solid #fff; box-shadow: 0 4px 16px rgba(0,0,0,.2); flex-shrink: 0; }
@@ -1622,7 +1618,7 @@
     .t10-header-text { padding-top: 12px; }
     .t10-name { font-size: 24px; font-weight: 900; color: #1a1a2e; letter-spacing: -.3px; }
     .t10-role { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
-    .t10-body { position: relative; z-index: 2; padding: 16px 20px 20px; }
+    .t10-body { position: relative; z-index: 2; padding: 22px 20px 20px; background: #fff; }
     .t10-profile-section { margin-bottom: 16px; }
     .t10-section-title { font-size: 12px; font-weight: 900; color: #1a1a2e; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
     .t10-about { font-size: 11px; color: #555; line-height: 1.6; }
@@ -1655,155 +1651,15 @@
     .t10-footer { display: flex; justify-content: space-between; padding: 12px 20px 14px; background: #1f2937; border-top: 1px solid rgba(255,255,255,.1); }
     .t10-footer-item { font-size: 10px; color: #9ca3af; display: flex; align-items: center; gap: 5px; }
 
-/* =====================================================================
-   FIX: long resumes were getting clipped / misaligned.
-   Every template wrapper (.resume-doc, .resume-t1 … .resume-t52+) was
-   set to overflow:hidden with a fixed-ish min-height that matched a
-   "typical" one-page resume. Any content beyond that (long experience
-   lists, many projects, extra sections, etc.) was silently cut off
-   instead of the page growing/splitting to fit it.
-   This override lets every template wrapper grow to fit ALL parsed
-   content and keeps section alignment intact when printed/exported,
-   while leaving small internal elements (photo circles, skill bars,
-   etc.) untouched since those intentionally clip to a fixed shape.
-   ===================================================================== */
-.resume-doc,
-[class^="resume-t"],
-[class*=" resume-t"] {
-    overflow: visible !important;
-    height: auto !important;
-}
-
-/* When printed/exported to PDF, make sure the browser is free to break
-   the resume across multiple physical pages at natural section
-   boundaries instead of squashing everything into one page. */
-@media print {
-    .resume-doc,
-    [class^="resume-t"],
-    [class*=" resume-t"] {
-        overflow: visible !important;
-        height: auto !important;
-        min-height: 0 !important;
-    }
-    .resume-doc > *,
-    [class*="-section"],
-    [class*="-sec-"],
-    .section-block {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-    /* Never let a page break land right after a section heading, which
-       previously stranded titles like "PROJECTS" alone at the bottom of
-       a page while their content restarted on the next page. */
-    [class*="-section-title"],
-    [class*="-sec-title"],
-    [class$="-title"],
-    [class*="-left-title"],
-    [class*="-left-section-title"] {
-        break-after: avoid;
-        page-break-after: avoid;
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-    /* Each individual entry (a job, a project, an education line) should
-       not be split apart across two pages either. */
-    [class*="-job"],
-    [class*="-edu-item"],
-    [class*="-lang"],
-    [class*="-skill-item"] {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    /* ROOT CAUSE of the "PROJECTS" heading landing on one page while its
-       bullets restart on the next with a big blank gap: every template's
-       two-column layout (sidebar + main content) is a CSS flex row, and
-       Chrome's print engine does not reliably paginate content inside a
-       flex row — it can strand a heading at the page bottom and shove the
-       whole next block (which we told it not to split) onto a fresh page,
-       leaving the gap behind. Flex columns of very different heights are
-       exactly the case that triggers this.
-       Keep the template's own flex/grid columns intact so the printed
-       resume matches the edit preview. Let those larger layout rows split
-       naturally while keeping individual entries together. */
-    [class^="resume-t"] [class$="-body"],
-    [class*=" resume-t"] [class$="-body"],
-    [class^="resume-t"] [class*="-body"],
-    [class*=" resume-t"] [class*="-body"],
-    [class^="resume-t"] [class*="-two"],
-    [class*=" resume-t"] [class*="-two"],
-    [class^="resume-t"] [class*="-cols"],
-    [class*=" resume-t"] [class*="-cols"] {
-        break-inside: auto;
-        page-break-inside: auto;
-    }
-}
-
-
-/* =====================================================================
-   MANUAL "START ON A NEW PAGE" CONTROLS
-   Lets a person force a whole section (via the existing hover toolbar's
-   new "New page" button) or a single entry — one job, one project, one
-   education line (via a small corner button on hover) — to begin on a
-   fresh printed/downloaded page, instead of relying only on automatic
-   pagination.
-   ===================================================================== */
-.rv-stb-btn.rv-stb-pb {
-    background: #f3ebff;
-    color: #7c3aed;
-}
-.rv-stb-btn.rv-stb-pb.rv-stb-pb-active,
-.rv-line-pb-btn.rv-line-pb-active {
-    background: #7c3aed !important;
-    color: #fff !important;
-}
-.rv-line-pb-btn {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    z-index: 11;
-    border: none;
-    background: #f3ebff;
-    color: #7c3aed;
-    border-radius: 999px;
-    padding: 3px 8px;
-    font-size: 10px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(124,58,237,0.14);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .16s ease;
-}
-
-/* On-screen indicator so it's obvious a page break was placed here. */
-@media screen {
-    [data-force-page-break="true"] {
-        position: relative;
-    }
-    [data-force-page-break="true"]::before {
-        content: "\2702  Starts on a new printed page";
-        display: block;
-        margin: 10px 0 8px;
-        padding: 4px 10px;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: .4px;
-        color: #7c3aed;
-        background: #f5f3ff;
-        border: 1px dashed #a78bfa;
-        border-radius: 6px;
-        text-align: center;
-    }
-}
-
-/* The actual page break, applied only when printing/downloading. */
-@media print {
-    .rv-stb, .rv-line-actions, .rv-line-pb-btn, .edit-pen, .photo-controls {
-        display: none !important;
-    }
-    [data-force-page-break="true"] {
-        break-before: page !important;
-        page-break-before: always !important;
-    }
+/* ==============================================================
+   GLOBAL FIX: contact links (email/phone/etc.) should never show
+   the browser's default underline inside any resume template.
+   ============================================================== */
+#resumeDoc a,
+.resume-doc a,
+[class^="resume-t"] a,
+[class*=" resume-t"] a,
+[class*="-contact-item"],
+[class*="-contact-item"] a {
+    text-decoration: none !important;
 }

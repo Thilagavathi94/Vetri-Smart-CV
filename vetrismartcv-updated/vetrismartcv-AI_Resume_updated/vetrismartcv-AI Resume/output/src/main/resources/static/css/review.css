@@ -1420,6 +1420,34 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
     display: none !important;
 }
 
+.resume-section,
+.experience-item,
+.section-block,
+.t1-job {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+}
+
+.no-break,
+.project-item,
+.education-item,
+.certification-item {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.no-break-heading,
+.t1-section-title {
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+p,
+li {
+    orphans: 3;
+    widows: 3;
+}
+
 /* Review page footer should not show social icon buttons. */
 .footer .footer-socials {
     display: none !important;
@@ -1439,4 +1467,51 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
         cursor: default !important;
         outline: none !important;
     }
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .resume-doc {
+    width: 210mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .resume-page,
+  .pdf-page {
+    padding-top: 10mm;
+    box-sizing: border-box;
+  }
+
+  .left-column,
+  .sidebar,
+  .t1-left {
+    padding-top: 10mm;
+  }
+
+  .review-layout,
+  .resume-preview-area {
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .navbar,
+  .review-header,
+  .review-left-panel,
+  .review-right-panel,
+  .scroll-divider,
+  footer {
+    display: none !important;
+  }
 }

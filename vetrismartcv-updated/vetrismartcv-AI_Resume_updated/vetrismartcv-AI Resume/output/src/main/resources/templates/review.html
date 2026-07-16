@@ -6,7 +6,7 @@
     <title>VetriSmartCV - Review & Edit Resume</title>
     <link rel="stylesheet" href="/css/style.css?v=20260709-1">
     <link rel="stylesheet" href="/css/builder.css?v=20260709-1">
-    <link rel="stylesheet" href="/css/review.css?v=20260709-1">
+    <link rel="stylesheet" href="/css/review.css?v=20260714-pagebreak-3">
     <script>
     async function doLogout() {
         try { await fetch("/api/auth/logout", { method: "POST" }); } catch(e) {}
@@ -18,6 +18,14 @@
         url.searchParams.delete("autoDownload");
         window.location.href = "/login?redirect=" + encodeURIComponent(url.pathname + url.search);
     }
+    window.downloadResumePdfNow = window.downloadResumePdfNow || function() {
+        if (typeof openDownloadModal === "function") {
+            openDownloadModal();
+            return;
+        }
+        var dm = document.getElementById("downloadModal");
+        if (dm) dm.style.display = "flex";
+    };
     function toggleLoginDropdown(e) {
         if (e) e.stopPropagation();
         var wrap = document.getElementById("navLoginWrap");
@@ -35,7 +43,7 @@
         if (userWrap && !userWrap.contains(e.target)) userWrap.classList.remove("open");
     });
     </script>
-    <link rel="stylesheet" href="/css/review-templates.css?v=20260709-1">
+    <link rel="stylesheet" href="/css/review-templates.css?v=20260714-template-align-2">
     <style>
         .nav-user-menu { position: relative; }
         .nav-user-trigger {
@@ -674,6 +682,8 @@ document.addEventListener('keydown', (e) => {
 
 <script src="/js/navbar.js?v=20260709-1"></script>
 <script src="/js/footer-support.js?v=20260709-1"></script>
-<script src="/js/review.js?v=20260709-1"></script>
+<script src="/js/vendor/html2canvas.min.js?v=20260714"></script>
+<script src="/js/vendor/jspdf.umd.min.js?v=20260714"></script>
+<script src="/js/review.js?v=20260714-pdf-sections-2"></script>
 </body>
 </html>
