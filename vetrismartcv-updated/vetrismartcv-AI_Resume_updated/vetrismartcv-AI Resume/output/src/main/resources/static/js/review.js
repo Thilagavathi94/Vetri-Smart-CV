@@ -1,4 +1,4 @@
-﻿/* =============================================
+﻿﻿/* =============================================
    REVIEW.JS — VetriSmartCV
    3 templates: robert (dark maroon), olivia (green two-col), mary (minimal)
    ============================================= */
@@ -23,6 +23,11 @@ let templatePageMarkup = null;
 let reviewRenderSeq = 0;
 let reviewRecoveryAttempts = 0;
 const FREE_ALLOWED_TEMPLATES = new Set(['template1', 'template2', 'template3']);
+const REVIEW_FONT_SIZE_SCALE = {
+    small: 0.88,
+    medium: 1,
+    large: 1.16
+};
 
 function isPaidPlan(plan) {
     const normalized = String(plan || '').toUpperCase();
@@ -31,6 +36,16 @@ function isPaidPlan(plan) {
 
 function isFreeTemplateAllowed(templateId) {
     return FREE_ALLOWED_TEMPLATES.has(normalizeReviewTemplate(templateId));
+}
+
+function getReviewFontSizeScale(size = currentFontSize) {
+    return REVIEW_FONT_SIZE_SCALE[String(size || 'medium').toLowerCase()] || REVIEW_FONT_SIZE_SCALE.medium;
+}
+
+function getReviewFontStack(font = currentFont) {
+    const cleanFont = String(font || 'Inter').replace(/['"]/g, '').trim() || 'Inter';
+    const generic = /georgia|merriweather|playfair/i.test(cleanFont) ? 'serif' : 'sans-serif';
+    return `"${cleanFont}", ${generic}`;
 }
 
 function getTemplatePlanLabel(templateId) {
@@ -420,6 +435,7 @@ async function loadResume(id) {
         if (resumeData.sectionSpacing) { currentSectionSpacing = resumeData.sectionSpacing; const el = document.getElementById('sectionSpacing'); if(el) el.value = resumeData.sectionSpacing; }
         if (resumeData.letterSpacing)  { currentLetterSpacing  = resumeData.letterSpacing;  const el = document.getElementById('letterSpacing');  if(el) el.value = resumeData.letterSpacing; }
         if (resumeData.lineSpacing)    { currentLineSpacing     = resumeData.lineSpacing;    const el = document.getElementById('lineSpacing');     if(el) el.value = resumeData.lineSpacing; }
+        syncDesignControls();
         renderResume();
     } catch (err) {
         console.error('Failed to load resume:', err);
@@ -2581,20 +2597,76 @@ function buildColorSwatches() {
 // ============================================================
 function isPremium() { return userPlan === 'PREMIUM'; }
 
+function isReviewDesignTarget(el) {
+    if (!el || !(el instanceof HTMLElement)) return false;
+    if (el.closest('.edit-pen, .section-toolbar, .line-item-controls, .review-section-actions, .rv-line-actions, button, input, select, textarea')) return false;
+    return !['SCRIPT', 'STYLE', 'LINK', 'IMG', 'SVG', 'PATH', 'CANVAS'].includes(el.tagName);
+}
+
+function applyReviewTypography(doc = document.getElementById('resumeDoc')) {
+    if (!doc) return;
+    const scale = getReviewFontSizeScale(currentFontSize);
+    const fontStack = getReviewFontStack(currentFont);
+    const rootBase = parseFloat(doc.dataset.reviewBaseFontSize || '') || 13;
+
+    doc.dataset.reviewFontSize = currentFontSize;
+    doc.dataset.reviewFontFamily = currentFont;
+    doc.style.setProperty('font-family', fontStack, 'important');
+    doc.style.setProperty('font-size', `${(rootBase * scale).toFixed(2)}px`, 'important');
+    doc.style.setProperty('letter-spacing', `${currentLetterSpacing}px`, 'important');
+    doc.style.setProperty('line-height', currentLineSpacing, 'important');
+
+    doc.querySelectorAll('*').forEach(child => {
+        if (!isReviewDesignTarget(child)) return;
+        if (!child.dataset.reviewBaseFontSize) {
+            const computedSize = parseFloat(window.getComputedStyle(child).fontSize);
+            if (Number.isFinite(computedSize)) child.dataset.reviewBaseFontSize = String(computedSize);
+        }
+        const baseSize = parseFloat(child.dataset.reviewBaseFontSize);
+        if (Number.isFinite(baseSize)) {
+            child.style.setProperty('font-size', `${(baseSize * scale).toFixed(2)}px`, 'important');
+        }
+        child.style.setProperty('font-family', fontStack, 'important');
+        child.style.setProperty('letter-spacing', `${currentLetterSpacing}px`, 'important');
+        child.style.setProperty('line-height', currentLineSpacing, 'important');
+    });
+}
+
+function syncDesignControls() {
+    document.querySelectorAll('.fsz-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === String(currentFontSize || 'medium').toLowerCase());
+    });
+    const fontSelect = document.getElementById('fontFamilySelect');
+    if (fontSelect) fontSelect.value = currentFont;
+    const spacing = document.getElementById('sectionSpacing');
+    if (spacing) spacing.value = currentSectionSpacing;
+    const spacingVal = document.getElementById('spacingVal');
+    if (spacingVal) spacingVal.textContent = currentSectionSpacing + 'px';
+    const letter = document.getElementById('letterSpacing');
+    if (letter) letter.value = currentLetterSpacing;
+    const letterVal = document.getElementById('letterVal');
+    if (letterVal) letterVal.textContent = currentLetterSpacing + 'px';
+    const line = document.getElementById('lineSpacing');
+    if (line) line.value = currentLineSpacing;
+    const lineVal = document.getElementById('lineVal');
+    if (lineVal) lineVal.textContent = currentLineSpacing;
+}
+
 function setFontSize(size) {
     if (!isPremium()) { showPremiumUpgradeAlert('Font Size'); return; }
-    currentFontSize = size;
+    currentFontSize = String(size || 'medium').toLowerCase();
     document.querySelectorAll('.fsz-btn').forEach(b => b.classList.remove('active'));
-    if (event && event.target) event.target.classList.add('active');
+    const activeBtn = window.event?.target || Array.from(document.querySelectorAll('.fsz-btn')).find(btn => btn.textContent.trim().toLowerCase() === currentFontSize);
+    if (activeBtn) activeBtn.classList.add('active');
     const doc = document.getElementById('resumeDoc');
-    if (doc) doc.style.fontSize = size === 'small' ? '11px' : size === 'large' ? '15px' : '13px';
+    applyReviewTypography(doc);
     autosaveDesign();
 }
 function applyFont(font) {
     if (!isPremium()) { showPremiumUpgradeAlert('Font Family'); return; }
     currentFont = font;
     const doc = document.getElementById('resumeDoc');
-    if (doc) doc.style.fontFamily = font + ', sans-serif';
+    applyReviewTypography(doc);
     autosaveDesign();
 }
 function applySectionSpacing(val) {
@@ -2620,7 +2692,13 @@ function applyLineSpacing(val) {
     const el = document.getElementById('lineVal');
     if (el) el.textContent = val;
     const doc = document.getElementById('resumeDoc');
-    if (doc) doc.style.lineHeight = val;
+    if (doc) {
+        doc.style.lineHeight = val;
+        doc.querySelectorAll('*').forEach(child => {
+            if (!isReviewDesignTarget(child)) return;
+            child.style.setProperty('line-height', val, 'important');
+        });
+    }
     autosaveDesign();
 }
 function applyPhotoSize(val) {
@@ -3089,6 +3167,7 @@ function finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, s
     }
     ensureExtraSectionsRendered(doc, (ctx && ctx.color) || currentColor);
     applyActiveSections();
+    applyReviewTypography(doc);
     // Inject edit buttons into ALL templates universally
     injectEditOverlays(ctx);
     if (doc && doc.dataset.exactTemplate === 'true') {
