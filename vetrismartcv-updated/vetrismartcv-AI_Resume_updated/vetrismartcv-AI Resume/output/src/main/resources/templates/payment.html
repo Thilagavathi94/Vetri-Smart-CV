@@ -21,41 +21,14 @@
         .plan-opt .plan-name { font-size: 14px; font-weight: 700; color: #1a1a2e; }
         .plan-opt .plan-price { font-size: 1.2rem; font-weight: 800; color: #7c3aed; margin: 4px 0; }
         .plan-opt .plan-price span { font-size: 12px; color: #6b7280; font-weight: 400; }
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
-        .form-group input { width: 100%; padding: 12px 16px; border: 1.5px solid #e5e7eb; border-radius: 12px; font-size: 15px; outline: none; background: #f9fafb; box-sizing: border-box; }
-        .form-group input:focus { border-color: #7c3aed; }
-        .card-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
         .pay-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; }
         .pay-btn:hover { opacity: 0.92; }
+        .pay-btn:disabled { cursor: not-allowed; opacity: 0.7; }
         .secure-note { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 14px; }
         .summary-box { background: #f9fafb; border-radius: 12px; padding: 16px; margin-bottom: 24px; }
         .summary-row { display: flex; justify-content: space-between; font-size: 14px; color: #374151; padding: 4px 0; }
         .summary-row.total { font-weight: 700; border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 6px; }
         .err-msg { color: #ef4444; font-size: 13px; margin-top: 8px; display: none; }
-
-        /* ── Per-field validation ── */
-        .field-msg {
-            font-size: 12px;
-            margin-top: 5px;
-            min-height: 16px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            transition: color 0.2s;
-        }
-        .field-msg.error  { color: #ef4444; }
-        .field-msg.success { color: #22c55e; }
-        .field-msg.hint   { color: #9ca3af; }
-        .field-msg::before { font-size: 11px; }
-        .field-msg.error::before  { content: '✕'; font-weight: 700; }
-        .field-msg.success::before { content: '✓'; font-weight: 700; }
-
-        .form-group input.input-error   { border-color: #ef4444; background: #fff5f5; }
-        .form-group input.input-success { border-color: #22c55e; background: #f0fdf4; }
-        .form-group input.input-error:focus   { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
-        .form-group input.input-success:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
-        .form-group input:focus { box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
 
         @media (max-width: 1024px) {
             .pay-nav {
@@ -82,12 +55,9 @@
             .pay-card {
                 padding: 28px 22px;
             }
-            .plan-sel,
-            .card-row {
-                grid-template-columns: 1fr;
-                display: grid;
-            }
             .plan-sel {
+                display: grid;
+                grid-template-columns: 1fr;
                 gap: 10px;
             }
         }
@@ -135,285 +105,222 @@
 <nav class="pay-nav">
     <a href="/" class="logo-text">VetriSmartCV</a>
     <div class="pay-nav-actions">
-        <!-- Logged-in user widget -->
         <div th:if="${loggedIn}" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);border-radius:99px;padding:5px 14px 5px 7px;">
             <div th:text="${userInitial}" style="width:28px;height:28px;background:#f59e0b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;">?</div>
             <span th:text="${userName}" style="color:#fff;font-size:13px;font-weight:600;">User</span>
         </div>
         <button th:if="${loggedIn}" onclick="doLogout()" style="background:transparent;border:1.5px solid rgba(255,255,255,0.4);color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit;">Logout</button>
-        <a href="/pricing" style="color:rgba(255,255,255,0.8);font-size:13px;text-decoration:none;">← Back to Pricing</a>
+        <a href="/pricing" style="color:rgba(255,255,255,0.8);font-size:13px;text-decoration:none;">Back to Pricing</a>
     </div>
 </nav>
 
 <div class="pay-page">
     <div class="pay-card">
         <h2>Upgrade Your Plan</h2>
-        <p class="pay-sub">Choose a plan and enter your payment details</p>
+        <p class="pay-sub">Choose a plan and continue securely with Razorpay Checkout.</p>
 
         <div class="plan-sel">
             <div class="plan-opt selected" id="planPro" onclick="selectPlan('PRO')">
                 <div class="plan-name">Pro</div>
-                <div class="plan-price">₹120 <span>/mo</span></div>
+                <div class="plan-price">Rs.120 <span>one-time</span></div>
             </div>
             <div class="plan-opt" id="planPremium" onclick="selectPlan('PREMIUM')">
                 <div class="plan-name">Premium</div>
-                <div class="plan-price">₹250 <span>/mo</span></div>
+                <div class="plan-price">Rs.250 <span>one-time</span></div>
             </div>
         </div>
 
         <div class="summary-box">
-            <div class="summary-row"><span id="summaryPlan">Pro Plan</span><span id="summaryPrice">₹120/mo</span></div>
-            <div class="summary-row"><span>14-day free trial</span><span style="color:#22c55e;">FREE</span></div>
-            <div class="summary-row total"><span>Total today</span><span>₹0</span></div>
+            <div class="summary-row"><span id="summaryPlan">Pro Plan</span><span id="summaryPrice">Rs.120</span></div>
+            <div class="summary-row total"><span>Total today</span><span id="summaryTotal">Rs.120</span></div>
         </div>
 
-        <div class="form-group">
-            <label>Cardholder Name</label>
-            <input type="text" id="cardName" placeholder="As on card" oninput="validateName()" onblur="validateName(true)">
-            <div class="field-msg hint" id="msg-name">Enter name exactly as it appears on your card</div>
-        </div>
-        <div class="form-group">
-            <label>Card Number</label>
-            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" oninput="formatCard(this);validateCardNumber()" onblur="validateCardNumber(true)">
-            <div class="field-msg hint" id="msg-number">16-digit card number</div>
-        </div>
-        <div class="card-row">
-            <div class="form-group">
-                <label>Expiry</label>
-                <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" oninput="formatExpiry(this);validateExpiry()" onblur="validateExpiry(true)">
-                <div class="field-msg hint" id="msg-expiry">Month / Year</div>
-            </div>
-            <div class="form-group">
-                <label>CVV</label>
-                <input type="text" id="cardCvv" placeholder="123" maxlength="4" oninput="validateCvv()" onblur="validateCvv(true)">
-                <div class="field-msg hint" id="msg-cvv">3 or 4 digits</div>
-            </div>
-        </div>
-
-        <button class="pay-btn" id="payBtn" onclick="processPayment()">Start Free Trial →</button>
+        <button class="pay-btn" id="payBtn" onclick="processPayment()">Pay Rs.120</button>
         <div class="err-msg" id="payErr"></div>
-        <div class="secure-note">🔒 Secured by 256-bit SSL encryption. Cancel anytime.</div>
+        <div class="secure-note">Payment details are collected securely by Razorpay.</div>
     </div>
 </div>
 
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 let selectedPlan = 'PRO';
 
-function selectPlan(plan) {
-    selectedPlan = plan;
-    document.getElementById('planPro').classList.toggle('selected', plan === 'PRO');
-    document.getElementById('planPremium').classList.toggle('selected', plan === 'PREMIUM');
-    document.getElementById('summaryPlan').textContent = plan === 'PRO' ? 'Pro Plan' : 'Premium Plan';
-    document.getElementById('summaryPrice').textContent = plan === 'PRO' ? '₹120/mo' : '₹250/mo';
+const params = new URLSearchParams(window.location.search);
+
+function getPlanAmountText(plan) {
+    return plan === 'PRO' ? 'Rs.120' : 'Rs.250';
 }
 
-// ── Helpers ──
-function setField(inputId, msgId, state, text) {
-    const input = document.getElementById(inputId);
-    const msg   = document.getElementById(msgId);
-    input.classList.remove('input-error', 'input-success');
-    msg.classList.remove('error', 'success', 'hint');
-    if (state === 'error')   { input.classList.add('input-error');   msg.classList.add('error'); }
-    if (state === 'success') { input.classList.add('input-success'); msg.classList.add('success'); }
-    if (state === 'hint')    { msg.classList.add('hint'); }
-    msg.textContent = text;
+function getPlanName(plan) {
+    return plan === 'PRO' ? 'Pro Plan' : 'Premium Plan';
 }
 
-// ── Name ──
-function validateName(isFinal = false) {
-    const val = document.getElementById('cardName').value.trim();
-    if (!val) {
-        setField('cardName', 'msg-name', isFinal ? 'error' : 'hint',
-            isFinal ? 'Cardholder name is required' : 'Enter name exactly as it appears on your card');
-        return false;
-    }
-    if (val.length < 3) {
-        setField('cardName', 'msg-name', 'error', 'Name must be at least 3 characters');
-        return false;
-    }
-    if (!/^[a-zA-Z\s\-'.]+$/.test(val)) {
-        setField('cardName', 'msg-name', 'error', 'Name should contain only letters and spaces');
-        return false;
-    }
-    setField('cardName', 'msg-name', 'success', 'Looks good!');
-    return true;
+function setPayButtonText(button) {
+    button.textContent = selectedPlan === 'PRO' ? 'Pay Rs.120' : 'Pay Rs.250';
 }
 
-// ── Card Number ──
-function formatCard(input) {
-    let val = input.value.replace(/\D/g, '');
-    val = val.match(/.{1,4}/g)?.join(' ') || val;
-    input.value = val;
-}
+function redirectAfterPayment(plan) {
+    sessionStorage.setItem('justUpgraded', plan);
 
-function detectCardType(digits) {
-    if (/^4/.test(digits))             return '💳 Visa';
-    if (/^5[1-5]/.test(digits))        return '💳 Mastercard';
-    if (/^3[47]/.test(digits))         return '💳 Amex';
-    if (/^6(?:011|5)/.test(digits))    return '💳 Discover';
-    if (/^35/.test(digits))            return '💳 JCB';
-    if (digits.length >= 1)            return '💳 Card';
-    return '';
-}
+    const explicitRedirect = params.get('redirect');
+    const storedReviewReturn = sessionStorage.getItem('pendingReviewReturnUrl');
 
-function validateCardNumber(isFinal = false) {
-    const raw    = document.getElementById('cardNumber').value.replace(/\D/g, '');
-    const type   = detectCardType(raw);
-    const isAmex = /^3[47]/.test(raw);
-    const reqLen = isAmex ? 15 : 16;
-
-    if (!raw) {
-        setField('cardNumber', 'msg-number', isFinal ? 'error' : 'hint',
-            isFinal ? 'Card number is required' : '16-digit card number');
-        return false;
-    }
-    if (raw.length < reqLen) {
-        setField('cardNumber', 'msg-number', raw.length > 0 ? 'error' : 'hint',
-            type ? `${type} · ${raw.length}/${reqLen} digits` : `${raw.length}/${reqLen} digits entered`);
-        return false;
-    }
-    // Luhn check
-    let sum = 0, alt = false;
-    for (let i = raw.length - 1; i >= 0; i--) {
-        let n = parseInt(raw[i]);
-        if (alt) { n *= 2; if (n > 9) n -= 9; }
-        sum += n; alt = !alt;
-    }
-    if (sum % 10 !== 0) {
-        setField('cardNumber', 'msg-number', 'error', 'Invalid card number — please check and try again');
-        return false;
-    }
-    setField('cardNumber', 'msg-number', 'success', `${type} · Valid card number`);
-    return true;
-}
-
-// ── Expiry ──
-function formatExpiry(input) {
-    let val = input.value.replace(/\D/g, '');
-    if (val.length >= 3) val = val.slice(0, 2) + '/' + val.slice(2, 4);
-    input.value = val;
-}
-
-function validateExpiry(isFinal = false) {
-    const val = document.getElementById('cardExpiry').value.trim();
-    if (!val) {
-        setField('cardExpiry', 'msg-expiry', isFinal ? 'error' : 'hint',
-            isFinal ? 'Expiry date is required' : 'Month / Year');
-        return false;
-    }
-    if (!/^\d{2}\/\d{2}$/.test(val)) {
-        setField('cardExpiry', 'msg-expiry', 'error', 'Use MM/YY format (e.g. 08/27)');
-        return false;
-    }
-    const [mm, yy] = val.split('/').map(Number);
-    if (mm < 1 || mm > 12) {
-        setField('cardExpiry', 'msg-expiry', 'error', 'Month must be between 01 and 12');
-        return false;
-    }
-    const now     = new Date();
-    const expDate = new Date(2000 + yy, mm - 1, 1);
-    const cutoff  = new Date(now.getFullYear(), now.getMonth(), 1);
-    if (expDate < cutoff) {
-        setField('cardExpiry', 'msg-expiry', 'error', 'This card has expired');
-        return false;
-    }
-    setField('cardExpiry', 'msg-expiry', 'success', 'Valid expiry date');
-    return true;
-}
-
-// ── CVV ──
-function validateCvv(isFinal = false) {
-    const val    = document.getElementById('cardCvv').value.trim();
-    const numRaw = document.getElementById('cardNumber').value.replace(/\D/g, '');
-    const isAmex = /^3[47]/.test(numRaw);
-    const reqLen = isAmex ? 4 : 3;
-
-    if (!val) {
-        setField('cardCvv', 'msg-cvv', isFinal ? 'error' : 'hint',
-            isFinal ? 'CVV is required' : `${reqLen} digits on the back of your card`);
-        return false;
-    }
-    if (!/^\d+$/.test(val)) {
-        setField('cardCvv', 'msg-cvv', 'error', 'CVV must contain only digits');
-        return false;
-    }
-    if (val.length !== reqLen) {
-        setField('cardCvv', 'msg-cvv', 'error', `CVV must be ${reqLen} digits${isAmex ? ' (Amex front of card)' : ''}`);
-        return false;
-    }
-    setField('cardCvv', 'msg-cvv', 'success', 'CVV looks good');
-    return true;
-}
-
-// ── Submit ──
-async function processPayment() {
-    // Run all validations as "final" (show all errors at once)
-    const nameOk   = validateName(true);
-    const numOk    = validateCardNumber(true);
-    const expOk    = validateExpiry(true);
-    const cvvOk    = validateCvv(true);
-
-    const errEl = document.getElementById('payErr');
-    errEl.style.display = 'none';
-
-    if (!nameOk || !numOk || !expOk || !cvvOk) {
-        errEl.textContent = 'Please fix the errors above before continuing.';
-        errEl.style.display = 'block';
-        // Scroll to first error field
-        const firstErr = document.querySelector('.input-error');
-        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (explicitRedirect) {
+        const redirectUrl = new URL(explicitRedirect, window.location.origin);
+        redirectUrl.searchParams.set('upgraded', '1');
+        redirectUrl.searchParams.set('payment', 'success');
+        window.location.href = redirectUrl.pathname + redirectUrl.search;
         return;
     }
 
-    const btn = document.getElementById('payBtn');
-    btn.disabled = true; btn.textContent = 'Processing...';
+    if (storedReviewReturn) {
+        const redirectUrl = new URL(storedReviewReturn, window.location.origin);
+        redirectUrl.searchParams.set('upgraded', '1');
+        redirectUrl.searchParams.set('payment', 'success');
+        window.location.href = redirectUrl.pathname + redirectUrl.search;
+        return;
+    }
 
-    setTimeout(async () => {
-        try {
-            const res  = await fetch('/api/auth/upgrade', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ plan: selectedPlan })
-            });
-            const data = await res.json();
-            if (data.success) {
-                sessionStorage.setItem('justUpgraded', selectedPlan);
-                const explicitRedirect = params.get('redirect');
-                const storedReviewReturn = sessionStorage.getItem('pendingReviewReturnUrl');
-                if (explicitRedirect) {
-                    const redirectUrl = new URL(explicitRedirect, window.location.origin);
-                    redirectUrl.searchParams.set('upgraded', '1');
-                    window.location.href = redirectUrl.pathname + redirectUrl.search;
-                    return;
-                }
-                if (storedReviewReturn) {
-                    const redirectUrl = new URL(storedReviewReturn, window.location.origin);
-                    redirectUrl.searchParams.set('upgraded', '1');
-                    window.location.href = redirectUrl.pathname + redirectUrl.search;
-                    return;
-                }
-                const resumeId = sessionStorage.getItem('pendingResumeId') || '';
-                if (resumeId) {
-                    window.location.href = '/review/' + resumeId + '?upgraded=1';
-                } else {
-                    window.location.href = '/dashboard?upgraded=1';
-                }
-            } else {
-                errEl.textContent = data.message || 'Please log in first to upgrade.';
-                errEl.style.display = 'block';
-                btn.disabled = false; btn.textContent = 'Start Free Trial →';
-            }
-        } catch {
-            errEl.textContent = 'Payment processing error. Please try again.';
-            errEl.style.display = 'block';
-            btn.disabled = false; btn.textContent = 'Start Free Trial →';
-        }
-    }, 1500);
+    const resumeId = sessionStorage.getItem('pendingResumeId') || '';
+    if (resumeId) {
+        window.location.href = '/review/' + resumeId + '?upgraded=1&payment=success';
+    } else {
+        window.location.href = '/dashboard?payment=success';
+    }
 }
 
-// Pre-select plan from URL
-const params = new URLSearchParams(window.location.search);
-if (params.get('plan') === 'PREMIUM') selectPlan('PREMIUM');
+function showPaymentError(message) {
+    const errEl = document.getElementById('payErr');
+    errEl.textContent = message;
+    errEl.style.display = 'block';
+}
+
+function selectPlan(plan) {
+    selectedPlan = plan;
+
+    document
+        .getElementById('planPro')
+        .classList.toggle(
+            'selected',
+            plan === 'PRO'
+        );
+
+    document
+        .getElementById('planPremium')
+        .classList.toggle(
+            'selected',
+            plan === 'PREMIUM'
+        );
+
+    document.getElementById('summaryPlan').textContent = getPlanName(plan);
+    document.getElementById('summaryPrice').textContent = getPlanAmountText(plan);
+    document.getElementById('summaryTotal').textContent = getPlanAmountText(plan);
+    setPayButtonText(document.getElementById('payBtn'));
+}
+
+async function processPayment() {
+    const button = document.getElementById('payBtn');
+    const errEl = document.getElementById('payErr');
+
+    errEl.style.display = 'none';
+    button.disabled = true;
+    button.textContent = 'Preparing payment...';
+
+    try {
+        const orderResponse =
+            await fetch('/api/payment/create-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    plan: selectedPlan
+                })
+            });
+
+        const order = await orderResponse.json();
+
+        if (!order.success) {
+            throw new Error(
+                order.message || 'Unable to create order'
+            );
+        }
+
+        const options = {
+            key: order.key,
+            amount: order.amount,
+            currency: order.currency,
+            name: 'VetriSmartCV',
+            description:
+                selectedPlan + ' Plan',
+            order_id: order.orderId,
+            handler: async function(response) {
+                const verifyResponse =
+                    await fetch('/api/payment/verify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type':
+                                'application/json'
+                        },
+                        body: JSON.stringify({
+                            razorpay_payment_id:
+                                response.razorpay_payment_id,
+                            razorpay_order_id:
+                                response.razorpay_order_id,
+                            razorpay_signature:
+                                response.razorpay_signature
+                        })
+                    });
+
+                const result =
+                    await verifyResponse.json();
+
+                if (result.success) {
+                    redirectAfterPayment(result.plan);
+                } else {
+                    showPaymentError(
+                        result.message ||
+                        'Payment verification failed.'
+                    );
+                }
+            },
+            modal: {
+                ondismiss: function() {
+                    button.disabled = false;
+                    setPayButtonText(button);
+                }
+            },
+            theme: {
+                color: '#6c3fc9'
+            }
+        };
+
+        const razorpay =
+            new Razorpay(options);
+
+        razorpay.on(
+            'payment.failed',
+            function(response) {
+                showPaymentError(
+                    'Payment failed: ' +
+                    response.error.description
+                );
+            }
+        );
+
+        razorpay.open();
+
+    } catch (error) {
+        showPaymentError(error.message);
+    } finally {
+        button.disabled = false;
+        setPayButtonText(button);
+    }
+}
+
+if (params.get('plan') === 'PREMIUM') {
+    selectPlan('PREMIUM');
+}
 </script>
 <script src="/js/navbar.js"></script>
 </body>

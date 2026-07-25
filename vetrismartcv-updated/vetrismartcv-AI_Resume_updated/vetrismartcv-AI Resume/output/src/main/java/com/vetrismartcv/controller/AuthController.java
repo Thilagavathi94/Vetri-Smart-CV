@@ -226,22 +226,6 @@ public class AuthController {
         }
     }
 
-    /* ---- POST /api/auth/upgrade ---- */
-    @PostMapping("/upgrade")
-    public ResponseEntity<Map<String, Object>> upgrade(
-            @RequestBody Map<String, String> body,
-            HttpSession session) {
-
-        Long userId = (Long) session.getAttribute("userId");
-        if (userId == null) {
-            return ResponseEntity.status(401).body(Map.of("success", false, "message", "Not logged in."));
-        }
-        String plan = body.get("plan");
-        User updated = userService.upgradePlan(userId, plan);
-        session.setAttribute("userPlan", updated.getPlan());
-        return ResponseEntity.ok(Map.of("success", true, "plan", updated.getPlan()));
-    }
-
     private Double toDouble(Object value) {
         if (value instanceof Number number) {
             return number.doubleValue();
