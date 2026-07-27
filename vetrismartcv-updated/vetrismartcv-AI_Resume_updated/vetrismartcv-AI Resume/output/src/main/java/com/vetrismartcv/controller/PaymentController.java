@@ -6,6 +6,8 @@ import com.vetrismartcv.service.PaymentService;
 
 import jakarta.servlet.http.HttpSession;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +17,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/payment")
 public class PaymentController {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
 
     private final PaymentService paymentService;
 
@@ -81,6 +85,8 @@ public class PaymentController {
 
         } catch (Exception e) {
 
+            log.error("Unable to create Razorpay order.", e);
+
             return ResponseEntity.internalServerError().body(
                     Map.of(
                             "success", false,
@@ -131,6 +137,8 @@ public class PaymentController {
             );
 
         } catch (Exception e) {
+
+            log.error("Unable to verify Razorpay payment.", e);
 
             return ResponseEntity.badRequest().body(
                     Map.of(

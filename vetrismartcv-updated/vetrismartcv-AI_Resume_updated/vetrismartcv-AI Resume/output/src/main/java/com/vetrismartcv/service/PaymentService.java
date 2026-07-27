@@ -36,6 +36,10 @@ public class PaymentService {
 
     public Payment createOrder(Long userId, String requestedPlan) throws Exception {
 
+        if (keyId == null || keyId.isBlank() || keySecret == null || keySecret.isBlank()) {
+            throw new IllegalStateException("Razorpay credentials are not configured.");
+        }
+
         String plan = requestedPlan == null
                 ? ""
                 : requestedPlan.trim().toUpperCase(Locale.ROOT);
