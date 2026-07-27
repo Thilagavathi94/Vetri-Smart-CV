@@ -97,9 +97,9 @@
             column.querySelectorAll('.footer-contact-item').forEach(item => item.remove());
             column.querySelectorAll('ul').forEach(list => list.remove());
             column.insertAdjacentHTML('beforeend', `
-                <div class="footer-contact-item"><div class="contact-icon">☎</div><a href="${supportConfig.phoneLink}">${supportConfig.phoneDisplay}</a></div>
-                <div class="footer-contact-item"><div class="contact-icon">@</div><a href="mailto:${supportConfig.email}">${supportConfig.email}</a></div>
-                ${addresses().map(address => `<div class="footer-contact-item"><div class="contact-icon">⌖</div><a href="${supportConfig.mapUrl}" target="_blank" rel="noopener noreferrer">${address}</a></div>`).join('')}
+                <div class="footer-contact-item"><div class="contact-icon"><i class="fa-solid fa-phone"></i></div><a href="${supportConfig.phoneLink}">${supportConfig.phoneDisplay}</a></div>
+                <div class="footer-contact-item"><div class="contact-icon"><i class="fa-solid fa-envelope"></i></div><a href="mailto:${supportConfig.email}">${supportConfig.email}</a></div>
+                ${addresses().map(address => `<div class="footer-contact-item"><div class="contact-icon"><i class="fa-solid fa-location-dot"></i></div><a href="${supportConfig.mapUrl}" target="_blank" rel="noopener noreferrer">${address}</a></div>`).join('')}
             `);
         });
     }
