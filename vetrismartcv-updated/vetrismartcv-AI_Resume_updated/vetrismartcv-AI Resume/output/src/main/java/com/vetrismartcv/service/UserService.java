@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -21,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -391,6 +393,31 @@ public class UserService {
         throw new IllegalStateException("No mail provider is configured.");
     }
 
+    public void sendEmailWithAttachment(String to, String subject, String textBody,
+                                        byte[] attachmentBytes, String attachmentName,
+                                        String contentType) throws Exception {
+        if (attachmentBytes == null || attachmentBytes.length == 0) {
+            sendPlainEmail(to, subject, textBody);
+            return;
+        }
+        if (isSmtpMailConfigured()) {
+            try {
+                sendEmailWithAttachmentViaSmtp(to, subject, textBody, attachmentBytes, attachmentName, contentType);
+                return;
+            } catch (Exception ex) {
+                if (!isResendConfigured()) {
+                    throw ex;
+                }
+                log.warn("SMTP attachment email send failed for {}; retrying with Resend.", to, ex);
+            }
+        }
+        if (isResendConfigured()) {
+            sendEmailWithAttachmentViaResend(to, subject, textBody, attachmentBytes, attachmentName, contentType);
+            return;
+        }
+        throw new IllegalStateException("No mail provider is configured.");
+    }
+
     private void sendPlainEmailViaSmtp(String to, String subject, String textBody) throws Exception {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
@@ -398,6 +425,19 @@ public class UserService {
         helper.setTo(to);
         helper.setSubject(subject);
         helper.setText(textBody, false);
+        mailSender.send(message);
+    }
+
+    private void sendEmailWithAttachmentViaSmtp(String to, String subject, String textBody,
+                                                byte[] attachmentBytes, String attachmentName,
+                                                String contentType) throws Exception {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        helper.setFrom(mailFrom);
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(textBody, false);
+        helper.addAttachment(safeAttachmentName(attachmentName), new ByteArrayResource(attachmentBytes), contentType);
         mailSender.send(message);
     }
 
@@ -426,6 +466,40 @@ public class UserService {
             }
             throw new IllegalStateException("Resend email API failed with HTTP " + response.statusCode() + ": " + body);
         }
+    }
+
+    private void sendEmailWithAttachmentViaResend(String to, String subject, String textBody,
+                                                  byte[] attachmentBytes, String attachmentName,
+                                                  String contentType) throws Exception {
+        Map<String, Object> attachment = new LinkedHashMap<>();
+        attachment.put("filename", safeAttachmentName(attachmentName));
+        attachment.put("content", Base64.getEncoder().encodeToString(attachmentBytes));
+        attachment.put("content_type", contentType == null || contentType.isBlank() ? "application/pdf" : contentType);
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("from", resendFromEmail);
+        payload.put("to", List.of(to));
+        payload.put("subject", subject);
+        payload.put("text", textBody);
+        payload.put("attachments", List.of(attachment));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.resend.com/emails"))
+                .header("Authorization", "Bearer " + resendApiKey.trim())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload), StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            String body = response.body() == null ? "" : response.body();
+            throw new IllegalStateException("Resend email API failed with HTTP " + response.statusCode() + ": " + body);
+        }
+    }
+
+    private String safeAttachmentName(String name) {
+        String cleaned = safeTrim(name).replaceAll("[\\\\/:*?\"<>|]+", "_");
+        return cleaned.isBlank() ? "resume.pdf" : cleaned;
     }
 
     private void sendPasswordResetEmail(User user, String token) throws Exception {

@@ -777,7 +777,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '/login?redirect=/dashboard';
         return;
     }
-    loadResumes();
+    await loadResumes();
+    renderRecoveredDrafts();
 });
 
 async function checkSession() {
@@ -851,6 +852,110 @@ function showUpgradedBanner(plan) {
         <button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.25);border:none;color:#fff;font-size:18px;cursor:pointer;padding:4px 10px;border-radius:8px;margin-left:8px;">✕</button>`;
     document.body.appendChild(banner);
     setTimeout(() => { if (banner.parentElement) banner.remove(); }, 8000);
+}
+
+function getRecoveredDrafts() {
+    const drafts = [];
+    try {
+        const builderRaw = localStorage.getItem('vetrismartcv.builder.recovery');
+        if (builderRaw) {
+            const draft = JSON.parse(builderRaw);
+            if (draft?.data) {
+                drafts.push({
+                    type: 'builder',
+                    key: 'vetrismartcv.builder.recovery',
+                    resumeId: draft.resumeId || draft.data.id || null,
+                    updatedAt: draft.updatedAt || draft.savedAt || null,
+                    data: draft.data
+                });
+            }
+        }
+    } catch {}
+
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key || !key.startsWith('vsc_review_autosave_')) continue;
+            const draft = JSON.parse(localStorage.getItem(key) || '{}');
+            if (draft?.data) {
+                drafts.push({
+                    type: 'review',
+                    key,
+                    resumeId: draft.resumeId || draft.data.id || null,
+                    updatedAt: draft.savedAt || draft.updatedAt || null,
+                    data: draft.data
+                });
+            }
+        }
+    } catch {}
+
+    const byKey = new Map();
+    drafts.forEach(draft => {
+        const data = draft.data || {};
+        if (!(data.fullName || data.jobTitle || data.profileSummary || data.skillsJson || data.experienceJson)) return;
+        byKey.set(draft.key, draft);
+    });
+    return Array.from(byKey.values()).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+}
+
+function renderRecoveredDrafts() {
+    const drafts = getRecoveredDrafts();
+    if (!drafts.length) return;
+    const container = document.getElementById('resumeCards');
+    if (!container) return;
+
+    const empty = container.querySelector('.empty-state');
+    if (empty) container.innerHTML = '';
+
+    drafts.forEach(draft => {
+        const data = draft.data || {};
+        const updated = draft.updatedAt
+            ? new Date(draft.updatedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+            : 'recently';
+        const card = document.createElement('div');
+        card.className = 'resume-card recovered-draft-card';
+        card.innerHTML = `
+            <div class="resume-card-header">
+                <div>
+                    <div class="resume-card-title">Recovered unsaved changes</div>
+                    <div class="resume-card-sub">${data.fullName || 'Untitled Resume'}${data.jobTitle ? ' - ' + data.jobTitle : ''}</div>
+                </div>
+                <span class="status-badge status-draft">Recovery</span>
+            </div>
+            <div class="template-tag">Local backup from ${updated}</div>
+            <div class="resume-meta">Continue from the latest browser autosave before it is overwritten.</div>
+            <div class="resume-card-actions">
+                <button class="rc-btn primary" onclick="continueRecoveredDraft('${draft.key.replace(/'/g, "\\'")}')">Continue</button>
+                <button class="rc-btn danger" onclick="discardRecoveredDraft('${draft.key.replace(/'/g, "\\'")}', this)">Discard</button>
+            </div>`;
+        container.prepend(card);
+    });
+}
+
+function continueRecoveredDraft(key) {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return;
+        const draft = JSON.parse(raw);
+        const data = draft.data || {};
+        sessionStorage.setItem('resumeData', JSON.stringify(data));
+        sessionStorage.setItem('selectedTemplate', data.templateName || 'template1');
+        if (key === 'vetrismartcv.builder.recovery') {
+            window.location.href = data.id || draft.resumeId ? `/builder?id=${data.id || draft.resumeId}` : '/builder';
+            return;
+        }
+        const id = draft.resumeId || data.id;
+        window.location.href = id ? `/review/${id}?recovered=1` : '/review?recovered=1';
+    } catch {
+        showToast('Could not open recovered draft.', 'error');
+    }
+}
+
+function discardRecoveredDraft(key, btn) {
+    localStorage.removeItem(key);
+    const card = btn?.closest('.resume-card');
+    if (card) card.remove();
+    showToast('Recovered draft discarded.');
 }
 
 async function loadResumes() {

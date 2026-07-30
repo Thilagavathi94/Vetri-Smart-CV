@@ -8,6 +8,8 @@ const totalSteps = 7;
 let resumeId = null;
 let parsedCvData = {};
 let profilePhotoBase64 = '';
+const BUILDER_RECOVERY_KEY = 'vetrismartcv.builder.recovery';
+let builderRecoveryTimer = null;
 
 const resumeData = {
     jobTitle: '',
@@ -61,8 +63,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('id')) {
         resumeId = parseInt(params.get('id'));
-        loadExistingResume(resumeId);
+        await loadExistingResume(resumeId);
     }
+    hydrateBuilderRecovery();
+    bindBuilderRecoveryAutosave();
     // Read template from URL param (e.g. coming from /template page)
     const tmplParam = params.get('template');
     selectTemplate(tmplParam || resumeData.templateName || 'template1');
@@ -379,6 +383,77 @@ function collectStepData(step) {
             resumeData.includePhoto = document.getElementById('includePhoto').checked;
             break;
     }
+}
+
+function collectVisibleBuilderData() {
+    try { collectExperienceData(); } catch {}
+    try { collectStepData(3); } catch {}
+    try { collectStepData(5); } catch {}
+    try { collectStepData(6); } catch {}
+    try { collectStepData(7); } catch {}
+    resumeData.templateName = normalizeBuilderTemplate(resumeData.templateName || sessionStorage.getItem('selectedTemplate') || 'template1');
+    return resumeData;
+}
+
+function persistBuilderRecoveryDraft() {
+    try {
+        collectVisibleBuilderData();
+        localStorage.setItem(BUILDER_RECOVERY_KEY, JSON.stringify({
+            resumeId,
+            currentStep,
+            updatedAt: new Date().toISOString(),
+            data: resumeData
+        }));
+        sessionStorage.setItem('resumeData', JSON.stringify(resumeData));
+        sessionStorage.setItem('selectedTemplate', resumeData.templateName);
+    } catch (err) {
+        console.warn('Could not write recovery draft:', err);
+    }
+}
+
+function hydrateBuilderRecovery() {
+    try {
+        const raw = localStorage.getItem(BUILDER_RECOVERY_KEY);
+        if (!raw) return;
+        const draft = JSON.parse(raw);
+        if (!draft || !draft.data) return;
+        if (resumeId && Number(draft.resumeId) !== Number(resumeId)) return;
+        if (!resumeId && draft.resumeId) return;
+
+        const savedTime = Date.parse(resumeData.updatedAt || resumeData.updated_at || 0);
+        const draftTime = Date.parse(draft.updatedAt || 0);
+        if (resumeId && savedTime && draftTime && draftTime <= savedTime) return;
+
+        Object.assign(resumeData, draft.data);
+        profilePhotoBase64 = resumeData.profilePhotoData || profilePhotoBase64 || '';
+        populateUIFromData(resumeData);
+        if (Number.isInteger(draft.currentStep) && draft.currentStep >= 1 && draft.currentStep <= totalSteps) {
+            const currentCard = document.getElementById('step-' + currentStep);
+            const recoveredCard = document.getElementById('step-' + draft.currentStep);
+            if (currentCard && recoveredCard) {
+                currentCard.classList.remove('active');
+                currentStep = draft.currentStep;
+                recoveredCard.classList.add('active');
+                updateProgress();
+            }
+        }
+        showToast('Recovered your latest unsaved draft.');
+    } catch (err) {
+        console.warn('Could not restore recovery draft:', err);
+    }
+}
+
+function bindBuilderRecoveryAutosave() {
+    document.addEventListener('input', () => {
+        clearTimeout(builderRecoveryTimer);
+        builderRecoveryTimer = setTimeout(persistBuilderRecoveryDraft, 600);
+    }, true);
+    document.addEventListener('change', persistBuilderRecoveryDraft, true);
+    window.addEventListener('beforeunload', persistBuilderRecoveryDraft);
+    setInterval(() => {
+        persistBuilderRecoveryDraft();
+        if (resumeId) autoSaveStep();
+    }, 30000);
 }
 
 // ============================================================

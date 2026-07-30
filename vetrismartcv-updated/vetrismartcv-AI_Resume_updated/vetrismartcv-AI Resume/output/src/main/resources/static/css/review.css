@@ -15,10 +15,12 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
    ============================================= */
 .review-layout {
     display: flex;
-    gap: 0;
-    max-width: 1340px;
+    gap: 20px;
+    justify-content: stretch;
+    width: min(100%, 1840px);
+    max-width: calc(100% - 32px);
     margin: 0 auto 60px;
-    padding: 0 16px;
+    padding: 0;
     align-items: flex-start;
 }
 
@@ -187,7 +189,7 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 }
 
 .review-template-card-grid .tpl-info {
-    padding: 14px 18px 16px;
+    padding: 10px 14px;
     border-top: 1px solid #e5e7eb;
 }
 
@@ -195,14 +197,14 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 6px;
+    margin-bottom: 0;
 }
 
 .review-template-card-grid .tpl-name { font-size: 1rem; font-weight: 800; color: #1a1a2e; }
 .review-template-card-grid .tpl-meta { display: flex; align-items: center; gap: 8px; }
 .review-template-card-grid .star-row { color: #f59e0b; font-size: 12px; }
 .review-template-card-grid .tpl-uses { font-size: 11px; color: #6b7280; font-weight: 600; }
-.review-template-card-grid .tpl-desc { font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 10px; }
+.review-template-card-grid .tpl-desc { display: none; }
 .review-template-card-grid .tpl-tags-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .review-template-card-grid .tpl-tag { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: #f3f0ff; color: #7c3aed; }
 
@@ -376,6 +378,117 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 .fsz-btn { flex: 1; padding: 6px 4px; border: 1.5px solid #e5e7eb; background: #fff; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; color: #374151; transition: all 0.2s; }
 .fsz-btn.active, .fsz-btn:hover { background: #ede9fe; border-color: #7c3aed; color: #6d28d9; }
 
+.header-align-btns { display: flex; gap: 5px; }
+.hdr-align-btn { flex: 1; padding: 6px 4px; border: 1.5px solid #e5e7eb; background: #fff; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; color: #374151; transition: all 0.2s; }
+.hdr-align-btn.active, .hdr-align-btn:hover { background: #ede9fe; border-color: #7c3aed; color: #6d28d9; }
+.section-position-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.section-position-row {
+    display: grid;
+    grid-template-columns: minmax(88px, 1fr) repeat(4, 28px);
+    align-items: center;
+    gap: 5px;
+    padding: 7px;
+    border: 1px solid #ececf4;
+    border-radius: 8px;
+    background: #fff;
+}
+.section-position-row span {
+    font-size: 11px;
+    font-weight: 700;
+    color: #374151;
+}
+.section-position-row button {
+    width: 28px;
+    height: 26px;
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+    background: #f9fafb;
+    color: #6d28d9;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+.section-position-row button:hover,
+.section-position-row button.active {
+    background: #ede9fe;
+    border-color: #7c3aed;
+}
+.section-position-row button:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+}
+.section-position-hint {
+    margin: 8px 0 0;
+    color: #6b7280;
+    font-size: 11px;
+}
+.rv-job-title-draggable {
+    touch-action: none;
+    user-select: none;
+    will-change: transform;
+    position: relative;
+    cursor: grab !important;
+    transition: box-shadow 0.16s ease, outline-color 0.16s ease, background 0.16s ease;
+}
+.rv-job-title-draggable:hover,
+.rv-job-title-selected {
+    outline: 2px dashed rgba(124, 58, 237, 0.65);
+    outline-offset: 4px;
+    border-radius: 6px;
+    background: rgba(124, 58, 237, 0.06);
+}
+.rv-job-title-dragging {
+    cursor: grabbing !important;
+    z-index: 30;
+    box-shadow: 0 12px 28px rgba(30, 20, 60, 0.18);
+}
+
+@media print {
+    .rv-job-title-draggable,
+    .rv-job-title-selected,
+    .rv-job-title-dragging {
+        outline: none !important;
+        outline-offset: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+}
+
+.layout-order-list { display: flex; flex-direction: column; gap: 7px; }
+.layout-order-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 6px;
+    padding: 7px;
+    border: 1px solid #ede9fe;
+    border-radius: 8px;
+    background: #faf7ff;
+}
+.layout-order-row span {
+    font-size: 12px;
+    font-weight: 700;
+    color: #374151;
+}
+.layout-order-row button {
+    border: 1px solid #ddd6fe;
+    background: #fff;
+    color: #6d28d9;
+    border-radius: 7px;
+    padding: 4px 7px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.layout-order-row button:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+}
+
 .design-section select { width: 100%; padding: 8px 10px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 12px; outline: none; background: #f9fafb; }
 .design-section input[type=range] { width: 100%; accent-color: #7c3aed; cursor: pointer; }
 
@@ -421,24 +534,27 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 /* =============================================
    SCROLL DIVIDER
    ============================================= */
-.scroll-divider { width: 14px; background: #e5e7eb; border-radius: 99px; margin: 0 8px; position: relative; flex-shrink: 0; min-height: 200px; }
+.scroll-divider { width: 14px; background: #e5e7eb; border-radius: 99px; margin: 0; position: relative; flex-shrink: 0; min-height: 200px; }
 .scroll-thumb { width: 100%; height: 60px; background: #7c3aed; border-radius: 99px; cursor: grab; }
 
 /* =============================================
    RESUME PREVIEW AREA
    ============================================= */
 .resume-preview-area {
-    flex: 1;
+    flex: 0 1 820px;
+    width: 820px;
+    max-width: 820px;
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding: 0 8px;
+    padding: 0;
+    min-width: 0;
 }
 
 .resume-doc {
     background: #fff;
-    width: 660px;
-    min-height: 1000px;
+    width: min(820px, 100%);
+    min-height: auto;
     box-shadow: 0 4px 30px rgba(0,0,0,0.12);
     border-radius: 4px;
     overflow: hidden;
@@ -453,8 +569,8 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
    RIGHT PANEL
    ============================================= */
 .review-right-panel {
-    width: 130px;
-    flex-shrink: 0;
+    width: 190px;
+    flex: 0 0 190px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -493,7 +609,7 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 .editable-field:hover .edit-pen { opacity: 1; }
 
 .resume-name { font-size: 1.7rem; font-weight: 800; color: #1a1a2e; margin-bottom: 2px; }
-.resume-jobtitle { font-size: 1rem; color: #6b7280; font-weight: 500; }
+.resume-jobtitle { font-size: 1rem; color: #6b7280; font-weight: 500; margin-top: 0; }
 
 .resume-section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 4px; margin-bottom: 10px; }
 .section-block { margin-bottom: 20px; }
@@ -574,9 +690,60 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 .edit-modal-actions button:first-child { border: 1.5px solid #e5e7eb; background: #fff; color: #374151; }
 .save-edit-btn { background: linear-gradient(135deg, #7c3aed, #5b21b6); border: none; color: #fff; }
 
-/* FOOTER: uses the shared .footer styles from style.css so builder,
-   review, and the home page all look identical. */
+/* FOOTER */
+.site-footer { background: #1a1a2e; color: #9ca3af; padding: 50px 60px 24px; }
+.footer-inner { display: flex; gap: 50px; flex-wrap: wrap; margin-bottom: 30px; }
+.footer-brand { flex: 2; min-width: 200px; }
+.footer-logo { color: #fff; font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
+.footer-brand p { font-size: 13px; line-height: 1.6; max-width: 260px; }
+.footer-col { flex: 1; min-width: 120px; }
+.footer-col h5 { color: #fff; font-size: 14px; font-weight: 700; margin: 0 0 12px; }
+.footer-col a, .footer-col p { display: block; font-size: 13px; color: #9ca3af; text-decoration: none; margin-bottom: 6px; }
+.footer-col a:hover { color: #c4b5fd; }
+.footer-bottom { border-top: 1px solid #374151; padding-top: 20px; font-size: 12px; text-align: center; }
 
+.review-footer-socials {
+    display: none !important;
+}
+
+.footer .footer-col ul a {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-svg-icon,
+.footer-badge-icon {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    color: currentColor;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.footer .link-icon {
+    color: rgba(255,255,255,0.7);
+}
+
+.footer-contact-item .contact-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.footer-contact-item .contact-icon .footer-svg-icon {
+    color: currentColor;
+}
+
+.footer-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
 
 /* =============================================
    RESPONSIVE
@@ -640,9 +807,13 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 
 /* Dim the controls inside a locked section */
 body[data-plan="FREE"]    .premium-feature .font-size-btns,
+body[data-plan="FREE"]    .premium-feature .header-align-btns,
+body[data-plan="FREE"]    .premium-feature .layout-order-list,
 body[data-plan="FREE"]    .premium-feature select,
 body[data-plan="FREE"]    .premium-feature input[type=range],
 body[data-plan="PRO"]     .premium-feature .font-size-btns,
+body[data-plan="PRO"]     .premium-feature .header-align-btns,
+body[data-plan="PRO"]     .premium-feature .layout-order-list,
 body[data-plan="PRO"]     .premium-feature select,
 body[data-plan="PRO"]     .premium-feature input[type=range] {
     opacity: 0.35;
@@ -1350,6 +1521,9 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
 .rv-stb-edit { background: #f3f0ff; color: #6c3fc9; }
 .rv-stb-edit:hover { background: #7c3aed; color: #fff; }
 
+.rv-stb-move { background: #eff6ff; color: #2563eb; }
+.rv-stb-move:hover { background: #2563eb; color: #fff; }
+
 .rv-stb-del { background: #fef2f2; color: #ef4444; }
 .rv-stb-del:hover { background: #ef4444; color: #fff; }
 
@@ -1420,98 +1594,454 @@ body[data-plan="PREMIUM"] .premium-tag { display: none; }
     display: none !important;
 }
 
-.resume-section,
-.experience-item,
-.section-block,
-.t1-job {
-    page-break-inside: auto !important;
-    break-inside: auto !important;
+/* =============================================
+   HEADER ALIGNMENT (UI-05 fix)
+   Lets the user align the name + job-title block
+   left / center / right. Works across all templates
+   since every template wraps its header name/role in
+   a predictable *-name / *-role(-...) class.
+   ============================================= */
+.resume-doc[data-header-align="left"] [class*="name"],
+.resume-doc[data-header-align="left"] [class*="role"] {
+    text-align: left !important;
 }
 
-.no-break,
-.project-item,
-.education-item,
-.certification-item {
-    page-break-inside: avoid;
-    break-inside: avoid;
+.resume-doc[data-header-align="center"] [class*="name"],
+.resume-doc[data-header-align="center"] [class*="role"] {
+    text-align: center !important;
 }
 
-.no-break-heading,
-.t1-section-title {
-    page-break-after: avoid;
-    break-after: avoid;
+.resume-doc[data-header-align="right"] [class*="name"],
+.resume-doc[data-header-align="right"] [class*="role"] {
+    text-align: right !important;
 }
 
-p,
-li {
-    orphans: 3;
-    widows: 3;
+.resume-doc[data-header-align="left"] .t1-name,
+.resume-doc[data-header-align="left"] .t1-role,
+.resume-doc[data-header-align="left"] .t10-name,
+.resume-doc[data-header-align="left"] .t10-role,
+.resume-doc[data-header-align="left"] .t11-name,
+.resume-doc[data-header-align="left"] .t11-role,
+.resume-doc[data-header-align="left"] .t12-name,
+.resume-doc[data-header-align="left"] .t12-role,
+.resume-doc[data-header-align="left"] .t13-name,
+.resume-doc[data-header-align="left"] .t14-name-l,
+.resume-doc[data-header-align="left"] .t15-name,
+.resume-doc[data-header-align="left"] .t16-name,
+.resume-doc[data-header-align="left"] .t17-name,
+.resume-doc[data-header-align="left"] .t17-role,
+.resume-doc[data-header-align="left"] .t18-name,
+.resume-doc[data-header-align="left"] .t19-name,
+.resume-doc[data-header-align="left"] .t19-role,
+.resume-doc[data-header-align="left"] .t2-name,
+.resume-doc[data-header-align="left"] .t2-role-badge,
+.resume-doc[data-header-align="left"] .t2-roles,
+.resume-doc[data-header-align="left"] .t20-name,
+.resume-doc[data-header-align="left"] .t21-name,
+.resume-doc[data-header-align="left"] .t22-name-left,
+.resume-doc[data-header-align="left"] .t22-pos-desired,
+.resume-doc[data-header-align="left"] .t23-name,
+.resume-doc[data-header-align="left"] .t23-role-badge,
+.resume-doc[data-header-align="left"] .t24-name,
+.resume-doc[data-header-align="left"] .t25-name,
+.resume-doc[data-header-align="left"] .t25-role,
+.resume-doc[data-header-align="left"] .t26-name,
+.resume-doc[data-header-align="left"] .t27-name,
+.resume-doc[data-header-align="left"] .t28-name,
+.resume-doc[data-header-align="left"] .t28-role,
+.resume-doc[data-header-align="left"] .t29-name,
+.resume-doc[data-header-align="left"] .t3-name,
+.resume-doc[data-header-align="left"] .t3-role,
+.resume-doc[data-header-align="left"] .t30-name-l,
+.resume-doc[data-header-align="left"] .t31-name,
+.resume-doc[data-header-align="left"] .t32-name,
+.resume-doc[data-header-align="left"] .t32-role,
+.resume-doc[data-header-align="left"] .t33-name,
+.resume-doc[data-header-align="left"] .t33-title,
+.resume-doc[data-header-align="left"] .t34-name,
+.resume-doc[data-header-align="left"] .t34-role,
+.resume-doc[data-header-align="left"] .t35-job-title,
+.resume-doc[data-header-align="left"] .t35-name-big,
+.resume-doc[data-header-align="left"] .t36-name,
+.resume-doc[data-header-align="left"] .t36-role,
+.resume-doc[data-header-align="left"] .t37-name,
+.resume-doc[data-header-align="left"] .t38-name-l,
+.resume-doc[data-header-align="left"] .t38-role-l,
+.resume-doc[data-header-align="left"] .t39-name,
+.resume-doc[data-header-align="left"] .t39-role,
+.resume-doc[data-header-align="left"] .t4-name,
+.resume-doc[data-header-align="left"] .t4-role,
+.resume-doc[data-header-align="left"] .t40-name,
+.resume-doc[data-header-align="left"] .t40-role,
+.resume-doc[data-header-align="left"] .t41-name,
+.resume-doc[data-header-align="left"] .t41-title,
+.resume-doc[data-header-align="left"] .t42-name-l,
+.resume-doc[data-header-align="left"] .t42-role-l,
+.resume-doc[data-header-align="left"] .t43-name,
+.resume-doc[data-header-align="left"] .t43-title,
+.resume-doc[data-header-align="left"] .t44-name,
+.resume-doc[data-header-align="left"] .t44-title,
+.resume-doc[data-header-align="left"] .t45-name,
+.resume-doc[data-header-align="left"] .t45-role-tag,
+.resume-doc[data-header-align="left"] .t46-name,
+.resume-doc[data-header-align="left"] .t47-name,
+.resume-doc[data-header-align="left"] .t47-role-badge,
+.resume-doc[data-header-align="left"] .t48-name-48,
+.resume-doc[data-header-align="left"] .t48-title-48,
+.resume-doc[data-header-align="left"] .t49-name-49,
+.resume-doc[data-header-align="left"] .t49-subtitle,
+.resume-doc[data-header-align="left"] .t5-header-name,
+.resume-doc[data-header-align="left"] .t5-header-role,
+.resume-doc[data-header-align="left"] .t50-name-50,
+.resume-doc[data-header-align="left"] .t50-title-50,
+.resume-doc[data-header-align="left"] .t51-name-51,
+.resume-doc[data-header-align="left"] .t51-title-51,
+.resume-doc[data-header-align="left"] .t52-name-52,
+.resume-doc[data-header-align="left"] .t52-title-52,
+.resume-doc[data-header-align="left"] .t6-name,
+.resume-doc[data-header-align="left"] .t6-role,
+.resume-doc[data-header-align="left"] .t7-h-name,
+.resume-doc[data-header-align="left"] .t7-h-role,
+.resume-doc[data-header-align="left"] .t8-name,
+.resume-doc[data-header-align="left"] .t8-role,
+.resume-doc[data-header-align="left"] .t9-left-name,
+.resume-doc[data-header-align="left"] .t9-left-role,
+.resume-doc[data-header-align="left"] .t9-name,
+.resume-doc[data-header-align="left"] .t9-role {
+    text-align: left !important;
 }
 
-/* Review page footer should not show social icon buttons. */
-.footer .footer-socials {
+.resume-doc[data-header-align="center"] .t1-name,
+.resume-doc[data-header-align="center"] .t1-role,
+.resume-doc[data-header-align="center"] .t10-name,
+.resume-doc[data-header-align="center"] .t10-role,
+.resume-doc[data-header-align="center"] .t11-name,
+.resume-doc[data-header-align="center"] .t11-role,
+.resume-doc[data-header-align="center"] .t12-name,
+.resume-doc[data-header-align="center"] .t12-role,
+.resume-doc[data-header-align="center"] .t13-name,
+.resume-doc[data-header-align="center"] .t14-name-l,
+.resume-doc[data-header-align="center"] .t15-name,
+.resume-doc[data-header-align="center"] .t16-name,
+.resume-doc[data-header-align="center"] .t17-name,
+.resume-doc[data-header-align="center"] .t17-role,
+.resume-doc[data-header-align="center"] .t18-name,
+.resume-doc[data-header-align="center"] .t19-name,
+.resume-doc[data-header-align="center"] .t19-role,
+.resume-doc[data-header-align="center"] .t2-name,
+.resume-doc[data-header-align="center"] .t2-role-badge,
+.resume-doc[data-header-align="center"] .t2-roles,
+.resume-doc[data-header-align="center"] .t20-name,
+.resume-doc[data-header-align="center"] .t21-name,
+.resume-doc[data-header-align="center"] .t22-name-left,
+.resume-doc[data-header-align="center"] .t22-pos-desired,
+.resume-doc[data-header-align="center"] .t23-name,
+.resume-doc[data-header-align="center"] .t23-role-badge,
+.resume-doc[data-header-align="center"] .t24-name,
+.resume-doc[data-header-align="center"] .t25-name,
+.resume-doc[data-header-align="center"] .t25-role,
+.resume-doc[data-header-align="center"] .t26-name,
+.resume-doc[data-header-align="center"] .t27-name,
+.resume-doc[data-header-align="center"] .t28-name,
+.resume-doc[data-header-align="center"] .t28-role,
+.resume-doc[data-header-align="center"] .t29-name,
+.resume-doc[data-header-align="center"] .t3-name,
+.resume-doc[data-header-align="center"] .t3-role,
+.resume-doc[data-header-align="center"] .t30-name-l,
+.resume-doc[data-header-align="center"] .t31-name,
+.resume-doc[data-header-align="center"] .t32-name,
+.resume-doc[data-header-align="center"] .t32-role,
+.resume-doc[data-header-align="center"] .t33-name,
+.resume-doc[data-header-align="center"] .t33-title,
+.resume-doc[data-header-align="center"] .t34-name,
+.resume-doc[data-header-align="center"] .t34-role,
+.resume-doc[data-header-align="center"] .t35-job-title,
+.resume-doc[data-header-align="center"] .t35-name-big,
+.resume-doc[data-header-align="center"] .t36-name,
+.resume-doc[data-header-align="center"] .t36-role,
+.resume-doc[data-header-align="center"] .t37-name,
+.resume-doc[data-header-align="center"] .t38-name-l,
+.resume-doc[data-header-align="center"] .t38-role-l,
+.resume-doc[data-header-align="center"] .t39-name,
+.resume-doc[data-header-align="center"] .t39-role,
+.resume-doc[data-header-align="center"] .t4-name,
+.resume-doc[data-header-align="center"] .t4-role,
+.resume-doc[data-header-align="center"] .t40-name,
+.resume-doc[data-header-align="center"] .t40-role,
+.resume-doc[data-header-align="center"] .t41-name,
+.resume-doc[data-header-align="center"] .t41-title,
+.resume-doc[data-header-align="center"] .t42-name-l,
+.resume-doc[data-header-align="center"] .t42-role-l,
+.resume-doc[data-header-align="center"] .t43-name,
+.resume-doc[data-header-align="center"] .t43-title,
+.resume-doc[data-header-align="center"] .t44-name,
+.resume-doc[data-header-align="center"] .t44-title,
+.resume-doc[data-header-align="center"] .t45-name,
+.resume-doc[data-header-align="center"] .t45-role-tag,
+.resume-doc[data-header-align="center"] .t46-name,
+.resume-doc[data-header-align="center"] .t47-name,
+.resume-doc[data-header-align="center"] .t47-role-badge,
+.resume-doc[data-header-align="center"] .t48-name-48,
+.resume-doc[data-header-align="center"] .t48-title-48,
+.resume-doc[data-header-align="center"] .t49-name-49,
+.resume-doc[data-header-align="center"] .t49-subtitle,
+.resume-doc[data-header-align="center"] .t5-header-name,
+.resume-doc[data-header-align="center"] .t5-header-role,
+.resume-doc[data-header-align="center"] .t50-name-50,
+.resume-doc[data-header-align="center"] .t50-title-50,
+.resume-doc[data-header-align="center"] .t51-name-51,
+.resume-doc[data-header-align="center"] .t51-title-51,
+.resume-doc[data-header-align="center"] .t52-name-52,
+.resume-doc[data-header-align="center"] .t52-title-52,
+.resume-doc[data-header-align="center"] .t6-name,
+.resume-doc[data-header-align="center"] .t6-role,
+.resume-doc[data-header-align="center"] .t7-h-name,
+.resume-doc[data-header-align="center"] .t7-h-role,
+.resume-doc[data-header-align="center"] .t8-name,
+.resume-doc[data-header-align="center"] .t8-role,
+.resume-doc[data-header-align="center"] .t9-left-name,
+.resume-doc[data-header-align="center"] .t9-left-role,
+.resume-doc[data-header-align="center"] .t9-name,
+.resume-doc[data-header-align="center"] .t9-role {
+    text-align: center !important;
+}
+
+.resume-doc[data-header-align="right"] .t1-name,
+.resume-doc[data-header-align="right"] .t1-role,
+.resume-doc[data-header-align="right"] .t10-name,
+.resume-doc[data-header-align="right"] .t10-role,
+.resume-doc[data-header-align="right"] .t11-name,
+.resume-doc[data-header-align="right"] .t11-role,
+.resume-doc[data-header-align="right"] .t12-name,
+.resume-doc[data-header-align="right"] .t12-role,
+.resume-doc[data-header-align="right"] .t13-name,
+.resume-doc[data-header-align="right"] .t14-name-l,
+.resume-doc[data-header-align="right"] .t15-name,
+.resume-doc[data-header-align="right"] .t16-name,
+.resume-doc[data-header-align="right"] .t17-name,
+.resume-doc[data-header-align="right"] .t17-role,
+.resume-doc[data-header-align="right"] .t18-name,
+.resume-doc[data-header-align="right"] .t19-name,
+.resume-doc[data-header-align="right"] .t19-role,
+.resume-doc[data-header-align="right"] .t2-name,
+.resume-doc[data-header-align="right"] .t2-role-badge,
+.resume-doc[data-header-align="right"] .t2-roles,
+.resume-doc[data-header-align="right"] .t20-name,
+.resume-doc[data-header-align="right"] .t21-name,
+.resume-doc[data-header-align="right"] .t22-name-left,
+.resume-doc[data-header-align="right"] .t22-pos-desired,
+.resume-doc[data-header-align="right"] .t23-name,
+.resume-doc[data-header-align="right"] .t23-role-badge,
+.resume-doc[data-header-align="right"] .t24-name,
+.resume-doc[data-header-align="right"] .t25-name,
+.resume-doc[data-header-align="right"] .t25-role,
+.resume-doc[data-header-align="right"] .t26-name,
+.resume-doc[data-header-align="right"] .t27-name,
+.resume-doc[data-header-align="right"] .t28-name,
+.resume-doc[data-header-align="right"] .t28-role,
+.resume-doc[data-header-align="right"] .t29-name,
+.resume-doc[data-header-align="right"] .t3-name,
+.resume-doc[data-header-align="right"] .t3-role,
+.resume-doc[data-header-align="right"] .t30-name-l,
+.resume-doc[data-header-align="right"] .t31-name,
+.resume-doc[data-header-align="right"] .t32-name,
+.resume-doc[data-header-align="right"] .t32-role,
+.resume-doc[data-header-align="right"] .t33-name,
+.resume-doc[data-header-align="right"] .t33-title,
+.resume-doc[data-header-align="right"] .t34-name,
+.resume-doc[data-header-align="right"] .t34-role,
+.resume-doc[data-header-align="right"] .t35-job-title,
+.resume-doc[data-header-align="right"] .t35-name-big,
+.resume-doc[data-header-align="right"] .t36-name,
+.resume-doc[data-header-align="right"] .t36-role,
+.resume-doc[data-header-align="right"] .t37-name,
+.resume-doc[data-header-align="right"] .t38-name-l,
+.resume-doc[data-header-align="right"] .t38-role-l,
+.resume-doc[data-header-align="right"] .t39-name,
+.resume-doc[data-header-align="right"] .t39-role,
+.resume-doc[data-header-align="right"] .t4-name,
+.resume-doc[data-header-align="right"] .t4-role,
+.resume-doc[data-header-align="right"] .t40-name,
+.resume-doc[data-header-align="right"] .t40-role,
+.resume-doc[data-header-align="right"] .t41-name,
+.resume-doc[data-header-align="right"] .t41-title,
+.resume-doc[data-header-align="right"] .t42-name-l,
+.resume-doc[data-header-align="right"] .t42-role-l,
+.resume-doc[data-header-align="right"] .t43-name,
+.resume-doc[data-header-align="right"] .t43-title,
+.resume-doc[data-header-align="right"] .t44-name,
+.resume-doc[data-header-align="right"] .t44-title,
+.resume-doc[data-header-align="right"] .t45-name,
+.resume-doc[data-header-align="right"] .t45-role-tag,
+.resume-doc[data-header-align="right"] .t46-name,
+.resume-doc[data-header-align="right"] .t47-name,
+.resume-doc[data-header-align="right"] .t47-role-badge,
+.resume-doc[data-header-align="right"] .t48-name-48,
+.resume-doc[data-header-align="right"] .t48-title-48,
+.resume-doc[data-header-align="right"] .t49-name-49,
+.resume-doc[data-header-align="right"] .t49-subtitle,
+.resume-doc[data-header-align="right"] .t5-header-name,
+.resume-doc[data-header-align="right"] .t5-header-role,
+.resume-doc[data-header-align="right"] .t50-name-50,
+.resume-doc[data-header-align="right"] .t50-title-50,
+.resume-doc[data-header-align="right"] .t51-name-51,
+.resume-doc[data-header-align="right"] .t51-title-51,
+.resume-doc[data-header-align="right"] .t52-name-52,
+.resume-doc[data-header-align="right"] .t52-title-52,
+.resume-doc[data-header-align="right"] .t6-name,
+.resume-doc[data-header-align="right"] .t6-role,
+.resume-doc[data-header-align="right"] .t7-h-name,
+.resume-doc[data-header-align="right"] .t7-h-role,
+.resume-doc[data-header-align="right"] .t8-name,
+.resume-doc[data-header-align="right"] .t8-role,
+.resume-doc[data-header-align="right"] .t9-left-name,
+.resume-doc[data-header-align="right"] .t9-left-role,
+.resume-doc[data-header-align="right"] .t9-name,
+.resume-doc[data-header-align="right"] .t9-role {
+    text-align: right !important;
+}
+
+/* =============================================
+   REVIEW PREVIEW WIDTH FIX
+   Keep the editor chrome compact and let the resume sheet use the
+   available center space, including fixed-width inner templates.
+   ============================================= */
+@media (min-width: 1025px) {
+    .review-header {
+        padding-top: 18px;
+    }
+
+    .review-layout {
+        display: grid;
+        grid-template-columns: clamp(320px, 28vw, 430px) 14px minmax(0, 1fr) 220px;
+        gap: 18px;
+        width: calc(100% - 48px);
+        max-width: none;
+        justify-content: stretch;
+        align-items: start;
+        overflow: visible;
+    }
+
+    .review-left-panel {
+        width: 100%;
+    }
+
+    .resume-preview-area {
+        width: 100%;
+        max-width: none;
+        flex: none;
+        justify-content: stretch;
+        overflow-x: hidden;
+    }
+
+    .resume-doc {
+        width: 100%;
+        max-width: none;
+    }
+
+    .review-right-panel {
+        width: 220px;
+        max-width: 220px;
+        flex-basis: 220px;
+        justify-self: end;
+        overflow: visible;
+    }
+}
+
+.resume-doc > [class^="resume-t"],
+.resume-doc > [class*=" resume-t"],
+#resumeDoc > [class^="resume-t"],
+#resumeDoc > [class*=" resume-t"] {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.resume-doc .t1-header,
+.resume-doc .t1-header-bg {
+    width: 100% !important;
+}
+
+.review-template-card-grid .tpl-card {
+    border-radius: 12px;
+}
+
+.review-template-card-grid .tpl-preview {
+    height: 205px;
+}
+
+.review-template-card-grid .tpl-info {
+    padding: 9px 14px 10px;
+}
+
+.review-template-card-grid .tpl-desc,
+.review-template-card-grid .tpl-tags-row,
+.review-template-card-grid .tpl-meta {
     display: none !important;
 }
 
-@media print {
-    .rv-stb,
-    .rv-line-actions,
-    .edit-pen,
-    .photo-controls,
-    .template-edit-btn,
-    [data-rv-toolbar] {
-        display: none !important;
-    }
-
-    .editable-field {
-        cursor: default !important;
-        outline: none !important;
-    }
+/* Header alignment must not re-align section headings or item titles. */
+.resume-doc [class*="section-title"],
+.resume-doc [class*="sec-title"],
+.resume-doc .resume-section-title {
+    text-align: left !important;
+    align-self: stretch !important;
 }
-@media print {
-  @page {
-    size: A4;
-    margin: 0;
-  }
 
-  html,
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
+#resumeDoc .t1-body,
+#resumeDoc .resume-t2 {
+    direction: ltr !important;
+}
 
-  .resume-doc {
-    width: 210mm !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-  }
+#resumeDoc .t1-left,
+#resumeDoc .t2-left {
+    order: 0 !important;
+}
 
-  .resume-page,
-  .pdf-page {
-    padding-top: 10mm;
-    box-sizing: border-box;
-  }
+#resumeDoc .t1-right,
+#resumeDoc .t2-right {
+    order: 1 !important;
+}
 
-  .left-column,
-  .sidebar,
-  .t1-left {
-    padding-top: 10mm;
-  }
+#resumeDoc .t1-left,
+#resumeDoc .t1-left * {
+    text-align: left !important;
+}
 
-  .review-layout,
-  .resume-preview-area {
-    margin: 0 !important;
-    padding: 0 !important;
+#resumeDoc .t1-edu-item {
     display: block !important;
-  }
+    margin-bottom: 10px !important;
+}
 
-  .navbar,
-  .review-header,
-  .review-left-panel,
-  .review-right-panel,
-  .scroll-divider,
-  footer {
-    display: none !important;
-  }
+#resumeDoc .t1-edu-main {
+    min-width: 0 !important;
+}
+
+#resumeDoc .t1-edu-name {
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+#resumeDoc .t1-edu-deg {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+    margin-top: 3px !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+#resumeDoc .t1-edu-date {
+    display: block !important;
+    min-width: 0 !important;
+    margin-top: 3px !important;
+    text-align: left !important;
+}
+
+#resumeDoc .t1-project-item {
+    margin-bottom: 10px !important;
+}
+
+#resumeDoc .t1-project-item .t1-job-title {
+    margin-bottom: 3px !important;
 }

@@ -70,6 +70,16 @@ public class ResumeData {
     private String letterSpacing;
     private String lineSpacing;
     private String photoSize;         // photo diameter in px
+    private String headerAlignment;   // left | center | right
+
+    @Column(columnDefinition = "TEXT")
+    private String sectionOrder;      // JSON array of section field names
+
+    @Column(columnDefinition = "TEXT")
+    private String sectionLayoutJson;  // JSON object of section field -> left/right
+
+    @Column(columnDefinition = "TEXT")
+    private String jobTitlePositionJson; // JSON object with x/y drag offsets
 
     @Column(columnDefinition = "TEXT")
     private String additionalSectionsJson;

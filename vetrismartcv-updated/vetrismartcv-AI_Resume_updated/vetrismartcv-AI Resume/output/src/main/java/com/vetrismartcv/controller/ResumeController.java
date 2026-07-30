@@ -12,6 +12,7 @@ import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -193,7 +194,7 @@ public class ResumeController {
     }
 
     /* ---- POST /api/resume/{id}/share-email ---- */
-    @PostMapping("/{id}/share-email")
+    @PostMapping(value = "/{id}/share-email", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> shareByEmail(
             @PathVariable Long id,
             @RequestBody(required = false) Map<String, String> body,
@@ -258,6 +259,70 @@ public class ResumeController {
         }
     }
 
+    @PostMapping(value = "/{id}/share-email", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> sharePdfByEmail(
+            @PathVariable Long id,
+            @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "pdf", required = false) MultipartFile pdf,
+            HttpSession session) {
+
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of(
+                    "success", false,
+                    "requireLogin", true,
+                    "message", "Please login to share your resume."
+            ));
+        }
+        if (!userService.isEmailDeliveryConfigured()) {
+            return ResponseEntity.status(503).body(Map.of(
+                    "success", false,
+                    "message", "Email is not configured on the server."
+            ));
+        }
+
+        Optional<ResumeData> resumeOpt = resumeService.getById(id);
+        if (resumeOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "success", false,
+                    "message", "Resume not found."
+            ));
+        }
+
+        ResumeData resume = resumeOpt.get();
+        String to = safeTrim(email);
+        if (to.isBlank()) to = safeTrim(resume.getEmail());
+        if (!isValidEmail(to)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Please enter a valid recipient email address."
+            ));
+        }
+        if (pdf == null || pdf.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Resume PDF attachment is missing."
+            ));
+        }
+
+        try {
+            String name = safeTrim(resume.getFullName()).isBlank() ? "My Resume" : safeTrim(resume.getFullName());
+            String subject = "Resume - " + name;
+            String textBody = "Hi,\n\nPlease find my resume attached as a PDF.\n\nRegards,\n" + name + "\nVetriSmartCV";
+            String fileName = safePdfFileName(name) + ".pdf";
+            userService.sendEmailWithAttachment(to, subject, textBody, pdf.getBytes(), fileName, "application/pdf");
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Resume PDF sent to " + to + "."
+            ));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(Map.of(
+                    "success", false,
+                    "message", "Could not send resume PDF. Please check mail configuration."
+            ));
+        }
+    }
+
     private ResponseEntity<Map<String, Object>> blockFreeTemplateIfNeeded(Long userId, HttpSession session, String templateName) {
         String normalizedTemplate = normalizeTemplateId(templateName);
         if (normalizedTemplate.isBlank() || FREE_TEMPLATE_IDS.contains(normalizedTemplate)) return null;
@@ -299,6 +364,12 @@ public class ResumeController {
 
     private boolean isValidEmail(String email) {
         return email != null && email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
+    }
+
+    private String safePdfFileName(String name) {
+        String cleaned = safeTrim(name).replaceAll("[^a-zA-Z0-9._-]+", "_");
+        cleaned = cleaned.replaceAll("^_+|_+$", "");
+        return cleaned.isBlank() ? "resume" : cleaned;
     }
 
     /* ---- POST /api/resume/upload-cv ---- */
@@ -426,19 +497,27 @@ public class ResumeController {
         if (website != null) parsed.put("website", website.trim());
 
         List<String> lines = extractMeaningfulLines(safeText);
-        if (!lines.isEmpty()) {
-            parsed.put("fullName", lines.get(0));
+        String candidateName = extractCandidateName(lines);
+        if (candidateName != null) {
+            parsed.put("fullName", candidateName);
         }
 
         String jobTitle = extractJobTitle(lines);
         if (jobTitle != null) parsed.put("jobTitle", jobTitle);
 
         Map<String, List<String>> sections = splitSections(lines);
+        repairLeakedResumeSections(sections);
 
         String summary = extractSummary(sections, lines);
         if (summary != null && !summary.isBlank()) parsed.put("profileSummary", summary);
 
         List<String> skills = extractSkillsImproved(sections.get("skills"));
+        if (skills.isEmpty()) {
+            String headerSkillsLine = findHeaderSkillsLine(lines);
+            if (headerSkillsLine != null) {
+                skills = extractSkillsImproved(List.of(headerSkillsLine));
+            }
+        }
         if (!skills.isEmpty()) {
             parsed.put("skills", skills);
             parsed.put("skillsHint", String.join(", ", skills));
@@ -479,7 +558,7 @@ public class ResumeController {
     private String firstMatch(String text, String regex) {
         java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(regex, java.util.regex.Pattern.CASE_INSENSITIVE).matcher(text);
         if (!matcher.find()) return null;
-        return matcher.groupCount() >= 1 && matcher.group(1) != null ? matcher.group(1) : matcher.group();
+        return matcher.group();
     }
 
     private List<String> extractMeaningfulLines(String text) {
@@ -499,9 +578,62 @@ public class ResumeController {
             if (line.length() > 2 && line.length() < 70 &&
                 !line.contains("@") &&
                 !line.matches(".*\\d{5,}.*") &&
-                !isSectionHeading(lower)) {
+                !isSectionHeading(lower) &&
+                !looksLikeSkillsLine(line) &&
+                looksLikeJobTitleLine(line)) {
                 return line;
             }
+        }
+        return null;
+    }
+
+    private boolean looksLikeJobTitleLine(String line) {
+        String value = line == null ? "" : stripBullet(line).trim();
+        String lower = value.toLowerCase(Locale.ROOT);
+        if (value.isBlank() || looksLikeSentence(value)) return false;
+        if (lower.matches(".*\\b(profile|summary|objective|experience|education|skills|competenc(?:y|ies)|project|certification|contact|language|tool|technology)\\b.*")) return false;
+        return lower.matches(".*\\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect|administrator|tester|qa|support|scientist|administrator|devops|full\\s*stack|backend|frontend)\\b.*");
+    }
+
+    private String extractCandidateName(List<String> lines) {
+        if (lines == null || lines.isEmpty()) return null;
+        for (int i = 0; i < Math.min(lines.size(), 8); i++) {
+            String line = stripBullet(lines.get(i));
+            if (line.isBlank()) continue;
+            if (looksLikeContactLine(line) || isSectionHeading(line) || looksLikeSkillsLine(line)) continue;
+            if (line.matches(".*\\d.*") || line.contains("|") || line.contains(":")) continue;
+            if (looksLikeSentence(line)) continue;
+            String compact = line.replaceAll("\\s+", " ").trim();
+            String lower = compact.toLowerCase(Locale.ROOT);
+            if (lower.matches(".*\\b(resume|curriculum vitae|profile|summary|objective|experience|education|skills|project|certification)\\b.*")) continue;
+            if (lower.matches(".*\\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|tester|qa|support)\\b.*")) continue;
+            if (compact.matches("[A-Za-z][A-Za-z'.-]+(?:\\s+[A-Za-z][A-Za-z'.-]+){1,4}")) return compact;
+        }
+        return null;
+    }
+
+    // D_RES0609 FIX: a tech-stack/skills summary line right under the name
+    // (e.g. "FRONTEND: React.js, Redux, TypeScript, HTML5, CSS3, Tailwind CSS")
+    // was previously mistaken for the job title since it is short and isn't a
+    // recognized section heading. Detect that shape explicitly so it is
+    // skipped here and can be recovered as skills instead.
+    private boolean looksLikeSkillsLine(String line) {
+        String value = line == null ? "" : line.trim();
+        if (value.isEmpty()) return false;
+        if (value.matches("(?i)^(frontend|front end|backend|back end|full\\s*stack|tech\\s*stack|stack|"
+                + "programming languages|languages|frameworks|databases?|tools|devops|cloud|"
+                + "technologies|technical skills|skills|core competencies)\\s*[:\\-].*")) {
+            return true;
+        }
+        // Generic shape: "Label: item, item, item" with several comma-separated tokens
+        long commaCount = value.chars().filter(ch -> ch == ',').count();
+        return value.contains(":") && commaCount >= 2;
+    }
+
+    private String findHeaderSkillsLine(List<String> lines) {
+        for (int i = 1; i < Math.min(lines.size(), 6); i++) {
+            String line = lines.get(i);
+            if (looksLikeSkillsLine(line)) return line;
         }
         return null;
     }
@@ -536,10 +668,12 @@ public class ResumeController {
     private String mapSectionHeading(String line) {
         String normalized = line.toLowerCase(Locale.ROOT).replace(":", "").trim();
         String compact = normalized.replaceAll("\\s+", " ");
-        if (Set.of("summary", "profile", "profile summary", "professional summary", "career summary", "objective", "career objective", "about me").contains(compact)) return "summary";
+        if (Set.of("summary", "profile", "profile summary", "professional summary", "career summary",
+                "executive summary", "career profile", "professional profile", "summary of qualifications",
+                "qualifications summary", "personal summary", "objective", "career objective", "about me").contains(compact)) return "summary";
         if (Set.of("experience", "work experience", "professional experience", "employment", "employment history", "career history", "work history").contains(compact)) return "experience";
         if (Set.of("education", "academic background", "academics", "educational qualification", "educational qualifications", "qualification", "qualifications").contains(compact)) return "education";
-        if (Set.of("skills", "technical skills", "core skills", "key skills", "professional skills", "areas of expertise", "competencies", "soft skills", "it proficiency", "technical proficiency", "computer proficiency").contains(compact)) return "skills";
+        if (Set.of("skills", "technical skills", "core skills", "core competencies", "key skills", "professional skills", "areas of expertise", "competencies", "soft skills", "it proficiency", "technical proficiency", "computer proficiency").contains(compact)) return "skills";
         if (Set.of("projects", "project", "personal projects", "academic projects", "key projects", "project details", "academic project").contains(compact)) return "projects";
         if (Set.of("certifications", "certification", "certification details", "certificates", "licenses", "licences", "courses", "professional certifications", "certifications and licenses", "certifications and licences").contains(compact)) return "certifications";
         if (Set.of("languages", "language").contains(compact)) return "languages";
@@ -557,7 +691,7 @@ public class ResumeController {
     private String[] splitInlineSectionHeading(String line) {
         String value = line == null ? "" : line.trim();
         java.util.regex.Matcher matcher = java.util.regex.Pattern
-                .compile("(?i)^(profile\\s+summary|professional\\s+summary|career\\s+summary|summary|objective|about\\s+me|work\\s+experience|professional\\s+experience|experience|employment\\s+history|employment|education|academic\\s+background|technical\\s+skills|core\\s+skills|key\\s+skills|skills|projects?|personal\\s+projects|certifications?|certificates|licenses|licences|courses|languages?)\\b\\s*[:\\-]\\s*(.*)$")
+                .compile("(?i)^(profile\\s+summary|professional\\s+summary|career\\s+summary|executive\\s+summary|career\\s+profile|professional\\s+profile|summary\\s+of\\s+qualifications|qualifications\\s+summary|personal\\s+summary|summary|objective|about\\s+me|work\\s+experience|professional\\s+experience|experience|employment\\s+history|employment|education|academic\\s+background|technical\\s+skills|core\\s+skills|key\\s+skills|skills|projects?|personal\\s+projects|certifications?|certificates|licenses|licences|courses|languages?)\\b\\s*[:\\-]\\s*(.*)$")
                 .matcher(value);
         if (!matcher.matches()) return null;
         String mapped = mapSectionHeading(matcher.group(1));
@@ -589,6 +723,30 @@ public class ResumeController {
             sections.computeIfAbsent(current, key -> new ArrayList<>()).add(line);
         }
         return sections;
+    }
+
+    private void repairLeakedResumeSections(Map<String, List<String>> sections) {
+        if (sections == null || sections.isEmpty()) return;
+        for (String source : List.of("experience", "projects", "certifications", "education", "skills")) {
+            List<String> values = sections.get(source);
+            if (values == null || values.isEmpty()) continue;
+            List<String> kept = new ArrayList<>();
+            String current = source;
+            for (String value : values) {
+                String mapped = mapSectionHeading(value);
+                if (mapped != null) {
+                    current = mapped;
+                    sections.putIfAbsent(current, new ArrayList<>());
+                    continue;
+                }
+                if (current.equals(source)) {
+                    kept.add(value);
+                } else {
+                    sections.computeIfAbsent(current, key -> new ArrayList<>()).add(value);
+                }
+            }
+            sections.put(source, kept);
+        }
     }
 
     private String extractSummary(Map<String, List<String>> sections, List<String> lines) {
@@ -721,6 +879,15 @@ public class ResumeController {
         Map<String, String> current = new LinkedHashMap<>();
         for (String line : educationLines) {
             if (line.length() > 120) continue;
+            Map<String, String> compactEducation = parseCompactEducationLine(line);
+            if (!compactEducation.isEmpty()) {
+                if (!current.isEmpty()) {
+                    items.add(current);
+                    current = new LinkedHashMap<>();
+                }
+                items.add(compactEducation);
+                continue;
+            }
             String lower = line.toLowerCase(Locale.ROOT);
             String year = extractYearRange(line);
             String clean = stripBullet(removeYearText(line));
@@ -749,6 +916,34 @@ public class ResumeController {
         return items.stream().filter(map -> !map.isEmpty()).limit(12).toList();
     }
 
+    private Map<String, String> parseCompactEducationLine(String line) {
+        Map<String, String> result = new LinkedHashMap<>();
+        String cleanLine = stripBullet(line);
+        if (!cleanLine.matches(".*\\b(college|university|school|institute|academy|polytechnic|vidyalaya)\\b.*")) return result;
+        String year = extractYearRange(cleanLine);
+        String withoutYear = year == null ? cleanLine : cleanLine.replace(year, "");
+        String cgpa = firstMatch(cleanLine, "(?i)(?:CGPA|GPA)\\s*[:\\-]?\\s*\\d+(?:\\.\\d+)?");
+        withoutYear = withoutYear.replaceAll("(?i)\\|?\\s*(?:CGPA|GPA)\\s*[:\\-]?\\s*\\d+(?:\\.\\d+)?", "");
+
+        String[] chunks = withoutYear.split("\\s*[|]\\s*");
+        String main = chunks.length > 0 ? chunks[0].trim() : withoutYear.trim();
+        String[] degreeSchool = main.split("\\s+[-–—]\\s+", 2);
+        if (degreeSchool.length < 2) return result;
+
+        String degree = degreeSchool[0].trim();
+        String schoolLocation = degreeSchool[1].trim();
+        String[] schoolParts = schoolLocation.split("\\s*,\\s*");
+        String school = schoolParts.length > 0 ? schoolParts[0].trim() : schoolLocation;
+        String location = schoolParts.length > 1 ? String.join(", ", Arrays.copyOfRange(schoolParts, 1, schoolParts.length)).trim() : "";
+
+        if (!degree.isBlank()) result.put("degree", degree);
+        if (!school.isBlank()) result.put("school", school);
+        if (!location.isBlank()) result.put("location", location);
+        if (year != null) result.put("year", year);
+        if (cgpa != null) result.put("cgpa", cgpa);
+        return result;
+    }
+
     private String[] splitDegreeAndSchool(String line) {
         String[] result = new String[] { null, line };
         String[] parts = line.split("\\s*,\\s*", 2);
@@ -772,12 +967,13 @@ public class ResumeController {
         for (String line : expandEmbeddedExperienceLines(experienceLines)) {
             if (line.isBlank() || looksLikeContactLine(line)) continue;
             String mappedHeading = mapSectionHeading(line);
-            if (mappedHeading != null && !"experience".equals(mappedHeading)) continue;
+            if (mappedHeading != null && !"experience".equals(mappedHeading)) break;
+            if ("experience".equals(mappedHeading)) continue;
             String clean = stripBullet(line);
             if (clean.isBlank()) continue;
             String dates = extractYearRange(clean);
             boolean dateOnly = dates != null && clean.replace(dates, "").replaceAll("[()\\-–—|,]", "").trim().isBlank();
-            boolean startsNewEntry = looksLikeExperienceTitle(clean) && entry.containsKey("jobTitle") && (!description.isEmpty() || entry.containsKey("company") || entry.containsKey("startDate"));
+            boolean startsNewEntry = looksLikeExperienceHeaderLine(clean) && entry.containsKey("jobTitle") && (!description.isEmpty() || entry.containsKey("company") || entry.containsKey("startDate"));
             if (startsNewEntry) {
                 entry.put("description", String.join("\n", description));
                 items.add(entry);
@@ -794,7 +990,8 @@ public class ResumeController {
                 if (dates != null) putDateRange(entry, dates);
             } else if (dateOnly && !entry.isEmpty()) {
                 putDateRange(entry, dates);
-            } else if (!entry.containsKey("company") && line.length() <= 90 && !line.startsWith("-") && !line.startsWith("•")) {
+            } else if (!entry.containsKey("company") && line.length() <= 90 && !line.startsWith("-") && !line.startsWith("•")
+                    && !looksLikeSentence(clean)) {
                 entry.put("company", removeYearText(clean));
                 if (dates != null) putDateRange(entry, dates);
             } else {
@@ -833,10 +1030,36 @@ public class ResumeController {
                 && lower.matches(".*\\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect|administrator|tester|qa|support)\\b.*");
     }
 
+    private boolean looksLikeExperienceHeaderLine(String line) {
+        String clean = stripBullet(line);
+        if (clean.isBlank() || clean.length() > 180) return false;
+        if (looksLikeExperienceTitle(clean)) return true;
+        if (!clean.toLowerCase(Locale.ROOT).matches(".*\\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect|administrator|tester|qa|support)\\b.*")) return false;
+        return clean.matches(".*\\s+[-â€“â€”]\\s+.*")
+                || clean.matches("(?i).*\\bat\\b\\s+.{2,}.*")
+                || clean.matches(".*\\b(?:19|20)\\d{2}\\b.*")
+                || looksLikeCompanyName(clean.replaceFirst("(?i)^.*?\\b(?:developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect|administrator|tester|qa|support)\\b\\s*", ""));
+    }
+
     private Map<String, String> parseCompactExperienceHeader(String line) {
         Map<String, String> result = new LinkedHashMap<>();
         String dates = extractYearRange(line);
         String withoutDates = dates == null ? line : line.replace(dates, "").trim();
+
+        // D_RES0609 FIX: "Job Title — Company, Location" (em dash / en dash,
+        // optionally plain " - ") is a very common single-line experience
+        // header format. Splitting on the literal separator first avoids the
+        // keyword-boundary regex below matching an early false-positive
+        // keyword inside the title (e.g. "QA" inside "Senior QA Engineer")
+        // and truncating it.
+        String[] dashParts = withoutDates.split("\\s+[-–—]\\s+", 2);
+        if (dashParts.length == 2 && !dashParts[0].isBlank() && !dashParts[1].isBlank()
+                && dashParts[0].trim().length() <= 100 && dashParts[1].trim().length() <= 120) {
+            result.put("jobTitle", cleanExperienceTitle(dashParts[0].trim()));
+            result.put("company", dashParts[1].trim());
+            return result;
+        }
+
         String[] parts = withoutDates.split("\\s*(?:[-|,]|\\bat\\b)\\s*", 2);
         if (parts.length == 2 && looksLikeExperienceTitle(parts[0]) && parts[1].length() <= 90) {
             result.put("jobTitle", cleanExperienceTitle(parts[0]));
@@ -889,7 +1112,16 @@ public class ResumeController {
         Map<String, String> current = new LinkedHashMap<>();
         for (String line : projectLines) {
             if (line.length() < 3) continue;
+            String mappedHeading = mapSectionHeading(line);
+            if (mappedHeading != null && !"projects".equals(mappedHeading)) break;
+            if ("projects".equals(mappedHeading)) continue;
             String clean = stripBullet(line);
+            boolean bulletLine = line.trim().matches("^[\\-\\u2022\\u00B7].*");
+            boolean descriptionLine = looksLikeProjectDescription(clean) || (!current.isEmpty() && !looksLikeProjectTitle(clean));
+            if (!current.isEmpty() && (bulletLine || descriptionLine)) {
+                current.merge("description", clean, (oldVal, newVal) -> oldVal + "\n" + newVal);
+                continue;
+            }
             List<String> splitTitles = splitProjectTitles(clean);
             if (splitTitles.size() > 1) {
                 if (!current.isEmpty()) {
@@ -903,7 +1135,7 @@ public class ResumeController {
                 }
                 continue;
             }
-            boolean newProject = current.isEmpty() || (!line.trim().startsWith("-") && !line.trim().startsWith("•") && clean.length() <= 90);
+            boolean newProject = current.isEmpty() || (!bulletLine && !descriptionLine && clean.length() <= 90);
             if (newProject && !current.isEmpty()) {
                 items.add(current);
                 current = new LinkedHashMap<>();
@@ -918,9 +1150,26 @@ public class ResumeController {
         return items.stream().limit(20).toList();
     }
 
+    private boolean looksLikeProjectDescription(String line) {
+        String lower = line == null ? "" : stripBullet(line).toLowerCase(Locale.ROOT);
+        return looksLikeSentence(line)
+                || lower.matches("^(built|created|designed|developed|implemented|reduced|integrated|used|managed|added|worked|wrote|tested|automated|configured|deployed)\\b.*");
+    }
+
+    private boolean looksLikeProjectTitle(String line) {
+        String clean = stripBullet(line);
+        String lower = clean.toLowerCase(Locale.ROOT);
+        if (clean.isBlank() || clean.length() > 100) return false;
+        if (looksLikeProjectDescription(clean)) return false;
+        if (lower.matches("^(and|using|with|for|to|in|on)\\b.*")) return false;
+        if (lower.matches(".*\\b(project|model|dashboard|portal|platform|system|suite|framework|api|app|application|website|tool|tracker|prediction|forecasting|automation|gateway|churn|analysis)\\b.*")) return true;
+        return clean.matches("[A-Z][A-Za-z0-9&()/.+\\-]+(?:\\s+[A-Z][A-Za-z0-9&()/.+\\-]+){1,7}");
+    }
+
     private List<String> splitProjectTitles(String line) {
         String value = stripBullet(line);
         if (value.isBlank()) return List.of();
+        if (!looksLikeProjectTitle(value)) return List.of(value);
         List<String> simple = Arrays.stream(value.split("\\s*(?:[,;|\\u2022\\u00B7â€¢Â·]|\\s+[-–—]+\\s+)\\s*"))
                 .map(String::trim)
                 .filter(part -> part.length() >= 3)
