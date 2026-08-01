@@ -1,5 +1,8 @@
 package com.vetrismartcv.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vetrismartcv.model.ResumeData;
 import com.vetrismartcv.service.ResumeService;
 import com.vetrismartcv.service.UserService;
@@ -14,11 +17,17 @@ import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -32,6 +41,21 @@ public class ResumeController {
             "developer|engineer|manager|analyst|designer|executive|consultant|intern|internship|associate|specialist|lead|"
                     + "architect|administrator|tester|qa|support|scientist|devops|full\\s*stack|backend|frontend|trainer|"
                     + "assistant|coordinator|officer|representative|supervisor|instructor|producer|editor|sales|marketing|hr";
+    private static final int GEMINI_MAX_INPUT_CHARS = 24000;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(15))
+            .build();
+
+    @Value("${gemini.api-key:}")
+    private String geminiApiKey;
+
+    @Value("${gemini.model:gemini-1.5-flash}")
+    private String geminiModel;
+
+    @Value("${gemini.parse-enabled:true}")
+    private boolean geminiParseEnabled;
 
     @Autowired
     private ResumeService resumeService;
@@ -363,15 +387,226 @@ public class ResumeController {
                 throw new IllegalArgumentException("No readable text found in uploaded file");
             }
             Map<String, Object> parsed = parseResumeText(content);
+            String parsedWith = "normal";
+            if (isGeminiParsingConfigured()) {
+                try {
+                    parsed = parseResumeTextWithGemini(content, parsed);
+                    parsedWith = "gemini";
+                } catch (Exception geminiEx) {
+                    result.put("aiWarning", "Gemini parsing failed, so normal parser was used: " + geminiEx.getMessage());
+                }
+            }
             result.put("success", true);
             result.put("parsed", parsed);
-            result.put("parsedWith", "normal");
+            result.put("parsedWith", parsedWith);
             result.put("rawText", content.length() > 3000 ? content.substring(0, 3000) : content);
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", "Could not parse file: " + e.getMessage());
         }
         return ResponseEntity.ok(result);
+    }
+
+    private boolean isGeminiParsingConfigured() {
+        return geminiParseEnabled && geminiApiKey != null && !geminiApiKey.isBlank();
+    }
+
+    private Map<String, Object> parseResumeTextWithGemini(String resumeText, Map<String, Object> normalFallback) throws Exception {
+        String text = resumeText == null ? "" : resumeText.trim();
+        if (text.length() > GEMINI_MAX_INPUT_CHARS) {
+            text = text.substring(0, GEMINI_MAX_INPUT_CHARS);
+        }
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("contents", List.of(Map.of(
+                "role", "user",
+                "parts", List.of(Map.of("text", buildGeminiResumePrompt(text)))
+        )));
+        payload.put("generationConfig", Map.of(
+                "temperature", 0,
+                "responseMimeType", "application/json"
+        ));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/"
+                        + safeGeminiModel() + ":generateContent"))
+                .timeout(Duration.ofSeconds(45))
+                .header("x-goog-api-key", geminiApiKey.trim())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload), StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            String body = response.body() == null ? "" : response.body();
+            throw new IllegalStateException("Gemini API failed with HTTP " + response.statusCode() + ": " + body);
+        }
+
+        String jsonText = extractGeminiText(response.body());
+        Map<String, Object> geminiParsed = objectMapper.readValue(cleanJsonText(jsonText), new TypeReference<>() {});
+        Map<String, Object> normalized = normalizeGeminiParsedResume(geminiParsed);
+        if (normalized.isEmpty()) {
+            throw new IllegalStateException("Gemini returned empty resume data");
+        }
+
+        Map<String, Object> merged = new LinkedHashMap<>();
+        if (normalFallback != null) merged.putAll(normalFallback);
+        normalized.forEach((key, value) -> {
+            if (hasResumeValue(value)) merged.put(key, value);
+        });
+        return merged;
+    }
+
+    private String safeGeminiModel() {
+        String model = geminiModel == null ? "" : geminiModel.trim();
+        return model.isBlank() ? "gemini-1.5-flash" : model;
+    }
+
+    private String buildGeminiResumePrompt(String resumeText) {
+        return """
+                Extract this resume into JSON only. Do not add markdown or explanation.
+                Use exactly these top-level keys when data exists:
+                fullName, jobTitle, email, phone, address, location, website, linkedin,
+                profileSummary, skills, experience, education, projects, certifications,
+                languages, additionalSections.
+
+                Rules:
+                - Do not invent missing details.
+                - profileSummary must contain only the candidate summary/objective/about text.
+                - skills must be an array of skill names.
+                - experience must be an array of objects with jobTitle, company, startDate, endDate, description.
+                - projects must be an array of objects with title, tools, description.
+                - education must be an array of objects with degree, institution, year, description.
+                - certifications and languages must be strings using one item per line.
+                - Keep project descriptions with the correct project title.
+
+                Resume text:
+                """ + resumeText;
+    }
+
+    private String extractGeminiText(String responseBody) throws Exception {
+        JsonNode root = objectMapper.readTree(responseBody);
+        JsonNode parts = root.path("candidates").path(0).path("content").path("parts");
+        if (!parts.isArray() || parts.isEmpty()) {
+            throw new IllegalStateException("Gemini response did not include text");
+        }
+        StringBuilder text = new StringBuilder();
+        for (JsonNode part : parts) {
+            String value = part.path("text").asText("");
+            if (!value.isBlank()) text.append(value);
+        }
+        if (text.isEmpty()) {
+            throw new IllegalStateException("Gemini response text was empty");
+        }
+        return text.toString();
+    }
+
+    private String cleanJsonText(String value) {
+        String text = value == null ? "" : value.trim();
+        if (text.startsWith("```")) {
+            text = text.replaceFirst("(?is)^```(?:json)?\\s*", "");
+            text = text.replaceFirst("(?is)\\s*```$", "");
+        }
+        return text.trim();
+    }
+
+    private Map<String, Object> normalizeGeminiParsedResume(Map<String, Object> parsed) {
+        if (parsed == null || parsed.isEmpty()) return Map.of();
+        Object nested = parsed.get("resume");
+        if (nested instanceof Map<?, ?> nestedMap) {
+            parsed = stringifyKeys(nestedMap);
+        }
+
+        Map<String, Object> normalized = new LinkedHashMap<>();
+        putString(normalized, "fullName", parsed);
+        putString(normalized, "jobTitle", parsed);
+        putString(normalized, "email", parsed);
+        putString(normalized, "phone", parsed);
+        putString(normalized, "address", parsed);
+        putString(normalized, "location", parsed);
+        putString(normalized, "website", parsed);
+        putString(normalized, "linkedin", parsed);
+        putString(normalized, "profileSummary", parsed);
+        putStringOrJoined(normalized, "certifications", parsed);
+        putStringOrJoined(normalized, "languages", parsed);
+
+        Object skills = parsed.get("skills");
+        if (skills instanceof Collection<?> values) {
+            List<String> cleanSkills = values.stream()
+                    .map(value -> value == null ? "" : String.valueOf(value).trim())
+                    .filter(value -> !value.isBlank())
+                    .distinct()
+                    .limit(80)
+                    .toList();
+            if (!cleanSkills.isEmpty()) normalized.put("skills", cleanSkills);
+        } else if (skills instanceof String textValue && !textValue.isBlank()) {
+            normalized.put("skills", Arrays.stream(textValue.split("[,\\n;|]+"))
+                    .map(String::trim)
+                    .filter(value -> !value.isBlank())
+                    .distinct()
+                    .limit(80)
+                    .toList());
+        }
+
+        putObjectList(normalized, "experience", parsed);
+        putObjectList(normalized, "education", parsed);
+        putObjectList(normalized, "projects", parsed);
+
+        Object additional = parsed.get("additionalSections");
+        if (additional instanceof Map<?, ?> map && !map.isEmpty()) {
+            normalized.put("additionalSections", stringifyKeys(map));
+        }
+        return normalized;
+    }
+
+    private Map<String, Object> stringifyKeys(Map<?, ?> source) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        source.forEach((key, value) -> {
+            if (key != null) result.put(String.valueOf(key), value);
+        });
+        return result;
+    }
+
+    private void putString(Map<String, Object> target, String key, Map<String, Object> source) {
+        Object value = source.get(key);
+        if (value instanceof String text && !text.trim().isBlank()) {
+            target.put(key, text.trim());
+        }
+    }
+
+    private void putStringOrJoined(Map<String, Object> target, String key, Map<String, Object> source) {
+        Object value = source.get(key);
+        if (value instanceof String text && !text.trim().isBlank()) {
+            target.put(key, text.trim());
+        } else if (value instanceof Collection<?> values) {
+            String joined = values.stream()
+                    .map(item -> item == null ? "" : String.valueOf(item).trim())
+                    .filter(item -> !item.isBlank())
+                    .reduce((left, right) -> left + "\n" + right)
+                    .orElse("");
+            if (!joined.isBlank()) target.put(key, joined);
+        }
+    }
+
+    private void putObjectList(Map<String, Object> target, String key, Map<String, Object> source) {
+        Object value = source.get(key);
+        if (!(value instanceof Collection<?> values)) return;
+        List<Map<String, Object>> cleaned = new ArrayList<>();
+        for (Object item : values) {
+            if (!(item instanceof Map<?, ?> map)) continue;
+            Map<String, Object> entry = stringifyKeys(map);
+            entry.entrySet().removeIf(e -> e.getValue() == null || String.valueOf(e.getValue()).trim().isBlank());
+            if (!entry.isEmpty()) cleaned.add(entry);
+        }
+        if (!cleaned.isEmpty()) target.put(key, cleaned);
+    }
+
+    private boolean hasResumeValue(Object value) {
+        if (value == null) return false;
+        if (value instanceof String text) return !text.trim().isBlank();
+        if (value instanceof Collection<?> values) return !values.isEmpty();
+        if (value instanceof Map<?, ?> map) return !map.isEmpty();
+        return true;
     }
 
     private String extractResumeText(MultipartFile file) throws Exception {
