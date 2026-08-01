@@ -14,7 +14,7 @@ let currentSectionSpacing = '16';
 let currentLetterSpacing  = '0';
 let currentLineSpacing    = '1.5';
 let currentHeaderAlignment = 'center';
-let currentSectionOrder = ['profileSummary', 'experienceJson', 'projectsJson', 'certifications', 'educationJson', 'skillsJson', 'languages'];
+let currentSectionOrder = ['profileSummary', 'experienceJson', 'projectsJson', 'certifications', 'educationJson', 'skillsJson', 'languages', 'interests'];
 let currentSectionSides = {};
 let currentJobTitlePosition = { x: 0, y: 0 };
 let suppressJobTitleEditClickUntil = 0;
@@ -36,6 +36,19 @@ function isPaidPlan(plan) {
 
 function isFreeTemplateAllowed(templateId) {
     return FREE_ALLOWED_TEMPLATES.has(normalizeReviewTemplate(templateId));
+}
+
+function cleanLanguageEntries(value) {
+    return String(value || '')
+        .split(/[,;\n|/]+/)
+        .map(item => item.trim())
+        .filter(item => item
+            && !/@/.test(item)
+            && !/\d/.test(item)
+            && !/linkedin|www\.|https?:\/\//i.test(item)
+            && !/\b(usa|india|new york|chennai|phone|email|address|contact)\b/i.test(item)
+            && /^[a-z][a-z .'-]*(?:\((?:native|fluent|professional|basic|intermediate|advanced)\))?$/i.test(item))
+        .filter((item, index, all) => all.findIndex(other => other.toLowerCase() === item.toLowerCase()) === index);
 }
 
 function getTemplatePlanLabel(templateId) {
@@ -2653,13 +2666,15 @@ function normalizeHeaderAlignment(value) {
 }
 
 function normalizeSectionOrder(value) {
-    const defaults = ['profileSummary', 'experienceJson', 'projectsJson', 'certifications', 'educationJson', 'skillsJson', 'languages'];
+    const defaults = ['profileSummary', 'experienceJson', 'projectsJson', 'certifications', 'educationJson', 'skillsJson', 'languages', 'interests'];
     let parsed = value;
     if (typeof value === 'string') {
         try { parsed = JSON.parse(value); } catch { parsed = value.split(','); }
     }
     const clean = Array.isArray(parsed) ? parsed.filter(field => defaults.includes(field)) : [];
     defaults.forEach(field => { if (!clean.includes(field)) clean.push(field); });
+    const profileIndex = clean.indexOf('profileSummary');
+    if (profileIndex > 0) clean.unshift(clean.splice(profileIndex, 1)[0]);
     return clean;
 }
 
@@ -3004,15 +3019,15 @@ function looksLikeProjectItem(item) {
     const lower = text.toLowerCase();
     const hasCompanyOrDates = !!(item && (item.company || item.startDate || item.endDate || item.from || item.to));
     const projectKeyword = /\b(project|api|app|application|portal|platform|dashboard|website|tracker|kanban|e-commerce|system|tool|websocket|jwt|mern|spring boot|postgresql|mongodb)\b/i.test(text);
-    const experienceTitle = /\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect|administrator|tester|qa|support)\b/i.test(title);
-    return projectKeyword && (!hasCompanyOrDates || !experienceTitle);
+    const experienceTitle = /\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|internship|associate|specialist|lead|architect|administrator|tester|qa|support|trainer|assistant|coordinator|officer|representative|supervisor|instructor|producer|editor)\b/i.test(title);
+    return projectKeyword && !experienceTitle && !looksLikeExperienceHeaderText(title);
 }
 
 function looksLikeExperienceItem(item) {
     const title = String((item && (item.jobTitle || item.role || item.title || item.name)) || '').trim();
     const text = normalizeWorkItemText(item);
     return !!(item && (item.company || item.startDate || item.endDate || item.from || item.to))
-        || /\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect|administrator|tester|qa|support)\b/i.test(title || text);
+        || /\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|internship|associate|specialist|lead|architect|administrator|tester|qa|support|trainer|assistant|coordinator|officer|representative|supervisor|instructor|producer|editor)\b/i.test(title || text);
 }
 
 function toProjectItem(item) {
@@ -3062,7 +3077,7 @@ function toExperienceItem(item) {
 
 function parseExperienceHeaderText(value) {
     const text = String(value || '').replace(/^[\s\-–—•]+/, '').trim();
-    if (!/\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect|administrator|tester|qa|support)\b/i.test(text)) return null;
+    if (!/\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|internship|associate|specialist|lead|architect|administrator|tester|qa|support|trainer|assistant|coordinator|officer|representative|supervisor|instructor|producer|editor)\b/i.test(text)) return null;
     const parts = text.split(/\s+[–—-]\s+/, 2);
     if (parts.length === 2 && parts[0].trim() && parts[1].trim()) {
         return { jobTitle: parts[0].trim(), company: parts[1].trim() };
@@ -3130,10 +3145,19 @@ function isBadParsedJobTitle(value) {
     const text = String(value || '').replace(/\s+/g, ' ').trim();
     const lower = text.toLowerCase();
     if (!text) return false;
-    if (/^(profile|summary|objective|experience|professional experience|work experience|education|skills|core competencies|competencies|projects?|certifications?|contact|languages?|tools?|technologies)$/i.test(text)) return true;
-    if (/\b(profile|summary|objective|experience|education|skills|competenc(?:y|ies)|project|certification|contact|language|tool|technology)\b/i.test(text)) return true;
-    const roleLike = /\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|associate|specialist|lead|architect|administrator|tester|qa|support|scientist|devops|full\s*stack|backend|frontend)\b/i.test(text);
+    if (/^(profile|summary|objective|experience|professional experience|work experience|education|skills|core competencies|competencies|projects?|certifications?|contact|languages?|tools?|technologies|details|nationality|driving license|driving licence|place of birth|links)$/i.test(text)) return true;
+    if (/\b(profile|summary|objective|experience|education|skills|competenc(?:y|ies)|project|certification|contact|language|tool|technology|details|nationality|driving licen[sc]e|place of birth|links)\b/i.test(text)) return true;
+    const roleLike = /\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|internship|associate|specialist|lead|architect|administrator|tester|qa|support|scientist|devops|full\s*stack|backend|frontend|trainer|assistant|coordinator|officer|representative|supervisor|instructor|producer|editor)\b/i.test(text);
     return !roleLike;
+}
+
+function isBadParsedFullName(value) {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!text) return false;
+    if (text.length > 90) return true;
+    if (/@|\d{3,}|[|:]/.test(text)) return true;
+    if (/\b(details|nationality|driving licen[sc]e|place of birth|links|resume templates|build this template|education|skills|profile|summary|employment history|experience|certifications?)\b/i.test(text)) return true;
+    return !/^[A-Za-z][A-Za-z'.-]+(?:\s+[A-Za-z][A-Za-z'.-]+){1,4}$/.test(text.split(/\s*,\s*/, 1)[0]);
 }
 
 function renderResume() {
@@ -3170,6 +3194,9 @@ function renderResume() {
     ({ experience, projects } = normalizeExperienceProjectData(experience, projects));
     if (isBadParsedJobTitle(resumeData.jobTitle)) {
         resumeData.jobTitle = '';
+    }
+    if (isBadParsedFullName(resumeData.fullName)) {
+        resumeData.fullName = '';
     }
     resumeData.experienceJson = JSON.stringify(experience);
     resumeData.projectsJson = JSON.stringify(projects);
@@ -3739,6 +3766,16 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
     const certHTML = certItems.length
         ? certItems.map(item => `<div style="margin-bottom:4px;padding-left:11px;text-indent:-11px;">• ${item}</div>`).join('')
         : '';
+    const languageHTML = (d.languages || '').toString().split(/[,;\n]+/)
+        .map(item => item.trim())
+        .filter(Boolean)
+        .map(item => `<div style="margin-bottom:4px;padding-left:11px;text-indent:-11px;">• ${item}</div>`)
+        .join('');
+    const interestHTML = (d.interests || '').toString().split(/[,;\n]+/)
+        .map(item => item.trim())
+        .filter(Boolean)
+        .map(item => `<div style="margin-bottom:4px;padding-left:11px;text-indent:-11px;">• ${item}</div>`)
+        .join('');
     return `<div class="resume-t1">
   <div class="t1-header" style="background:linear-gradient(135deg,${accent}dd 0%,${accent} 100%);">
     <div class="t1-header-bg"></div>
@@ -3765,6 +3802,8 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
       <div class="t1-section section-block" id="rv-experience-section" data-rv-field="experienceJson"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:${summary?'14px':'0'};">Experience</div><div class="editable-field" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div></div>
       ${projects.length?`<div class="t1-section section-block" id="rv-projects-section" data-rv-field="projectsJson"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Projects</div><div class="editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t1-job t1-project-item"><div class="t1-job-title" style="color:${accent};">${p.title||p.name||''}</div>${p.tools?`<div class="t1-job-date">Tools: ${p.tools}</div>`:''}<div class="t1-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')} <span class="edit-pen">✏</span></div></div>`:''}
       ${d.certifications?`<div class="t1-section section-block" id="rv-section-certificates" data-rv-field="certifications"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Certifications</div><div class="editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.55;" ${editBtn('certifications','Certifications',d.certifications||'')}>${certHTML || d.certifications} <span class="edit-pen">✏</span></div></div>`:''}
+      ${d.languages?`<div class="t1-section section-block" id="rv-section-languages" data-rv-field="languages"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Languages</div><div class="editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.55;" ${editBtn('languages','Languages',d.languages||'')}>${languageHTML || d.languages} <span class="edit-pen">✏</span></div></div>`:''}
+      ${d.interests?`<div class="t1-section section-block" id="rv-section-interests" data-rv-field="interests"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Interests</div><div class="editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.55;" ${editBtn('interests','Interests',d.interests||'')}>${interestHTML || d.interests} <span class="edit-pen">✏</span></div></div>`:''}
       ${buildExtraSections(accent)}
     </div>
   </div>
@@ -9161,11 +9200,12 @@ async function shareEmail() {
     }
 
     const defaultEmail = (resumeData.email || '').trim();
-    const to = prompt('Enter recipient email address:', defaultEmail);
+    const to = prompt('Enter recipient email address(es). Use comma, semicolon, or new line for multiple emails:', defaultEmail);
     if (to === null) return;
     const recipient = to.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-        showToast('Please enter a valid recipient email address.', 'error');
+    const recipients = parseEmailRecipients(recipient);
+    if (!recipients.length) {
+        showToast('Please enter valid recipient email address(es).', 'error');
         return;
     }
 
@@ -9189,7 +9229,7 @@ async function shareEmail() {
 
         const fileName = sanitizeDownloadName(resumeData.fullName || 'My_Resume') + '.pdf';
         const formData = new FormData();
-        formData.append('email', recipient);
+        formData.append('email', recipients.join(','));
         formData.append('pdf', pdf.output('blob'), fileName);
 
         const res = await fetch(`${API_BASE}/${id}/share-email`, {
@@ -9199,7 +9239,7 @@ async function shareEmail() {
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.success === false) {
             if (res.status === 503 || /not configured/i.test(data.message || '')) {
-                await fallbackShareResumePdf(pdf.output('blob'), fileName, recipient);
+                await fallbackShareResumePdf(pdf.output('blob'), fileName, recipients.join(', '));
                 return;
             }
             throw new Error(data.message || 'Could not send resume PDF.');
@@ -9214,6 +9254,17 @@ async function shareEmail() {
             shareBtn.innerHTML = oldText;
         }
     }
+}
+
+function parseEmailRecipients(raw) {
+    const parts = String(raw || '')
+        .split(/[,;\n\r]+/)
+        .map(email => email.trim().toLowerCase())
+        .filter(Boolean);
+    if (!parts.length || parts.some(email => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+        return [];
+    }
+    return parts.filter((email, index, list) => list.indexOf(email) === index);
 }
 
 async function fallbackShareResumePdf(pdfBlob, fileName, recipient) {
@@ -13178,6 +13229,8 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
     const website = d.website || '';
     const linkedin = d.linkedin || '';
     const summary = d.profileSummary || '';
+    const languageEntries = cleanLanguageEntries(d.languages);
+    const cleanLanguages = languageEntries.join(', ');
 
     const photoSize = d.photoSize || 88;
     const photoBR = d.photoShape === 'square' ? '10px' : '50%';
@@ -13241,8 +13294,8 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
         </div>`).join('')
         : '';
 
-    const languagesHTML = d.languages
-        ? d.languages.split(',').map(l => `<div style="font-size:10px;margin-bottom:3px;">• ${l.trim()}</div>`).join('')
+    const languagesHTML = languageEntries.length
+        ? languageEntries.map(l => `<div style="font-size:10px;margin-bottom:3px;">• ${l}</div>`).join('')
         : `<div style="font-size:10px;color:${theme.dark ? sidebarMuted : '#94a3b8'};">Add languages</div>`;
 
     const summaryBlock = summary
@@ -13281,8 +13334,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
                     <div class="editable-field section-block" style="cursor:pointer;font-size:11px;color:#374151;" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="font-size:10px;color:#9ca3af;">Add education</div>`}<span class="edit-pen">✏</span></div>
                     ${secHead('Skills')}
                     <div class="editable-field section-block" style="cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson || '[]')}>${skillTags}<span class="edit-pen">✏</span></div>
-                    ${secHead('Languages')}
-                    <div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>
+                    ${languageEntries.length ? `${secHead('Languages')}<div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',cleanLanguages)}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
                 </div>
                 <div style="flex:1;min-width:0;">
                     ${secHead('Experience')}
@@ -13317,8 +13369,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
                     <div class="editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson || '[]')}>${skillTags}<span class="edit-pen">✏</span></div>
                     ${sideHead('Education')}
                     <div class="editable-field section-block" style="cursor:pointer;font-size:11px;color:#334155;" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="font-size:10px;color:#94a3b8;">Add education</div>`}<span class="edit-pen">✏</span></div>
-                    ${sideHead('Languages')}
-                    <div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>
+                    ${languageEntries.length ? `${sideHead('Languages')}<div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',cleanLanguages)}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
                 </div>
                 <div style="flex:1;min-width:0;padding:22px 20px;">
                     ${secHead('Experience')}
@@ -13357,7 +13408,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
                     ${secHead('Experience')}
                     ${experienceBlock}
                     ${projectsBlock ? `${secHead('Projects')}${projectsBlock}` : ''}
-                    ${d.languages ? `${secHead('Languages')}<div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
+                    ${languageEntries.length ? `${secHead('Languages')}<div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',cleanLanguages)}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
                     ${certBlock ? `${secHead('Certifications')}${certBlock}` : ''}
                     ${awardsBlock ? `${secHead('Awards')}${awardsBlock}` : ''}
                     ${buildExtraSections(accent)}
@@ -13377,8 +13428,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
             <div class="editable-field" style="width:100%;cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson || '[]')}>${skillBars}<span class="edit-pen" style="font-size:10px;color:${sidebarMuted};">✏</span></div>
             ${sideHead('Education')}
             <div class="section-block editable-field" style="width:100%;cursor:pointer;font-size:10px;color:${sidebarText};" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="color:${sidebarMuted};">Add education ✏</div>`}<span class="edit-pen">✏</span></div>
-            ${sideHead('Languages')}
-            <div class="editable-field" style="width:100%;font-size:10px;color:${sidebarText};cursor:pointer;line-height:1.9;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>
+            ${languageEntries.length ? `${sideHead('Languages')}<div class="editable-field" style="width:100%;font-size:10px;color:${sidebarText};cursor:pointer;line-height:1.9;" ${editBtn('languages','Languages',cleanLanguages)}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
         </div>
         <div style="flex:1;padding:20px 18px;background:#fff;min-width:0;">
             ${summaryBlock ? `${secHead('Profile Summary')}${summaryBlock}` : ''}

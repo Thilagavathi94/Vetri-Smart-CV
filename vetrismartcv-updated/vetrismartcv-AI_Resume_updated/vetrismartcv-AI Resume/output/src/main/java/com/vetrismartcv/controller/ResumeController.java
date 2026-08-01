@@ -468,7 +468,7 @@ public class ResumeController {
                 Use exactly these top-level keys when data exists:
                 fullName, jobTitle, email, phone, address, location, website, linkedin,
                 profileSummary, skills, experience, education, projects, certifications,
-                languages, additionalSections.
+                languages, interests, hobbies, additionalSections.
 
                 Rules:
                 - Do not invent missing details.
@@ -478,6 +478,7 @@ public class ResumeController {
                 - projects must be an array of objects with title, tools, description.
                 - education must be an array of objects with degree, institution, year, description.
                 - certifications and languages must be strings using one item per line.
+                - interests and hobbies must be strings using comma-separated values.
                 - Keep project descriptions with the correct project title.
 
                 Resume text:
@@ -529,6 +530,8 @@ public class ResumeController {
         putString(normalized, "profileSummary", parsed);
         putStringOrJoined(normalized, "certifications", parsed);
         putStringOrJoined(normalized, "languages", parsed);
+        putStringOrJoined(normalized, "interests", parsed);
+        putStringOrJoined(normalized, "hobbies", parsed);
 
         Object skills = parsed.get("skills");
         if (skills instanceof Collection<?> values) {
@@ -556,7 +559,17 @@ public class ResumeController {
         if (additional instanceof Map<?, ?> map && !map.isEmpty()) {
             normalized.put("additionalSections", stringifyKeys(map));
         }
+        mergeHobbiesIntoInterests(normalized);
         return normalized;
+    }
+
+    private void mergeHobbiesIntoInterests(Map<String, Object> normalized) {
+        String interests = normalized.get("interests") == null ? "" : String.valueOf(normalized.get("interests")).trim();
+        String hobbies = normalized.get("hobbies") == null ? "" : String.valueOf(normalized.get("hobbies")).trim();
+        if (!hobbies.isBlank()) {
+            normalized.put("interests", interests.isBlank() ? hobbies : interests + ", " + hobbies);
+        }
+        normalized.remove("hobbies");
     }
 
     private Map<String, Object> stringifyKeys(Map<?, ?> source) {
@@ -971,7 +984,15 @@ public class ResumeController {
             }
             List<String> languages = additionalSections.get("languages");
             if (languages != null && !languages.isEmpty()) {
-                parsed.put("languages", String.join(", ", languages));
+                parsed.put("languages", String.join(", ", cleanLanguageSectionValues(languages)));
+            }
+            List<String> interests = new ArrayList<>();
+            for (String key : List.of("interests", "hobbies", "activities", "extracurricular activities", "extra curricular activities")) {
+                List<String> values = additionalSections.get(key);
+                if (values != null) interests.addAll(values);
+            }
+            if (!interests.isEmpty()) {
+                parsed.put("interests", String.join(", ", interests));
             }
         }
 
@@ -1745,16 +1766,21 @@ public class ResumeController {
 
     private boolean isValidAdditionalSectionLine(String sectionKey, String value) {
         String key = sectionKey == null ? "" : sectionKey.toLowerCase(Locale.ROOT);
-        if (looksLikeContactLine(value) || looksLikeBadNameLine(value)) return false;
         if ("languages".equals(key) || "language".equals(key)) return looksLikeLanguageLine(value);
         if ("certifications".equals(key) || "certification".equals(key)) return isValidCertificationLine(value);
+        if (key.contains("interest") || key.contains("hobb") || key.contains("activit")) {
+            return !looksLikeContactLine(value) && value != null && !stripBullet(value).isBlank();
+        }
+        if (looksLikeContactLine(value) || looksLikeBadNameLine(value)) return false;
         return true;
     }
 
     private boolean isValidCertificationLine(String value) {
         String text = value == null ? "" : stripBullet(value).trim();
         String lower = text.toLowerCase(Locale.ROOT);
-        if (text.isBlank() || looksLikeSummaryLine(text)) return false;
+        if (text.isBlank()) return false;
+        if (lower.matches(".*\\b(certified|certification|certificate|professional|associate|oracle|aws|spring)\\b.*")) return true;
+        if (looksLikeSummaryLine(text)) return false;
         if (lower.matches("^(tools?|technologies|tech stack|languages?|frameworks?|databases?|database)\\s*[:\\-].*")) return false;
         if (lower.matches(".*\\b(react|mysql|docker|postman|jenkins|maven|kubernetes|hibernate|spring boot|javascript|html|css|apis?)\\b.*")
                 && !lower.matches(".*\\b(certified|certification|certificate|professional|associate)\\b.*")) return false;
@@ -1765,16 +1791,39 @@ public class ResumeController {
         String text = value == null ? "" : stripBullet(value).trim();
         if (text.isBlank() || text.length() > 120) return false;
         if (text.matches(".*\\d.*") || text.contains("@") || text.toLowerCase(Locale.ROOT).contains("linkedin")) return false;
-        if (looksLikeSentence(text) || looksLikeJobTitleLine(text) || looksLikeAddressLine(text)) return false;
         String[] parts = text.split("[,;/|]+");
+        int recognized = 0;
         for (String part : parts) {
             String language = part.trim();
             if (language.isBlank()) continue;
+            if (isKnownLanguageName(language)) {
+                recognized++;
+                continue;
+            }
             if (!language.matches("(?i)[a-z][a-z .'-]*(?:\\s*\\((?:native|fluent|professional|basic|intermediate|advanced)\\))?")) {
                 return false;
             }
         }
-        return true;
+        if (recognized > 0) return true;
+        return !looksLikeSentence(text) && !looksLikeJobTitleLine(text) && !looksLikeAddressLine(text);
+    }
+
+    private boolean isKnownLanguageName(String value) {
+        String language = value == null ? "" : value.trim();
+        return language.matches("(?i)^(english|tamil|hindi|telugu|malayalam|kannada|marathi|urdu|french|german|spanish|arabic|japanese|chinese|mandarin|bengali|gujarati|punjabi)(?:\\s*\\((?:native|fluent|professional|basic|intermediate|advanced)\\))?$");
+    }
+
+    private List<String> cleanLanguageSectionValues(List<String> values) {
+        if (values == null || values.isEmpty()) return List.of();
+        return values.stream()
+                .flatMap(value -> Arrays.stream(stripBullet(value).split("[,;/|]+")))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .filter(value -> !value.matches("(?i)^(programming languages|frameworks|database|databases|tools|devops|cloud|frontend|backend)\\s*:?.*"))
+                .filter(this::isKnownLanguageName)
+                .distinct()
+                .limit(20)
+                .toList();
     }
 
     private boolean looksLikeSummaryLine(String value) {
