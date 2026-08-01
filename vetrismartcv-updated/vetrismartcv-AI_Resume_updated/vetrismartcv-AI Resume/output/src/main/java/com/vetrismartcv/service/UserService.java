@@ -463,6 +463,7 @@ public class UserService {
                 log.error("Resend rejected the recipient {} because the sender '{}' is the unverified sandbox address. "
                                 + "Verify a domain in Resend (or configure SMTP credentials) so this works for every recipient, not just the account owner's own email. Response: {}",
                         to, resendFromEmail, body);
+                throw new IllegalStateException("Resend is in test mode. Verify a sending domain and set RESEND_FROM_EMAIL to that verified domain before sending emails to other recipients.");
             }
             throw new IllegalStateException("Resend email API failed with HTTP " + response.statusCode() + ": " + body);
         }
@@ -493,6 +494,12 @@ public class UserService {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             String body = response.body() == null ? "" : response.body();
+            if (response.statusCode() == 403
+                    && (body.contains("own email address") || body.contains("verify a domain") || "onboarding@resend.dev".equalsIgnoreCase(safeTrim(resendFromEmail)))) {
+                log.error("Resend rejected attachment email to {} because the sender '{}' is not a verified sending domain. Response: {}",
+                        to, resendFromEmail, body);
+                throw new IllegalStateException("Resend is in test mode. Verify a sending domain and set RESEND_FROM_EMAIL to that verified domain before sending resume PDFs to other email addresses.");
+            }
             throw new IllegalStateException("Resend email API failed with HTTP " + response.statusCode() + ": " + body);
         }
     }
