@@ -1402,10 +1402,7 @@ public class ResumeController {
             }
             if (!current.isEmpty() && !looksLikeProjectTitleLine(clean, line, current)) {
                 current.merge("description", clean, (oldVal, newVal) -> oldVal + "\n" + newVal);
-git status
-git add src/main/java/com/vetrismartcv/controller/ResumeController.java
-git commit -m "Fix free CV parser project section parsing"
-git push                continue;
+                continue;
             }
             boolean newProject = current.isEmpty() || (!line.trim().startsWith("-") && !line.trim().startsWith("•") && clean.length() <= 90);
             if (newProject && !current.isEmpty()) {
