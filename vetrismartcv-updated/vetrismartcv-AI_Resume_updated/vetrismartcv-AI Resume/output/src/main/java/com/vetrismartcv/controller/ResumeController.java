@@ -399,7 +399,7 @@ public class ResumeController {
             result.put("success", true);
             result.put("parsed", parsed);
             result.put("parsedWith", parsedWith);
-           result.put("rawText", content);
+            result.put("rawText", content);
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", "Could not parse file: " + e.getMessage());
@@ -1133,10 +1133,10 @@ public class ResumeController {
                 "internship", "internships", "industrial training", "professional internship", "internship experience",
                 "roles and responsibilities", "responsibilities").contains(compact)) return "experience";
         if (Set.of("education", "academic background", "academics", "educational qualification", "educational qualifications", "qualification", "qualifications").contains(compact)) return "education";
-        if (Set.of("skills", "technical skills", "core skills", "key skills", "professional skills", "areas of expertise", "competencies", "soft skills", "it proficiency", "technical proficiency", "computer proficiency").contains(compact)) return "skills";
+        if (Set.of("skills", "skill set", "skillset", "technical skills", "core skills", "key skills", "professional skills", "areas of expertise", "competencies", "soft skills", "it proficiency", "technical proficiency", "computer proficiency").contains(compact)) return "skills";
         if (Set.of("projects", "project", "personal projects", "academic projects", "key projects", "project details", "academic project",
                 "project experience", "internship projects", "major projects", "minor projects").contains(compact)) return "projects";
-        if (Set.of("certifications", "certification", "certification details", "certificates", "licenses", "licences", "courses", "professional certifications", "certifications and licenses", "certifications and licences").contains(compact)) return "certifications";
+        if (Set.of("certifications", "certification", "certification details", "certificates", "licenses", "licences", "courses", "professional certification", "professional certifications", "certifications and licenses", "certifications and licences").contains(compact)) return "certifications";
         if (Set.of("languages", "language").contains(compact)) return "languages";
         if (Set.of("training", "trainings", "professional training", "coursework", "workshops").contains(compact)) return "training";
         if (Set.of("contact", "contact information", "personal details", "personal information", "details", "links", "driving license",
@@ -1752,7 +1752,7 @@ public class ResumeController {
                     .flatMap(List::stream)
                     .map(this::stripBullet)
                     .filter(value -> value.length() >= 5 && value.length() <= 100)
-                    .filter(value -> value.toLowerCase(Locale.ROOT).matches(".*\\b(certified|certification|certificate|oracle|aws)\\b.*"))
+                    .filter(value -> value.toLowerCase(Locale.ROOT).matches(".*\\b(certified|certification|certificate)\\b.*"))
                     .filter(value -> !isSectionHeading(value) && !looksLikeContactLine(value) && isValidCertificationLine(value))
                     .distinct()
                     .limit(10)
