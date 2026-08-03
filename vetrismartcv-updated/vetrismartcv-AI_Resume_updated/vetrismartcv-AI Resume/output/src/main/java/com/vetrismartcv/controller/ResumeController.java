@@ -399,7 +399,7 @@ public class ResumeController {
             result.put("success", true);
             result.put("parsed", parsed);
             result.put("parsedWith", parsedWith);
-            result.put("rawText", content.length() > 3000 ? content.substring(0, 3000) : content);
+           result.put("rawText", content);
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", "Could not parse file: " + e.getMessage());
