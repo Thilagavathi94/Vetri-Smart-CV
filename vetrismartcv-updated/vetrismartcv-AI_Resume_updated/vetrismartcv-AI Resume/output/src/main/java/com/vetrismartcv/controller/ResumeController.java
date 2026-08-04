@@ -513,6 +513,20 @@ public class ResumeController {
                 - interests and hobbies must be strings using comma-separated values.
                 - Keep project descriptions with the correct project title.
 
+                Example of correct certifications/awards separation (follow this pattern exactly):
+                If the resume contains:
+                  CERTIFICATIONS
+                  - AWS Certified Solutions Architect (2023)
+                  - PMP Certified
+                  HIGHLIGHTS
+                  - Employee of the Year 2022
+                  - Won hackathon for best innovation
+                Then the JSON must be:
+                  "certifications": ["AWS Certified Solutions Architect (2023)", "PMP Certified"],
+                  "awards": ["Employee of the Year 2022", "Won hackathon for best innovation"]
+                Notice neither array contains the words "CERTIFICATIONS" or "HIGHLIGHTS" themselves,
+                and no item from one section appears in the other array.
+
                 Resume text:
                 """ + resumeText;
     }
@@ -543,7 +557,67 @@ public class ResumeController {
         return text.trim();
     }
 
-    private Map<String, Object> normalizeGeminiParsedResume(Map<String, Object> parsed) {
+    /** Reads a field as a list of trimmed, non-blank strings, whether Gemini returned an array or a newline/comma string. */
+    private List<String> extractStringList(Map<String, Object> parsed, String key) {
+        Object value = parsed.get(key);
+        List<String> result = new ArrayList<>();
+        if (value instanceof Collection<?> values) {
+            for (Object item : values) {
+                if (item == null) continue;
+                String text = String.valueOf(item).trim();
+                if (!text.isBlank()) result.add(text);
+            }
+        } else if (value instanceof String text && !text.isBlank()) {
+            for (String line : text.split("\\r?\\n")) {
+                String trimmed = line.trim();
+                if (!trimmed.isBlank()) result.add(trimmed);
+            }
+        }
+        return result;
+    }
+
+    private static final java.util.regex.Pattern AWARD_HEADING_MARKER = java.util.regex.Pattern.compile(
+            "(?i)^\\W*(awards?(\\s*(&|and)\\s*recognition)?|highlights?|achievements?|recognitions?|honou?rs?)\\W*$");
+    private static final java.util.regex.Pattern CERTIFICATION_HEADING_MARKER = java.util.regex.Pattern.compile(
+            "(?i)^\\W*(certifications?|licenses?|licences?)\\W*$");
+
+    /**
+     * Safety net for a recurring Gemini extraction issue: sometimes it puts both certifications and
+     * awards/highlights into the "certifications" array as one contiguous block, occasionally even
+     * including the literal section heading (e.g. "AWARDS & RECOGNITION") as a fake array element.
+     * This scans for that heading marker and, if found, deterministically splits the list into the
+     * correct certifications/awards buckets instead of relying purely on the AI getting it right.
+     */
+    private void separateCertificationsFromAwards(List<String> certifications, List<String> awards) {
+        int splitAt = -1;
+        for (int i = 0; i < certifications.size(); i++) {
+            if (AWARD_HEADING_MARKER.matcher(certifications.get(i)).matches()) {
+                splitAt = i;
+                break;
+            }
+        }
+        if (splitAt >= 0) {
+            List<String> leaked = new ArrayList<>(certifications.subList(splitAt + 1, certifications.size()));
+            leaked.addAll(awards);
+            awards.clear();
+            awards.addAll(leaked);
+            certifications.subList(splitAt, certifications.size()).clear();
+        }
+
+        int reverseSplitAt = -1;
+        for (int i = 0; i < awards.size(); i++) {
+            if (CERTIFICATION_HEADING_MARKER.matcher(awards.get(i)).matches()) {
+                reverseSplitAt = i;
+                break;
+            }
+        }
+        if (reverseSplitAt >= 0) {
+            certifications.addAll(awards.subList(reverseSplitAt + 1, awards.size()));
+            awards.subList(reverseSplitAt, awards.size()).clear();
+        }
+    }
+
+
         if (parsed == null || parsed.isEmpty()) return Map.of();
         Object nested = parsed.get("resume");
         if (nested instanceof Map<?, ?> nestedMap) {
@@ -560,9 +634,12 @@ public class ResumeController {
         putString(normalized, "website", parsed);
         putString(normalized, "linkedin", parsed);
         putString(normalized, "profileSummary", parsed);
-        putStringOrJoined(normalized, "certifications", parsed);
+        List<String> rawCertifications = extractStringList(parsed, "certifications");
+        List<String> rawAwards = extractStringList(parsed, "awards");
+        separateCertificationsFromAwards(rawCertifications, rawAwards);
+        if (!rawCertifications.isEmpty()) normalized.put("certifications", String.join("\n", rawCertifications));
+        if (!rawAwards.isEmpty()) normalized.put("awards", String.join("\n", rawAwards));
         putStringOrJoined(normalized, "languages", parsed);
-        putStringOrJoined(normalized, "awards", parsed);
         putStringOrJoined(normalized, "interests", parsed);
         putStringOrJoined(normalized, "hobbies", parsed);
 
