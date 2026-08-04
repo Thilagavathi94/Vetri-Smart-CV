@@ -472,7 +472,7 @@ public class ResumeController {
 
     private String safeGeminiModel() {
         String model = geminiModel == null ? "" : geminiModel.trim();
-        return model.isBlank() ? "gemini-1.5-flash" : model;
+        return model.isBlank() ? "gemini-flash-latest" : model;
     }
 
     private String buildGeminiResumePrompt(String resumeText) {
@@ -486,28 +486,32 @@ public class ResumeController {
                 Rules:
                 - Do not invent missing details.
                 - profileSummary must contain only the candidate summary/objective/about text.
-                - skills must be an array of skill names.
+                - skills must be a JSON array of individual skill name strings.
                 - experience must be an array of objects with jobTitle, company, startDate, endDate, description.
                 - projects must be an array of objects with title, tools, description.
                 - education must be an array of objects with degree, school, year, cgpa, description.
                   Use "school" (not "institution") for the college/university name.
-                - certifications and languages must be strings using one item per line.
-                - Never split a single certification's name across multiple lines/items just
-                  because it contains several words (e.g. "AWS Certified Cloud Practitioner (2024)"
-                  is ONE certification, not two). Include every certification mentioned — do not
-                  omit any, even ones near special characters like "&".
-                - awards must be a string, one item per line, capturing every award, recognition,
-                  honor, or highlight mentioned anywhere in the resume (sections titled
-                  "Highlights", "Awards", "Achievements", "Recognitions", etc). Do not drop any of
-                  these, even if they don't fit neatly under a job entry.
+                - certifications must be a JSON array of strings, one full certification name per
+                  array element. Each element is exactly one certification as written in the resume
+                  (e.g. "AWS Certified Cloud Practitioner (2024)" is a SINGLE array element — never
+                  split one certification's name into two elements just because it has several
+                  words). Include every certification mentioned anywhere in the resume, even ones
+                  next to special characters like "&". Do not include section headings (like the
+                  literal words "Certifications" or "Awards") as array elements.
+                - awards must be a JSON array of strings, one full award/honor/recognition/highlight
+                  per array element, from ANY section titled things like "Highlights", "Awards",
+                  "Achievements", "Recognitions", etc. Capture every single one — do not drop the
+                  first, last, or any middle item. Never mix award entries into the certifications
+                  array or vice versa; they are separate lists even if they appear near each other
+                  in the resume text. Do not include section headings as array elements.
+                - languages must be a JSON array of strings, one spoken/written human language per
+                  element (e.g. "English", "Tamil (Native)"). Resumes sometimes have a "Languages:"
+                  line under a Skills/Technical Skills section listing PROGRAMMING languages (e.g.
+                  "Languages: Java, JavaScript, SQL") — that is NOT what this field means; those
+                  belong in skills instead. If the resume has no section about spoken/written human
+                  languages, omit the languages key entirely.
                 - interests and hobbies must be strings using comma-separated values.
                 - Keep project descriptions with the correct project title.
-                - languages must ONLY contain actual spoken/written human languages (e.g. English,
-                  Tamil, Hindi, French). Resumes sometimes have a "Languages:" line under a Skills
-                  or Technical Skills section listing PROGRAMMING languages (e.g. "Languages: Java,
-                  JavaScript, SQL") — that is NOT what this field means. Programming/query languages
-                  always belong in skills, never in this languages field. If the resume has no
-                  section about spoken/written human languages, omit the languages key entirely.
 
                 Resume text:
                 """ + resumeText;
