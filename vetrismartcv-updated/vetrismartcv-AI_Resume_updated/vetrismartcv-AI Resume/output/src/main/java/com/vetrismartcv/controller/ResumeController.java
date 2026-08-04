@@ -389,12 +389,17 @@ public class ResumeController {
             Map<String, Object> parsed = parseResumeText(content);
             String parsedWith = "normal";
             if (isGeminiParsingConfigured()) {
+                System.out.println("[GEMINI] Key configured, attempting Gemini parse for file: " + file.getOriginalFilename());
                 try {
                     parsed = parseResumeTextWithGemini(content, parsed);
                     parsedWith = "gemini";
+                    System.out.println("[GEMINI] SUCCESS - resume parsed using Gemini AI");
                 } catch (Exception geminiEx) {
+                    System.out.println("[GEMINI] FAILED - falling back to normal parser. Reason: " + geminiEx.getMessage());
                     result.put("aiWarning", "Gemini parsing failed, so normal parser was used: " + geminiEx.getMessage());
                 }
+            } else {
+                System.out.println("[GEMINI] SKIPPED - not configured (check GEMINI_API_KEY and GEMINI_PARSE_ENABLED)");
             }
             result.put("success", true);
             result.put("parsed", parsed);
@@ -1771,7 +1776,7 @@ public class ResumeController {
         if (key.contains("interest") || key.contains("hobb") || key.contains("activit")) {
             return !looksLikeContactLine(value) && value != null && !stripBullet(value).isBlank();
         }
-        if (looksLikeContactLine(value) || looksLikeBadNameLine(value)) return false;
+        if (looksLikeContactLine(value)) return false;
         return true;
     }
 
