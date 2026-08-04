@@ -455,7 +455,15 @@ public class ResumeController {
         }
 
         Map<String, Object> merged = new LinkedHashMap<>();
-        if (normalFallback != null) merged.putAll(normalFallback);
+        if (normalFallback != null) {
+            normalFallback.forEach((key, value) -> {
+                // "languages" from the regex parser is unreliable (it can pick up
+                // skill-table content that isn't actually spoken languages), so let
+                // Gemini's own extraction be authoritative for this field instead of
+                // carrying the old value forward as a stale baseline.
+                if (!"languages".equals(key)) merged.put(key, value);
+            });
+        }
         normalized.forEach((key, value) -> {
             if (hasResumeValue(value)) merged.put(key, value);
         });
@@ -473,7 +481,7 @@ public class ResumeController {
                 Use exactly these top-level keys when data exists:
                 fullName, jobTitle, email, phone, address, location, website, linkedin,
                 profileSummary, skills, experience, education, projects, certifications,
-                languages, interests, hobbies, additionalSections.
+                languages, awards, interests, hobbies, additionalSections.
 
                 Rules:
                 - Do not invent missing details.
@@ -481,10 +489,25 @@ public class ResumeController {
                 - skills must be an array of skill names.
                 - experience must be an array of objects with jobTitle, company, startDate, endDate, description.
                 - projects must be an array of objects with title, tools, description.
-                - education must be an array of objects with degree, institution, year, description.
+                - education must be an array of objects with degree, school, year, cgpa, description.
+                  Use "school" (not "institution") for the college/university name.
                 - certifications and languages must be strings using one item per line.
+                - Never split a single certification's name across multiple lines/items just
+                  because it contains several words (e.g. "AWS Certified Cloud Practitioner (2024)"
+                  is ONE certification, not two). Include every certification mentioned — do not
+                  omit any, even ones near special characters like "&".
+                - awards must be a string, one item per line, capturing every award, recognition,
+                  honor, or highlight mentioned anywhere in the resume (sections titled
+                  "Highlights", "Awards", "Achievements", "Recognitions", etc). Do not drop any of
+                  these, even if they don't fit neatly under a job entry.
                 - interests and hobbies must be strings using comma-separated values.
                 - Keep project descriptions with the correct project title.
+                - languages must ONLY contain actual spoken/written human languages (e.g. English,
+                  Tamil, Hindi, French). Resumes sometimes have a "Languages:" line under a Skills
+                  or Technical Skills section listing PROGRAMMING languages (e.g. "Languages: Java,
+                  JavaScript, SQL") — that is NOT what this field means. Programming/query languages
+                  always belong in skills, never in this languages field. If the resume has no
+                  section about spoken/written human languages, omit the languages key entirely.
 
                 Resume text:
                 """ + resumeText;
@@ -535,6 +558,7 @@ public class ResumeController {
         putString(normalized, "profileSummary", parsed);
         putStringOrJoined(normalized, "certifications", parsed);
         putStringOrJoined(normalized, "languages", parsed);
+        putStringOrJoined(normalized, "awards", parsed);
         putStringOrJoined(normalized, "interests", parsed);
         putStringOrJoined(normalized, "hobbies", parsed);
 
