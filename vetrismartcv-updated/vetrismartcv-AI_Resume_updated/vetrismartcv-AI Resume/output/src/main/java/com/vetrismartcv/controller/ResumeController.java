@@ -51,7 +51,7 @@ public class ResumeController {
     @Value("${gemini.api-key:}")
     private String geminiApiKey;
 
-    @Value("${gemini.model:gemini-1.5-flash}")
+    @Value("${gemini.model:gemini-flash-latest}")
     private String geminiModel;
 
     @Value("${gemini.parse-enabled:true}")
@@ -458,10 +458,15 @@ public class ResumeController {
         if (normalFallback != null) {
             normalFallback.forEach((key, value) -> {
                 // "languages" from the regex parser is unreliable (it can pick up
-                // skill-table content that isn't actually spoken languages), so let
-                // Gemini's own extraction be authoritative for this field instead of
-                // carrying the old value forward as a stale baseline.
-                if (!"languages".equals(key)) merged.put(key, value);
+                // skill-table content that isn't actually spoken languages), and
+                // "location"/"address" are unreliable too (the regex guesser can
+                // mistake a name line for an address when a resume has no real
+                // location line, e.g. "M.Aarthy B.E.," gets flagged as address-like).
+                // Let Gemini's own extraction be authoritative for these fields
+                // instead of carrying a stale/wrong guess forward as a baseline.
+                if (!"languages".equals(key) && !"location".equals(key) && !"address".equals(key)) {
+                    merged.put(key, value);
+                }
             });
         }
         normalized.forEach((key, value) -> {
@@ -617,7 +622,7 @@ public class ResumeController {
         }
     }
 
-    private Map<String, Object> normalizeGeminiParsedResume(Map<String, Object> parsed) {
+
         if (parsed == null || parsed.isEmpty()) return Map.of();
         Object nested = parsed.get("resume");
         if (nested instanceof Map<?, ?> nestedMap) {
