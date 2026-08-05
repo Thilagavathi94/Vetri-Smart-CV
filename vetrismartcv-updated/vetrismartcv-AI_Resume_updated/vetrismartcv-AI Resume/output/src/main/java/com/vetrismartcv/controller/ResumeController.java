@@ -581,10 +581,23 @@ public class ResumeController {
         return result;
     }
 
-    private static final java.util.regex.Pattern AWARD_HEADING_MARKER = java.util.regex.Pattern.compile(
-            "(?i)^\\W*(awards?(\\s*(&|and)\\s*recognition)?|highlights?|achievements?|recognitions?|honou?rs?)\\W*$");
-    private static final java.util.regex.Pattern CERTIFICATION_HEADING_MARKER = java.util.regex.Pattern.compile(
-            "(?i)^\\W*(certifications?|licenses?|licences?)\\W*$");
+    private static final Set<String> AWARD_HEADING_FORMS = Set.of(
+            "award", "awards", "awardrecognition", "awardsrecognition", "awardandrecognition",
+            "awardsandrecognition", "highlight", "highlights", "achievement", "achievements",
+            "recognition", "recognitions", "honor", "honors", "honour", "honours");
+    private static final Set<String> CERTIFICATION_HEADING_FORMS = Set.of(
+            "certification", "certifications", "license", "licenses", "licence", "licences");
+
+    /**
+     * Reduces text to only its lowercase letters (a-z), discarding every space, punctuation
+     * mark, and any invisible/unicode character (e.g. a non-breaking space that PDF/AI text
+     * extraction sometimes produces in place of a normal space). This makes heading detection
+     * immune to whitespace-variant or punctuation-variant text that would otherwise silently
+     * fail an exact regex match while still looking identical on screen.
+     */
+    private String lettersOnly(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT).replaceAll("[^a-z]", "");
+    }
 
     /**
      * Safety net for a recurring Gemini extraction issue: sometimes it puts both certifications and
@@ -596,7 +609,7 @@ public class ResumeController {
     private void separateCertificationsFromAwards(List<String> certifications, List<String> awards) {
         int splitAt = -1;
         for (int i = 0; i < certifications.size(); i++) {
-            if (AWARD_HEADING_MARKER.matcher(certifications.get(i)).matches()) {
+            if (AWARD_HEADING_FORMS.contains(lettersOnly(certifications.get(i)))) {
                 splitAt = i;
                 break;
             }
@@ -611,7 +624,7 @@ public class ResumeController {
 
         int reverseSplitAt = -1;
         for (int i = 0; i < awards.size(); i++) {
-            if (CERTIFICATION_HEADING_MARKER.matcher(awards.get(i)).matches()) {
+            if (CERTIFICATION_HEADING_FORMS.contains(lettersOnly(awards.get(i)))) {
                 reverseSplitAt = i;
                 break;
             }
