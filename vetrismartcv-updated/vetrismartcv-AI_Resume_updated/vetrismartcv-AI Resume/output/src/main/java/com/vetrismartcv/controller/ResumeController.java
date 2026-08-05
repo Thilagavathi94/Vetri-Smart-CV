@@ -623,6 +623,7 @@ public class ResumeController {
     }
 
 
+    private Map<String, Object> normalizeGeminiParsedResume(Map<String, Object> parsed) {
         if (parsed == null || parsed.isEmpty()) return Map.of();
         Object nested = parsed.get("resume");
         if (nested instanceof Map<?, ?> nestedMap) {
