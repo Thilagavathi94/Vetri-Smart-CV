@@ -542,18 +542,33 @@ public class ResumeController {
                   words). Include every certification mentioned anywhere in the resume, even ones
                   next to special characters like "&". Do not include section headings (like the
                   literal words "Certifications" or "Awards") as array elements.
+                - Any section titled "Trainings", "Internal Training", "Learning Program",
+                  "Courses Completed", or similar completed-training content must ALSO go into the
+                  certifications array, one training per array element, formatted exactly as written
+                  (e.g. "Spring Microservices (Internal training at Citi, Duration - 20 hrs)"). Do not
+                  drop these and do not invent a separate field for them.
                 - awards must be a JSON array of strings, one full award/honor/recognition/highlight
                   per array element, from ANY section titled things like "Highlights", "Awards",
                   "Achievements", "Recognitions", etc. Capture every single one — do not drop the
                   first, last, or any middle item. Never mix award entries into the certifications
                   array or vice versa; they are separate lists even if they appear near each other
                   in the resume text. Do not include section headings as array elements.
+                  This list is frequently long (10+ bullet items) — re-scan the section before
+                  finishing and confirm every bullet is present as its own array element; a
+                  partial list is treated as a failed extraction.
                 - languages must be a JSON array of strings, one spoken/written human language per
                   element (e.g. "English", "Tamil (Native)"). Resumes sometimes have a "Languages:"
                   line under a Skills/Technical Skills section listing PROGRAMMING languages (e.g.
                   "Languages: Java, JavaScript, SQL") — that is NOT what this field means; those
                   belong in skills instead. If the resume has no section about spoken/written human
                   languages, omit the languages key entirely.
+                  This same caution applies to EVERY OTHER row label in a skills/tech table, not just
+                  "Languages" — labels like "Tools", "Frameworks", "Databases", "Servers",
+                  "Continuous Integration", "Methodology" and their values are technical skills, never
+                  spoken/written languages, even if they appear in the same table as a real
+                  "Languages" row. If a resume has a skills table but no dedicated section for
+                  spoken/written human languages, omit the languages key entirely rather than
+                  reusing table content.
                 - interests and hobbies must be strings using comma-separated values.
                 - Keep project descriptions with the correct project title.
 
@@ -628,6 +643,39 @@ public class ResumeController {
             "certification", "certifications", "license", "licenses", "licence", "licences");
 
     /**
+     * Code-level backstop for the "languages" field getting polluted with skills-table row
+     * labels/values (e.g. "Tools Tortoise SVN, GIT..." or "Continuous Integration Jenkins").
+     * The prompt now instructs Gemini to avoid this, but LLM output isn't guaranteed, so we
+     * also filter deterministically: drop any "language" entry that contains a known
+     * technical/table-label keyword and does not itself contain a recognizable human language
+     * name.
+     */
+    private static final Set<String> LANGUAGE_DENY_KEYWORDS = Set.of(
+            "tool", "tools", "framework", "frameworks", "database", "databases", "server", "servers",
+            "continuous integration", "methodology", "jenkins", "maven", "jira", " git", "svn",
+            "tortoise", "openshift", "appdynamics", "agile", "waterfall", "spring boot", "hibernate",
+            "tomcat", "weblogic", "web logic", "struts", "profiler", "jvisualvm", "jprofiler");
+
+    private static final Set<String> KNOWN_HUMAN_LANGUAGES = Set.of(
+            "english", "hindi", "tamil", "telugu", "kannada", "malayalam", "marathi", "gujarati",
+            "bengali", "punjabi", "urdu", "sanskrit", "french", "german", "spanish", "mandarin",
+            "chinese", "japanese", "korean", "arabic", "russian", "portuguese", "italian", "dutch");
+
+    private List<String> sanitizeLanguages(List<String> rawLanguages) {
+        List<String> clean = new ArrayList<>();
+        for (String entry : rawLanguages) {
+            String lower = " " + entry.toLowerCase(Locale.ROOT) + " ";
+            boolean isKnownLanguage = KNOWN_HUMAN_LANGUAGES.stream().anyMatch(lower::contains);
+            boolean looksLikeTechNoise = LANGUAGE_DENY_KEYWORDS.stream().anyMatch(lower::contains);
+            if (looksLikeTechNoise && !isKnownLanguage) {
+                continue; // e.g. "Tools Tortoise SVN, GIT..." / "Continuous Integration Jenkins"
+            }
+            clean.add(entry);
+        }
+        return clean;
+    }
+
+    /**
      * Reduces text to only its lowercase letters (a-z), discarding every space, punctuation
      * mark, and any invisible/unicode character (e.g. a non-breaking space that PDF/AI text
      * extraction sometimes produces in place of a normal space). This makes heading detection
@@ -697,7 +745,9 @@ public class ResumeController {
         separateCertificationsFromAwards(rawCertifications, rawAwards);
         if (!rawCertifications.isEmpty()) normalized.put("certifications", String.join("\n", rawCertifications));
         if (!rawAwards.isEmpty()) normalized.put("awards", String.join("\n", rawAwards));
-        putStringOrJoined(normalized, "languages", parsed);
+        List<String> rawLanguages = extractStringList(parsed, "languages");
+        List<String> cleanLanguages = sanitizeLanguages(rawLanguages);
+        if (!cleanLanguages.isEmpty()) normalized.put("languages", String.join("\n", cleanLanguages));
         putStringOrJoined(normalized, "interests", parsed);
         putStringOrJoined(normalized, "hobbies", parsed);
 
