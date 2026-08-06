@@ -435,17 +435,13 @@ public class ResumeController {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/"
                         + safeGeminiModel() + ":generateContent"))
-                .timeout(Duration.ofSeconds(45))
+                .timeout(Duration.ofSeconds(60))
                 .header("x-goog-api-key", geminiApiKey.trim())
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload), StandardCharsets.UTF_8))
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            String body = response.body() == null ? "" : response.body();
-            throw new IllegalStateException("Gemini API failed with HTTP " + response.statusCode() + ": " + body);
-        }
+        HttpResponse<String> response = sendGeminiRequestWithRetry(request);
 
         String jsonText = extractGeminiText(response.body());
         Map<String, Object> geminiParsed = objectMapper.readValue(cleanJsonText(jsonText), new TypeReference<>() {});
@@ -475,7 +471,49 @@ public class ResumeController {
         return merged;
     }
 
-    private String safeGeminiModel() {
+    /**
+     * Gemini occasionally returns HTTP 503 ("model overloaded, try again") or the
+     * request times out, especially on longer resumes. Instead of giving up on the
+     * first hiccup (which was silently dumping users into the much worse regex
+     * parser), retry a few times with a short backoff before giving up for real.
+     */
+    private HttpResponse<String> sendGeminiRequestWithRetry(HttpRequest request) throws Exception {
+        int maxAttempts = 3;
+        long backoffMillis = 1500;
+        Exception lastError = null;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                int status = response.statusCode();
+
+                if (status >= 200 && status < 300) {
+                    return response;
+                }
+
+                boolean transient_ = status == 503 || status == 429 || status >= 500;
+                String body = response.body() == null ? "" : response.body();
+                if (!transient_ || attempt == maxAttempts) {
+                    throw new IllegalStateException("Gemini API failed with HTTP " + status + ": " + body);
+                }
+                System.out.println("[GEMINI] Attempt " + attempt + " got HTTP " + status + ", retrying in " + backoffMillis + "ms...");
+            } catch (java.net.http.HttpTimeoutException timeoutEx) {
+                lastError = timeoutEx;
+                if (attempt == maxAttempts) {
+                    throw new IllegalStateException("Gemini API request timed out after " + maxAttempts + " attempts", timeoutEx);
+                }
+                System.out.println("[GEMINI] Attempt " + attempt + " timed out, retrying in " + backoffMillis + "ms...");
+            }
+
+            Thread.sleep(backoffMillis);
+            backoffMillis *= 2; // 1.5s, 3s, 6s
+        }
+
+        // Unreachable, but keeps the compiler happy
+        throw new IllegalStateException("Gemini API failed after " + maxAttempts + " attempts", lastError);
+    }
+
+
         String model = geminiModel == null ? "" : geminiModel.trim();
         return model.isBlank() ? "gemini-flash-latest" : model;
     }
