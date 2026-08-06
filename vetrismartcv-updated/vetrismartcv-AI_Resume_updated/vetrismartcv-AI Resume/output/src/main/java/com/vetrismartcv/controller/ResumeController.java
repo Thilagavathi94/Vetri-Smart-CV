@@ -732,6 +732,14 @@ public class ResumeController {
 
         Map<String, Object> normalized = new LinkedHashMap<>();
         putString(normalized, "fullName", parsed);
+        if (normalized.get("fullName") instanceof String rawGeminiName) {
+            String cleanedName = cleanCandidateName(rawGeminiName);
+            if (cleanedName != null) {
+                normalized.put("fullName", cleanedName);
+            } else {
+                normalized.remove("fullName");
+            }
+        }
         putString(normalized, "jobTitle", parsed);
         putString(normalized, "email", parsed);
         putString(normalized, "phone", parsed);
@@ -1160,7 +1168,7 @@ public class ResumeController {
         if (website != null) parsed.put("website", website.trim());
 
         List<String> lines = extractMeaningfulLines(safeText);
-        String candidateName = extractCandidateName(lines);
+        String candidateName = cleanCandidateName(extractCandidateName(lines));
         if (candidateName != null) {
             parsed.put("fullName", candidateName);
         }
@@ -1200,6 +1208,10 @@ public class ResumeController {
             if (certifications != null && !certifications.isEmpty()) {
                 parsed.put("certifications", String.join("\n", certifications));
             }
+            List<String> awards = additionalSections.get("awards");
+            if (awards != null && !awards.isEmpty()) {
+                parsed.put("awards", String.join("\n", awards));
+            }
             List<String> languages = additionalSections.get("languages");
             if (languages != null && !languages.isEmpty()) {
                 parsed.put("languages", String.join(", ", cleanLanguageSectionValues(languages)));
@@ -1238,6 +1250,34 @@ public class ResumeController {
             lines.add(line);
         }
         return lines;
+    }
+
+    private static final Set<String> NAME_TRAILING_SUFFIXES = Set.of(
+            "b.e", "be", "b.tech", "btech", "m.tech", "mtech", "mba", "mca", "bca", "b.sc", "bsc",
+            "m.sc", "msc", "b.com", "bcom", "m.com", "mcom", "ph.d", "phd", "b.a", "ba", "m.a", "ma",
+            "b.e.,", "cpa", "pmp");
+
+    /**
+     * Resume headers often look like "M.Aarthy B.E.," — a personal name immediately followed by
+     * a degree abbreviation and stray punctuation. That whole string technically satisfies the
+     * "looks like a name" regex used during extraction, but showing "M.Aarthy B.E." as the
+     * person's display name (and feeding it into client-side name validation that rejects
+     * periods) causes real problems downstream. Strip a trailing degree-abbreviation token and
+     * any trailing punctuation so the stored name is just the person's name.
+     */
+    private String cleanCandidateName(String rawName) {
+        if (rawName == null) return null;
+        String name = rawName.trim();
+        if (name.isBlank()) return null;
+        String[] words = name.split("\\s+");
+        if (words.length > 1) {
+            String lastWordKey = words[words.length - 1].toLowerCase(Locale.ROOT).replaceAll("[.,]+$", "").replace(".", "");
+            if (NAME_TRAILING_SUFFIXES.contains(lastWordKey) || NAME_TRAILING_SUFFIXES.contains(words[words.length - 1].toLowerCase(Locale.ROOT))) {
+                name = String.join(" ", Arrays.copyOf(words, words.length - 1));
+            }
+        }
+        name = name.replaceAll("[.,\\s]+$", "").trim();
+        return name.isBlank() ? null : name;
     }
 
     private String extractCandidateName(List<String> lines) {
@@ -1345,7 +1385,12 @@ public class ResumeController {
 
     private String mapSectionHeading(String line) {
         String normalized = line.toLowerCase(Locale.ROOT).replace(":", "").trim();
-        String compact = normalized.replaceAll("\\s+", " ");
+        // Normalize "&" to "and" BEFORE compacting whitespace, so headings like
+        // "AWARDS & RECOGNITION" match the same way "Awards and Recognition" does,
+        // instead of silently falling through as unrecognized (which was causing
+        // award/highlight sections to merge into whatever section came before them).
+        normalized = normalized.replaceAll("\\s*&\\s*", " and ");
+        String compact = normalized.replaceAll("\\s+", " ").trim();
         if (Set.of("summary", "profile", "profile summary", "professional summary", "career summary", "objective", "career objective", "about me").contains(compact)) return "summary";
         if (Set.of("experience", "work experience", "professional experience", "employment", "employment history", "career history", "work history",
                 "internship", "internships", "industrial training", "professional internship", "internship experience",
@@ -1356,12 +1401,25 @@ public class ResumeController {
                 "project experience", "internship projects", "major projects", "minor projects").contains(compact)) return "projects";
         if (Set.of("certifications", "certification", "certification details", "certificates", "licenses", "licences", "courses", "professional certification", "professional certifications", "certifications and licenses", "certifications and licences").contains(compact)) return "certifications";
         if (Set.of("languages", "language").contains(compact)) return "languages";
-        if (Set.of("training", "trainings", "professional training", "coursework", "workshops").contains(compact)) return "training";
+        if (Set.of("training", "trainings", "professional training", "coursework", "workshops", "internal training", "internal trainings").contains(compact)) return "training";
         if (Set.of("contact", "contact information", "personal details", "personal information", "details", "links", "driving license",
                 "driving licence", "place of birth", "nationality").contains(compact)) return "contact";
         if (Set.of("extracurricular activities", "extra curricular activities", "extra-curricular", "extra-curricular activities",
                 "extracurricular", "co-curricular activities", "co curricular activities", "activities", "achievements",
-                "accomplishments", "awards", "honors", "honours", "publications", "interests", "hobbies").contains(compact)) return compact;
+                "accomplishments", "awards", "honors", "honours", "publications", "interests", "hobbies",
+                "highlights", "highlight", "recognition", "recognitions", "awards and recognition",
+                "awards and recognitions", "award and recognition", "awards and honors", "awards and honours",
+                "honors and awards", "honours and awards", "key achievements", "key highlights").contains(compact)) {
+            // Fold all of these variants into a single canonical "awards" bucket so the
+            // downstream certifications/awards split logic has one consistent key to read,
+            // regardless of which exact heading wording the resume used.
+            if (compact.contains("award") || compact.contains("honor") || compact.contains("honour")
+                    || compact.contains("highlight") || compact.contains("recognition")
+                    || compact.equals("achievements") || compact.equals("accomplishments")) {
+                return "awards";
+            }
+            return compact;
+        }
         if (normalized.equals("summary") || normalized.equals("profile summary") || normalized.equals("professional summary") || normalized.equals("objective") || normalized.equals("about me")) return "summary";
         if (normalized.equals("experience") || normalized.equals("work experience") || normalized.equals("professional experience") || normalized.equals("employment") || normalized.equals("internship")) return "experience";
         if (normalized.equals("education") || normalized.equals("academic background")) return "education";
