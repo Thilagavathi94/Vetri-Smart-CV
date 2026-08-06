@@ -514,6 +514,7 @@ public class ResumeController {
     }
 
 
+    private String safeGeminiModel() {
         String model = geminiModel == null ? "" : geminiModel.trim();
         return model.isBlank() ? "gemini-flash-latest" : model;
     }
