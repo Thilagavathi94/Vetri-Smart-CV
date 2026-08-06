@@ -221,11 +221,7 @@ function showStep(n) {
 }
 
 function isValidPersonName(value) {
-    // Allow periods (initials like "M.Aarthy", degree suffixes like "B.E.") and commas
-    // (e.g. "M.Aarthy B.E.,") in addition to letters, spaces, apostrophes and hyphens.
-    // The old regex rejected any period at all, which silently blocked AI-parsed names
-    // using this very common Indian-resume header format from ever being saved.
-    return /^[A-Za-z][A-Za-z .,'-]*[A-Za-z.]$/.test(String(value || '').trim());
+    return /^[A-Za-z]+(?:[ A-Za-z'-]*[A-Za-z])?$/.test(String(value || '').trim());
 }
 
 function isValidEmailAddress(value) {
