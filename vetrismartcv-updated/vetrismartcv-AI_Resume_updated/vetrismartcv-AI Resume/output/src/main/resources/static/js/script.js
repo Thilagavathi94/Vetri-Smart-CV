@@ -118,6 +118,7 @@ function normalizeImportedResumePayload(parsed) {
   // sections (previously dropped entirely by the homepage import flow).
   if (parsed.certifications) payload.certifications = parsed.certifications;
   if (parsed.languages) payload.languages = parsed.languages;
+  if (parsed.awards) payload.awards = parsed.awards;
 
   if (parsed.additionalSections && typeof parsed.additionalSections === 'object') {
     payload.additionalSectionsJson = JSON.stringify(parsed.additionalSections);
@@ -142,9 +143,17 @@ function normalizeImportedResumePayload(parsed) {
     var awards = sectionText(['awards', 'honors', 'honours', 'achievements']);
     var interests = sectionText(['interests', 'hobbies', 'activities', 'extracurricular activities', 'extra curricular activities']);
 
-    if (certifications) payload.certifications = certifications;
-    if (languages) payload.languages = languages;
-    if (awards) payload.awards = awards;
+    // Prefer the already-clean top-level fields set above from parsed.certifications /
+    // parsed.awards. Gemini sometimes ALSO returns a raw, unsplit duplicate inside
+    // additionalSections that still has certifications and awards merged together --
+    // only fall back to that duplicate if the clean field wasn't already set.
+    if (certifications && !payload.certifications) payload.certifications = certifications;
+    // Deliberately NOT falling back to additionalSections.languages here: that raw
+    // duplicate is unreliable (it often contains the "Languages" row from a SKILL SET
+    // table -- programming languages/tools -- not real spoken languages). If the clean
+    // top-level languages field is absent, that correctly means there's no languages
+    // section to show, rather than showing wrong data.
+    if (awards && !payload.awards) payload.awards = awards;
     if (interests) payload.interests = interests;
   }
 

@@ -1,4 +1,4 @@
-package com.vetrismartcv.controller;
+﻿package com.vetrismartcv.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -51,7 +51,7 @@ public class ResumeController {
     @Value("${gemini.api-key:}")
     private String geminiApiKey;
 
-    @Value("${gemini.model:gemini-1.5-flash}")
+    @Value("${gemini.model:gemini-flash-latest}")
     private String geminiModel;
 
     @Value("${gemini.parse-enabled:true}")
@@ -458,10 +458,15 @@ public class ResumeController {
         if (normalFallback != null) {
             normalFallback.forEach((key, value) -> {
                 // "languages" from the regex parser is unreliable (it can pick up
-                // skill-table content that isn't actually spoken languages), so let
-                // Gemini's own extraction be authoritative for this field instead of
-                // carrying the old value forward as a stale baseline.
-                if (!"languages".equals(key)) merged.put(key, value);
+                // skill-table content that isn't actually spoken languages), and
+                // "location"/"address" are unreliable too (the regex guesser can
+                // mistake a name line for an address when a resume has no real
+                // location line, e.g. "M.Aarthy B.E.," gets flagged as address-like).
+                // Let Gemini's own extraction be authoritative for these fields
+                // instead of carrying a stale/wrong guess forward as a baseline.
+                if (!"languages".equals(key) && !"location".equals(key) && !"address".equals(key)) {
+                    merged.put(key, value);
+                }
             });
         }
         normalized.forEach((key, value) -> {
@@ -576,10 +581,23 @@ public class ResumeController {
         return result;
     }
 
-    private static final java.util.regex.Pattern AWARD_HEADING_MARKER = java.util.regex.Pattern.compile(
-            "(?i)^\\W*(awards?(\\s*(&|and)\\s*recognition)?|highlights?|achievements?|recognitions?|honou?rs?)\\W*$");
-    private static final java.util.regex.Pattern CERTIFICATION_HEADING_MARKER = java.util.regex.Pattern.compile(
-            "(?i)^\\W*(certifications?|licenses?|licences?)\\W*$");
+    private static final Set<String> AWARD_HEADING_FORMS = Set.of(
+            "award", "awards", "awardrecognition", "awardsrecognition", "awardandrecognition",
+            "awardsandrecognition", "highlight", "highlights", "achievement", "achievements",
+            "recognition", "recognitions", "honor", "honors", "honour", "honours");
+    private static final Set<String> CERTIFICATION_HEADING_FORMS = Set.of(
+            "certification", "certifications", "license", "licenses", "licence", "licences");
+
+    /**
+     * Reduces text to only its lowercase letters (a-z), discarding every space, punctuation
+     * mark, and any invisible/unicode character (e.g. a non-breaking space that PDF/AI text
+     * extraction sometimes produces in place of a normal space). This makes heading detection
+     * immune to whitespace-variant or punctuation-variant text that would otherwise silently
+     * fail an exact regex match while still looking identical on screen.
+     */
+    private String lettersOnly(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT).replaceAll("[^a-z]", "");
+    }
 
     /**
      * Safety net for a recurring Gemini extraction issue: sometimes it puts both certifications and
@@ -591,7 +609,7 @@ public class ResumeController {
     private void separateCertificationsFromAwards(List<String> certifications, List<String> awards) {
         int splitAt = -1;
         for (int i = 0; i < certifications.size(); i++) {
-            if (AWARD_HEADING_MARKER.matcher(certifications.get(i)).matches()) {
+            if (AWARD_HEADING_FORMS.contains(lettersOnly(certifications.get(i)))) {
                 splitAt = i;
                 break;
             }
@@ -606,7 +624,7 @@ public class ResumeController {
 
         int reverseSplitAt = -1;
         for (int i = 0; i < awards.size(); i++) {
-            if (CERTIFICATION_HEADING_MARKER.matcher(awards.get(i)).matches()) {
+            if (CERTIFICATION_HEADING_FORMS.contains(lettersOnly(awards.get(i)))) {
                 reverseSplitAt = i;
                 break;
             }
@@ -616,6 +634,7 @@ public class ResumeController {
             awards.subList(reverseSplitAt, awards.size()).clear();
         }
     }
+
 
     private Map<String, Object> normalizeGeminiParsedResume(Map<String, Object> parsed) {
         if (parsed == null || parsed.isEmpty()) return Map.of();
@@ -1106,7 +1125,7 @@ public class ResumeController {
             }
         }
 
-        String location = extractLocation(lines);
+        String location = extractLocation(lines, candidateName);
         if (location != null) {
             parsed.put("address", location);
             parsed.put("location", location);
@@ -1208,10 +1227,14 @@ public class ResumeController {
         return null;
     }
 
-    private String extractLocation(List<String> lines) {
+    private String extractLocation(List<String> lines, String candidateName) {
+        String normalizedName = candidateName == null ? "" : candidateName.replaceAll("[\\s.,]+", "").toLowerCase(Locale.ROOT);
         for (int i = 0; i < Math.min(lines.size(), 8); i++) {
+            if (i == 0) continue; // the very first line is virtually always the candidate's name/title header, never a location
             String line = lines.get(i);
             if (line.contains("@") || line.matches(".*\\d{8,}.*") || isSectionHeading(line) || looksLikeContactLine(line)) continue;
+            String normalizedLine = stripBullet(line).replaceAll("[\\s.,]+", "").toLowerCase(Locale.ROOT);
+            if (!normalizedName.isBlank() && normalizedLine.equals(normalizedName)) continue;
             if (looksLikeAddressLine(line)) return stripBullet(line);
         }
         return null;
@@ -1275,12 +1298,36 @@ public class ResumeController {
         return new String[] { mapped, matcher.group(2) == null ? "" : matcher.group(2).trim() };
     }
 
+    private static final Set<String> SKILL_SUBCATEGORY_LABELS = Set.of(
+            "languages", "language", "tools", "frameworks", "framework", "databases", "database",
+            "servers", "server", "continuous integration", "methodology", "programming languages",
+            "libraries", "devops", "cloud", "frontend", "front end", "backend", "back end",
+            "technologies", "platforms", "operating systems");
+
+    /**
+     * True when `line` is really just a skill-category label (e.g. the "Languages" row inside a
+     * SKILL SET table listing programming languages/tools) rather than a genuine new resume
+     * section. Only relevant while we're already inside the "skills" section -- prevents that row
+     * from being misread by mapSectionHeading as the start of a real "Languages" (spoken-language)
+     * section, which would otherwise hijack all the following skill-table rows into the wrong
+     * bucket.
+     */
+    private boolean looksLikeSkillSubcategoryLabel(String current, String line) {
+        if (!"skills".equals(current)) return false;
+        String compact = stripBullet(line).toLowerCase(Locale.ROOT).replace(":", "").trim();
+        return SKILL_SUBCATEGORY_LABELS.contains(compact);
+    }
+
     private Map<String, List<String>> splitSections(List<String> lines) {
         Map<String, List<String>> sections = new LinkedHashMap<>();
         String current = "header";
         sections.put(current, new ArrayList<>());
 
         for (String line : lines) {
+            if (looksLikeSkillSubcategoryLabel(current, line)) {
+                sections.computeIfAbsent(current, key -> new ArrayList<>()).add(line);
+                continue;
+            }
             String mapped = mapSectionHeading(line);
             if (mapped != null) {
                 current = mapped;

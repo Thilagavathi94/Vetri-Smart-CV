@@ -14,7 +14,7 @@ let currentSectionSpacing = '16';
 let currentLetterSpacing  = '0';
 let currentLineSpacing    = '1.5';
 let currentHeaderAlignment = 'center';
-let currentSectionOrder = ['profileSummary', 'experienceJson', 'projectsJson', 'certifications', 'educationJson', 'skillsJson', 'languages', 'interests'];
+let currentSectionOrder = ['profileSummary', 'experienceJson', 'projectsJson', 'certifications', 'awards', 'educationJson', 'skillsJson', 'languages', 'interests'];
 let currentSectionSides = {};
 let currentJobTitlePosition = { x: 0, y: 0 };
 let suppressJobTitleEditClickUntil = 0;
@@ -2666,7 +2666,7 @@ function normalizeHeaderAlignment(value) {
 }
 
 function normalizeSectionOrder(value) {
-    const defaults = ['profileSummary', 'experienceJson', 'projectsJson', 'certifications', 'educationJson', 'skillsJson', 'languages', 'interests'];
+    const defaults = ['profileSummary', 'experienceJson', 'projectsJson', 'certifications', 'awards', 'educationJson', 'skillsJson', 'languages', 'interests'];
     let parsed = value;
     if (typeof value === 'string') {
         try { parsed = JSON.parse(value); } catch { parsed = value.split(','); }
@@ -3766,6 +3766,14 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
     const certHTML = certItems.length
         ? certItems.map(item => `<div style="margin-bottom:4px;padding-left:11px;text-indent:-11px;">• ${item}</div>`).join('')
         : '';
+    const awardItems = (d.awards || '').toString()
+        .replace(/\r/g, '\n')
+        .split(/\n|;|•/)
+        .map(item => item.replace(/^[\s\-–—•]+/, '').trim())
+        .filter(Boolean);
+    const awardHTML = awardItems.length
+        ? awardItems.map(item => `<div style="margin-bottom:4px;padding-left:11px;text-indent:-11px;">• ${item}</div>`).join('')
+        : '';
     const languageHTML = (d.languages || '').toString().split(/[,;\n]+/)
         .map(item => item.trim())
         .filter(Boolean)
@@ -3802,6 +3810,7 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
       <div class="t1-section section-block" id="rv-experience-section" data-rv-field="experienceJson"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:${summary?'14px':'0'};">Experience</div><div class="editable-field" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div></div>
       ${projects.length?`<div class="t1-section section-block" id="rv-projects-section" data-rv-field="projectsJson"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Projects</div><div class="editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t1-job t1-project-item"><div class="t1-job-title" style="color:${accent};">${p.title||p.name||''}</div>${p.tools?`<div class="t1-job-date">Tools: ${p.tools}</div>`:''}<div class="t1-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')} <span class="edit-pen">✏</span></div></div>`:''}
       ${d.certifications?`<div class="t1-section section-block" id="rv-section-certificates" data-rv-field="certifications"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Certifications</div><div class="editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.55;" ${editBtn('certifications','Certifications',d.certifications||'')}>${certHTML || d.certifications} <span class="edit-pen">✏</span></div></div>`:''}
+      ${d.awards?`<div class="t1-section section-block" id="rv-section-awards" data-rv-field="awards"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Awards &amp; Recognition</div><div class="editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.55;" ${editBtn('awards','Awards',d.awards||'')}>${awardHTML || d.awards} <span class="edit-pen">✏</span></div></div>`:''}
       ${d.languages?`<div class="t1-section section-block" id="rv-section-languages" data-rv-field="languages"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Languages</div><div class="editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.55;" ${editBtn('languages','Languages',d.languages||'')}>${languageHTML || d.languages} <span class="edit-pen">✏</span></div></div>`:''}
       ${d.interests?`<div class="t1-section section-block" id="rv-section-interests" data-rv-field="interests"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Interests</div><div class="editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.55;" ${editBtn('interests','Interests',d.interests||'')}>${interestHTML || d.interests} <span class="edit-pen">✏</span></div></div>`:''}
       ${buildExtraSections(accent)}

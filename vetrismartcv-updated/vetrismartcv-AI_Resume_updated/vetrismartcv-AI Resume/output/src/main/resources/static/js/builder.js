@@ -1300,6 +1300,7 @@ function normalizeParsedCvPayload(parsed) {
     if (parsed.profileSummary) payload.profileSummary = parsed.profileSummary;
     if (parsed.certifications) payload.certifications = parsed.certifications;
     if (parsed.languages) payload.languages = parsed.languages;
+    if (parsed.awards) payload.awards = parsed.awards;
 
     if (Array.isArray(parsed.skills) && parsed.skills.length) {
         payload.skillsJson = JSON.stringify(parsed.skills);
@@ -1332,9 +1333,17 @@ function normalizeParsedCvPayload(parsed) {
         const languages = sectionText(['languages'], ', ');
         const awards = sectionText(['awards', 'honors', 'honours', 'achievements']);
         const interests = sectionText(['interests', 'hobbies', 'activities', 'extracurricular activities', 'extra curricular activities']);
-        if (certifications) payload.certifications = certifications;
-        if (languages) payload.languages = languages;
-        if (awards) payload.awards = awards;
+        // Prefer the already-clean top-level fields (payload.certifications / payload.awards etc,
+        // set above from parsed.certifications / parsed.awards). Gemini sometimes ALSO returns a
+        // raw, unsplit duplicate inside additionalSections that still has certifications and
+        // awards merged together -- only fall back to that if the clean field wasn't already set.
+        if (certifications && !payload.certifications) payload.certifications = certifications;
+        // Deliberately NOT falling back to additionalSections.languages here: that raw
+        // duplicate is unreliable (it often contains the "Languages" row from a SKILL SET
+        // table -- programming languages/tools -- not real spoken languages). If the clean
+        // top-level languages field is absent, that correctly means there's no languages
+        // section to show, rather than showing wrong data.
+        if (awards && !payload.awards) payload.awards = awards;
         if (interests) payload.interests = interests;
     }
 
