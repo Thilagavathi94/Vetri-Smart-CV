@@ -1,4 +1,4 @@
-/* =============================================
+﻿﻿/* =============================================
    REVIEW.JS — VetriSmartCV
    3 templates: robert (dark maroon), olivia (green two-col), mary (minimal)
    ============================================= */
@@ -3736,13 +3736,17 @@ function buildTemplate25Template({ resumeData: d, edu, skills, projects, experie
 // ============================================================
 function buildTemplate1Template({ resumeData: d, edu, skills, projects, experience, color }) {
     const accent = color || '#7c3aed';
-    const name   = d.fullName || 'Your Name';
+    const emailUsername = (d.email || '').split('@')[0].replace(/[._\-]+/g, ' ').trim();
+    const fallbackName = emailUsername
+        ? emailUsername.replace(/\b\w/g, c => c.toUpperCase())
+        : 'Your Name';
+    const name   = d.fullName || fallbackName;
     const title  = d.jobTitle || '';
     const email  = d.email   || '';
     const phone  = d.phone   || '';
     const addr   = d.address || d.location || '';
     const summary= d.profileSummary || '';
-    const initial = (name||'Y').charAt(0).toUpperCase();
+    const initial = (name || 'U').charAt(0).toUpperCase();
     const photoSrc = typeof d.profilePhotoData === 'string' ? d.profilePhotoData.trim() : '';
     const hasUsablePhoto = /^(data:image\/(png|jpe?g|webp|gif);base64,|https?:\/\/|\/)/i.test(photoSrc)
         && !/placeholder|default|avatar/i.test(photoSrc);
