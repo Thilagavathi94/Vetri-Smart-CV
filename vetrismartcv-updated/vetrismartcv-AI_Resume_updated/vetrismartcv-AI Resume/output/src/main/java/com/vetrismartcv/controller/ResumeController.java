@@ -1,4 +1,4 @@
-﻿package com.vetrismartcv.controller;
+package com.vetrismartcv.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,10 +37,9 @@ import java.util.*;
 public class ResumeController {
 
     private static final Set<String> FREE_TEMPLATE_IDS = Set.of("template1", "template2", "template3");
-    private static final String EXPERIENCE_ROLE_WORDS =
-            "developer|engineer|manager|analyst|designer|executive|consultant|intern|internship|associate|specialist|lead|"
-                    + "architect|administrator|tester|qa|support\\s+specialist|scientist|devops|full\\s*stack|backend|frontend|trainer|"
-                    + "assistant|coordinator|officer|representative|supervisor|instructor|producer|editor";
+    private static final String EXPERIENCE_ROLE_WORDS = "developer|engineer|manager|analyst|designer|executive|consultant|intern|internship|associate|specialist|lead|"
+            + "architect|administrator|tester|qa|support\\s+specialist|scientist|devops|full\\s*stack|backend|frontend|trainer|"
+            + "assistant|coordinator|officer|representative|supervisor|instructor|producer|editor";
     private static final int GEMINI_MAX_INPUT_CHARS = 24000;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -69,9 +68,12 @@ public class ResumeController {
             @RequestBody ResumeData data,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
-        if (userId != null) data.setUserId(userId);
-        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session, data.getTemplateName());
-        if (blocked != null) return blocked;
+        if (userId != null)
+            data.setUserId(userId);
+        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session,
+                data.getTemplateName());
+        if (blocked != null)
+            return blocked;
         ResumeData created = resumeService.createResume(data);
         return ResponseEntity.ok(created);
     }
@@ -83,8 +85,10 @@ public class ResumeController {
             @RequestBody ResumeData updates,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
-        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session, updates.getTemplateName());
-        if (blocked != null) return blocked;
+        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session,
+                updates.getTemplateName());
+        if (blocked != null)
+            return blocked;
         return ResponseEntity.ok(resumeService.updateStep(id, updates));
     }
 
@@ -95,9 +99,12 @@ public class ResumeController {
             @RequestBody ResumeData updates,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
-        if (userId != null) updates.setUserId(userId);
-        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session, updates.getTemplateName());
-        if (blocked != null) return blocked;
+        if (userId != null)
+            updates.setUserId(userId);
+        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session,
+                updates.getTemplateName());
+        if (blocked != null)
+            return blocked;
         return ResponseEntity.ok(resumeService.saveDraft(id, updates));
     }
 
@@ -108,9 +115,12 @@ public class ResumeController {
             @RequestBody ResumeData updates,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
-        if (userId != null) updates.setUserId(userId);
-        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session, updates.getTemplateName());
-        if (blocked != null) return blocked;
+        if (userId != null)
+            updates.setUserId(userId);
+        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session,
+                updates.getTemplateName());
+        if (blocked != null)
+            return blocked;
         return ResponseEntity.ok(resumeService.processResume(id, updates));
     }
 
@@ -132,21 +142,25 @@ public class ResumeController {
     @GetMapping("/my")
     public ResponseEntity<?> getMyResumes(HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
         return ResponseEntity.ok(resumeService.getByUserId(userId));
     }
 
-    /* ---- GET /api/resume/latest?template=xxx ----
-       Finds the current user's most recently updated resume, optionally
-       filtered by template. Used by the "edit" flow on the templates page
-       so a user re-opens their existing draft instead of starting over.
-       (Frontend already called this URL; the endpoint was missing.) */
+    /*
+     * ---- GET /api/resume/latest?template=xxx ----
+     * Finds the current user's most recently updated resume, optionally
+     * filtered by template. Used by the "edit" flow on the templates page
+     * so a user re-opens their existing draft instead of starting over.
+     * (Frontend already called this URL; the endpoint was missing.)
+     */
     @GetMapping("/latest")
     public ResponseEntity<?> getLatestResume(
             @RequestParam(required = false) String template,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
 
         List<ResumeData> resumes = resumeService.getByUserId(userId);
         String normalizedTemplate = normalizeTemplateId(template);
@@ -169,10 +183,13 @@ public class ResumeController {
             @RequestBody ResumeData updates,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
-        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session, updates.getTemplateName());
-        if (blocked != null) return blocked;
+        ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session,
+                updates.getTemplateName());
+        if (blocked != null)
+            return blocked;
         ResumeData updated = resumeService.updateResume(id, updates);
-        if (updated != null) return ResponseEntity.ok(updated);
+        if (updated != null)
+            return ResponseEntity.ok(updated);
         return ResponseEntity.notFound().build();
     }
 
@@ -196,10 +213,9 @@ public class ResumeController {
         // Guest must log in
         if (userId == null) {
             return ResponseEntity.status(401).body(Map.of(
-                "success", false,
-                "requireLogin", true,
-                "message", "Please login to download."
-            ));
+                    "success", false,
+                    "requireLogin", true,
+                    "message", "Please login to download."));
         }
 
         // FREE plan can only download once
@@ -209,12 +225,12 @@ public class ResumeController {
                     .orElse(0);
             if (downloads >= 1) {
                 return ResponseEntity.status(403).body(Map.of(
-                    "success", false,
-                    "upgradeRequired", true,
-                    "reason", "DOWNLOAD_LIMIT",
-                    "message", "Free plan includes only one resume download. Upgrade to Pro for unlimited downloads.",
-                    "pricingUrl", "/pricing"
-                ));
+                        "success", false,
+                        "upgradeRequired", true,
+                        "reason", "DOWNLOAD_LIMIT",
+                        "message",
+                        "Free plan includes only one resume download. Upgrade to Pro for unlimited downloads.",
+                        "pricingUrl", "/pricing"));
             }
         }
 
@@ -236,22 +252,19 @@ public class ResumeController {
             return ResponseEntity.status(401).body(Map.of(
                     "success", false,
                     "requireLogin", true,
-                    "message", "Please login to share your resume."
-            ));
+                    "message", "Please login to share your resume."));
         }
         if (!userService.isEmailDeliveryConfigured()) {
             return ResponseEntity.status(503).body(Map.of(
                     "success", false,
-                    "message", "Email is not configured on the server."
-            ));
+                    "message", "Email is not configured on the server."));
         }
 
         Optional<ResumeData> resumeOpt = resumeService.getById(id);
         if (resumeOpt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of(
                     "success", false,
-                    "message", "Resume not found."
-            ));
+                    "message", "Resume not found."));
         }
 
         ResumeData resume = resumeOpt.get();
@@ -262,8 +275,7 @@ public class ResumeController {
         if (recipients.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", "Please enter at least one valid recipient email address."
-            ));
+                    "message", "Please enter at least one valid recipient email address."));
         }
 
         String resumeUrl = request.getScheme() + "://" + request.getServerName()
@@ -278,15 +290,18 @@ public class ResumeController {
                     + "\n\nRegards,\n" + name + "\nVetriSmartCV";
             byte[] pdfBytes = pdf == null ? new byte[0] : pdf.getBytes();
             String attachmentName = pdf == null ? "resume.pdf" : safeTrim(pdf.getOriginalFilename());
-            if (attachmentName.isBlank()) attachmentName = "resume.pdf";
+            if (attachmentName.isBlank())
+                attachmentName = "resume.pdf";
             List<String> sent = new ArrayList<>();
             Map<String, String> failed = new LinkedHashMap<>();
             for (String recipient : recipients) {
                 try {
-                    userService.sendEmailWithAttachment(recipient, subject, textBody, pdfBytes, attachmentName, "application/pdf");
+                    userService.sendEmailWithAttachment(recipient, subject, textBody, pdfBytes, attachmentName,
+                            "application/pdf");
                     sent.add(recipient);
                 } catch (Exception mailEx) {
-                    failed.put(recipient, mailEx.getMessage() == null ? "Mail provider rejected this recipient." : mailEx.getMessage());
+                    failed.put(recipient, mailEx.getMessage() == null ? "Mail provider rejected this recipient."
+                            : mailEx.getMessage());
                 }
             }
             if (!failed.isEmpty()) {
@@ -298,41 +313,43 @@ public class ResumeController {
                         "failedRecipients", failed,
                         "message", sent.isEmpty()
                                 ? firstError
-                                : "Resume PDF sent to " + sent.size() + " recipient(s), but " + failed.size() + " recipient(s) failed. " + firstError
-                ));
+                                : "Resume PDF sent to " + sent.size() + " recipient(s), but " + failed.size()
+                                        + " recipient(s) failed. " + firstError));
             }
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", recipients.size() == 1
                             ? "Resume PDF sent to " + recipients.get(0) + "."
-                            : "Resume PDF sent to " + recipients.size() + " recipients."
-            ));
+                            : "Resume PDF sent to " + recipients.size() + " recipients."));
         } catch (Exception ex) {
             return ResponseEntity.status(500).body(Map.of(
                     "success", false,
-                    "message", "Could not send email. Please check mail configuration."
-            ));
+                    "message", "Could not send email. Please check mail configuration."));
         }
     }
 
-    private ResponseEntity<Map<String, Object>> blockFreeTemplateIfNeeded(Long userId, HttpSession session, String templateName) {
+    private ResponseEntity<Map<String, Object>> blockFreeTemplateIfNeeded(Long userId, HttpSession session,
+            String templateName) {
         String normalizedTemplate = normalizeTemplateId(templateName);
-        if (normalizedTemplate.isBlank() || FREE_TEMPLATE_IDS.contains(normalizedTemplate)) return null;
+        if (normalizedTemplate.isBlank() || FREE_TEMPLATE_IDS.contains(normalizedTemplate))
+            return null;
 
         String plan = getCurrentUserPlan(userId, session);
-        if (isPaidPlan(plan)) return null;
+        if (isPaidPlan(plan))
+            return null;
 
         return ResponseEntity.status(403).body(Map.of(
-            "success", false,
-            "upgradeRequired", true,
-            "reason", "TEMPLATE_LIMIT",
-            "message", "Free plan users can use only the first three templates. Upgrade to Pro to unlock all templates.",
-            "pricingUrl", "/pricing"
-        ));
+                "success", false,
+                "upgradeRequired", true,
+                "reason", "TEMPLATE_LIMIT",
+                "message",
+                "Free plan users can use only the first three templates. Upgrade to Pro to unlock all templates.",
+                "pricingUrl", "/pricing"));
     }
 
     private String getCurrentUserPlan(Long userId, HttpSession session) {
-        if (userId == null) return "FREE";
+        if (userId == null)
+            return "FREE";
         String plan = userService.getById(userId)
                 .map(u -> u.getPlan() == null ? "FREE" : u.getPlan().toUpperCase(Locale.ROOT))
                 .orElse("FREE");
@@ -346,7 +363,8 @@ public class ResumeController {
     }
 
     private String normalizeTemplateId(String templateName) {
-        if (templateName == null) return "";
+        if (templateName == null)
+            return "";
         return templateName.trim().toLowerCase(Locale.ROOT);
     }
 
@@ -360,7 +378,8 @@ public class ResumeController {
 
     private List<String> parseEmailRecipients(String raw) {
         String value = safeTrim(raw);
-        if (value.isBlank()) return List.of();
+        if (value.isBlank())
+            return List.of();
 
         Set<String> uniqueRecipients = new LinkedHashSet<>();
         for (String part : value.split("[,;\\n\\r]+")) {
@@ -389,14 +408,17 @@ public class ResumeController {
             Map<String, Object> parsed = parseResumeText(content);
             String parsedWith = "normal";
             if (isGeminiParsingConfigured()) {
-                System.out.println("[GEMINI] Key configured, attempting Gemini parse for file: " + file.getOriginalFilename());
+                System.out.println(
+                        "[GEMINI] Key configured, attempting Gemini parse for file: " + file.getOriginalFilename());
                 try {
                     parsed = parseResumeTextWithGemini(content, parsed);
                     parsedWith = "gemini";
                     System.out.println("[GEMINI] SUCCESS - resume parsed using Gemini AI");
                 } catch (Exception geminiEx) {
-                    System.out.println("[GEMINI] FAILED - falling back to normal parser. Reason: " + geminiEx.getMessage());
-                    result.put("aiWarning", "Gemini parsing failed, so normal parser was used: " + geminiEx.getMessage());
+                    System.out.println(
+                            "[GEMINI] FAILED - falling back to normal parser. Reason: " + geminiEx.getMessage());
+                    result.put("aiWarning",
+                            "Gemini parsing failed, so normal parser was used: " + geminiEx.getMessage());
                 }
             } else {
                 System.out.println("[GEMINI] SKIPPED - not configured (check GEMINI_API_KEY and GEMINI_PARSE_ENABLED)");
@@ -416,7 +438,8 @@ public class ResumeController {
         return geminiParseEnabled && geminiApiKey != null && !geminiApiKey.isBlank();
     }
 
-    private Map<String, Object> parseResumeTextWithGemini(String resumeText, Map<String, Object> normalFallback) throws Exception {
+    private Map<String, Object> parseResumeTextWithGemini(String resumeText, Map<String, Object> normalFallback)
+            throws Exception {
         String text = resumeText == null ? "" : resumeText.trim();
         if (text.length() > GEMINI_MAX_INPUT_CHARS) {
             text = text.substring(0, GEMINI_MAX_INPUT_CHARS);
@@ -425,12 +448,10 @@ public class ResumeController {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("contents", List.of(Map.of(
                 "role", "user",
-                "parts", List.of(Map.of("text", buildGeminiResumePrompt(text)))
-        )));
+                "parts", List.of(Map.of("text", buildGeminiResumePrompt(text))))));
         payload.put("generationConfig", Map.of(
                 "temperature", 0,
-                "responseMimeType", "application/json"
-        ));
+                "responseMimeType", "application/json"));
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/"
@@ -438,7 +459,8 @@ public class ResumeController {
                 .timeout(Duration.ofSeconds(45))
                 .header("x-goog-api-key", geminiApiKey.trim())
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload), StandardCharsets.UTF_8))
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload),
+                        StandardCharsets.UTF_8))
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -448,7 +470,8 @@ public class ResumeController {
         }
 
         String jsonText = extractGeminiText(response.body());
-        Map<String, Object> geminiParsed = objectMapper.readValue(cleanJsonText(jsonText), new TypeReference<>() {});
+        Map<String, Object> geminiParsed = objectMapper.readValue(cleanJsonText(jsonText), new TypeReference<>() {
+        });
         Map<String, Object> normalized = normalizeGeminiParsedResume(geminiParsed);
         if (normalized.isEmpty()) {
             throw new IllegalStateException("Gemini returned empty resume data");
@@ -470,7 +493,8 @@ public class ResumeController {
             });
         }
         normalized.forEach((key, value) -> {
-            if (hasResumeValue(value)) merged.put(key, value);
+            if (hasResumeValue(value))
+                merged.put(key, value);
         });
         return merged;
     }
@@ -545,7 +569,8 @@ public class ResumeController {
         StringBuilder text = new StringBuilder();
         for (JsonNode part : parts) {
             String value = part.path("text").asText("");
-            if (!value.isBlank()) text.append(value);
+            if (!value.isBlank())
+                text.append(value);
         }
         if (text.isEmpty()) {
             throw new IllegalStateException("Gemini response text was empty");
@@ -562,20 +587,26 @@ public class ResumeController {
         return text.trim();
     }
 
-    /** Reads a field as a list of trimmed, non-blank strings, whether Gemini returned an array or a newline/comma string. */
+    /**
+     * Reads a field as a list of trimmed, non-blank strings, whether Gemini
+     * returned an array or a newline/comma string.
+     */
     private List<String> extractStringList(Map<String, Object> parsed, String key) {
         Object value = parsed.get(key);
         List<String> result = new ArrayList<>();
         if (value instanceof Collection<?> values) {
             for (Object item : values) {
-                if (item == null) continue;
+                if (item == null)
+                    continue;
                 String text = String.valueOf(item).trim();
-                if (!text.isBlank()) result.add(text);
+                if (!text.isBlank())
+                    result.add(text);
             }
         } else if (value instanceof String text && !text.isBlank()) {
             for (String line : text.split("\\r?\\n")) {
                 String trimmed = line.trim();
-                if (!trimmed.isBlank()) result.add(trimmed);
+                if (!trimmed.isBlank())
+                    result.add(trimmed);
             }
         }
         return result;
@@ -589,10 +620,14 @@ public class ResumeController {
             "certification", "certifications", "license", "licenses", "licence", "licences");
 
     /**
-     * Reduces text to only its lowercase letters (a-z), discarding every space, punctuation
-     * mark, and any invisible/unicode character (e.g. a non-breaking space that PDF/AI text
-     * extraction sometimes produces in place of a normal space). This makes heading detection
-     * immune to whitespace-variant or punctuation-variant text that would otherwise silently
+     * Reduces text to only its lowercase letters (a-z), discarding every space,
+     * punctuation
+     * mark, and any invisible/unicode character (e.g. a non-breaking space that
+     * PDF/AI text
+     * extraction sometimes produces in place of a normal space). This makes heading
+     * detection
+     * immune to whitespace-variant or punctuation-variant text that would otherwise
+     * silently
      * fail an exact regex match while still looking identical on screen.
      */
     private String lettersOnly(String value) {
@@ -600,11 +635,16 @@ public class ResumeController {
     }
 
     /**
-     * Safety net for a recurring Gemini extraction issue: sometimes it puts both certifications and
-     * awards/highlights into the "certifications" array as one contiguous block, occasionally even
-     * including the literal section heading (e.g. "AWARDS & RECOGNITION") as a fake array element.
-     * This scans for that heading marker and, if found, deterministically splits the list into the
-     * correct certifications/awards buckets instead of relying purely on the AI getting it right.
+     * Safety net for a recurring Gemini extraction issue: sometimes it puts both
+     * certifications and
+     * awards/highlights into the "certifications" array as one contiguous block,
+     * occasionally even
+     * including the literal section heading (e.g. "AWARDS & RECOGNITION") as a fake
+     * array element.
+     * This scans for that heading marker and, if found, deterministically splits
+     * the list into the
+     * correct certifications/awards buckets instead of relying purely on the AI
+     * getting it right.
      */
     private void separateCertificationsFromAwards(List<String> certifications, List<String> awards) {
         int splitAt = -1;
@@ -635,9 +675,9 @@ public class ResumeController {
         }
     }
 
-
     private Map<String, Object> normalizeGeminiParsedResume(Map<String, Object> parsed) {
-        if (parsed == null || parsed.isEmpty()) return Map.of();
+        if (parsed == null || parsed.isEmpty())
+            return Map.of();
         Object nested = parsed.get("resume");
         if (nested instanceof Map<?, ?> nestedMap) {
             parsed = stringifyKeys(nestedMap);
@@ -656,8 +696,10 @@ public class ResumeController {
         List<String> rawCertifications = extractStringList(parsed, "certifications");
         List<String> rawAwards = extractStringList(parsed, "awards");
         separateCertificationsFromAwards(rawCertifications, rawAwards);
-        if (!rawCertifications.isEmpty()) normalized.put("certifications", String.join("\n", rawCertifications));
-        if (!rawAwards.isEmpty()) normalized.put("awards", String.join("\n", rawAwards));
+        if (!rawCertifications.isEmpty())
+            normalized.put("certifications", String.join("\n", rawCertifications));
+        if (!rawAwards.isEmpty())
+            normalized.put("awards", String.join("\n", rawAwards));
         putStringOrJoined(normalized, "languages", parsed);
         putStringOrJoined(normalized, "interests", parsed);
         putStringOrJoined(normalized, "hobbies", parsed);
@@ -670,7 +712,8 @@ public class ResumeController {
                     .distinct()
                     .limit(80)
                     .toList();
-            if (!cleanSkills.isEmpty()) normalized.put("skills", cleanSkills);
+            if (!cleanSkills.isEmpty())
+                normalized.put("skills", cleanSkills);
         } else if (skills instanceof String textValue && !textValue.isBlank()) {
             normalized.put("skills", Arrays.stream(textValue.split("[,\\n;|]+"))
                     .map(String::trim)
@@ -693,7 +736,8 @@ public class ResumeController {
     }
 
     private void mergeHobbiesIntoInterests(Map<String, Object> normalized) {
-        String interests = normalized.get("interests") == null ? "" : String.valueOf(normalized.get("interests")).trim();
+        String interests = normalized.get("interests") == null ? ""
+                : String.valueOf(normalized.get("interests")).trim();
         String hobbies = normalized.get("hobbies") == null ? "" : String.valueOf(normalized.get("hobbies")).trim();
         if (!hobbies.isBlank()) {
             normalized.put("interests", interests.isBlank() ? hobbies : interests + ", " + hobbies);
@@ -704,7 +748,8 @@ public class ResumeController {
     private Map<String, Object> stringifyKeys(Map<?, ?> source) {
         Map<String, Object> result = new LinkedHashMap<>();
         source.forEach((key, value) -> {
-            if (key != null) result.put(String.valueOf(key), value);
+            if (key != null)
+                result.put(String.valueOf(key), value);
         });
         return result;
     }
@@ -726,33 +771,43 @@ public class ResumeController {
                     .filter(item -> !item.isBlank())
                     .reduce((left, right) -> left + "\n" + right)
                     .orElse("");
-            if (!joined.isBlank()) target.put(key, joined);
+            if (!joined.isBlank())
+                target.put(key, joined);
         }
     }
 
     private void putObjectList(Map<String, Object> target, String key, Map<String, Object> source) {
         Object value = source.get(key);
-        if (!(value instanceof Collection<?> values)) return;
+        if (!(value instanceof Collection<?> values))
+            return;
         List<Map<String, Object>> cleaned = new ArrayList<>();
         for (Object item : values) {
-            if (!(item instanceof Map<?, ?> map)) continue;
+            if (!(item instanceof Map<?, ?> map))
+                continue;
             Map<String, Object> entry = stringifyKeys(map);
             entry.entrySet().removeIf(e -> e.getValue() == null || String.valueOf(e.getValue()).trim().isBlank());
-            if (!entry.isEmpty()) cleaned.add(entry);
+            if (!entry.isEmpty())
+                cleaned.add(entry);
         }
-        if (!cleaned.isEmpty()) target.put(key, cleaned);
+        if (!cleaned.isEmpty())
+            target.put(key, cleaned);
     }
 
     private boolean hasResumeValue(Object value) {
-        if (value == null) return false;
-        if (value instanceof String text) return !text.trim().isBlank();
-        if (value instanceof Collection<?> values) return !values.isEmpty();
-        if (value instanceof Map<?, ?> map) return !map.isEmpty();
+        if (value == null)
+            return false;
+        if (value instanceof String text)
+            return !text.trim().isBlank();
+        if (value instanceof Collection<?> values)
+            return !values.isEmpty();
+        if (value instanceof Map<?, ?> map)
+            return !map.isEmpty();
         return true;
     }
 
     private String extractResumeText(MultipartFile file) throws Exception {
-        String originalName = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase(Locale.ROOT);
+        String originalName = file.getOriginalFilename() == null ? ""
+                : file.getOriginalFilename().toLowerCase(Locale.ROOT);
         byte[] bytes = file.getBytes();
 
         if (originalName.endsWith(".pdf")) {
@@ -763,14 +818,14 @@ public class ResumeController {
 
         if (originalName.endsWith(".docx")) {
             try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(bytes));
-                 XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
+                    XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
                 return extractor.getText();
             }
         }
 
         if (originalName.endsWith(".doc")) {
             try (HWPFDocument document = new HWPFDocument(new ByteArrayInputStream(bytes));
-                 WordExtractor extractor = new WordExtractor(document)) {
+                    WordExtractor extractor = new WordExtractor(document)) {
                 return extractor.getText();
             }
         }
@@ -799,9 +854,9 @@ public class ResumeController {
     // top-to-bottom reading order).
     // =====================================================================
 
-    private static final float LINE_Y_TOLERANCE = 3.0f;   // px tolerance to treat chars as same line
-    private static final float MIN_COLUMN_GAP = 18.0f;    // minimum blank gap (px) to call it a column break
-    private static final int MIN_LINES_PER_COLUMN = 3;    // avoid false-positive column splits on noise
+    private static final float LINE_Y_TOLERANCE = 3.0f; // px tolerance to treat chars as same line
+    private static final float MIN_COLUMN_GAP = 18.0f; // minimum blank gap (px) to call it a column break
+    private static final int MIN_LINES_PER_COLUMN = 3; // avoid false-positive column splits on noise
 
     private static final class CharSpan {
         final int page;
@@ -866,19 +921,24 @@ public class ResumeController {
         for (Map.Entry<Integer, List<CharSpan>> pageEntry : byPage.entrySet()) {
             int pageIndex = pageEntry.getKey();
             List<PdfLine> lines = buildLines(pageEntry.getValue());
-            if (lines.isEmpty()) continue;
+            if (lines.isEmpty())
+                continue;
 
             PDPage pdPage = document.getPage(pageIndex - 1);
             float pageWidth = pdPage.getMediaBox().getWidth();
 
             String pageText = renderPageInColumnOrder(lines, pageWidth);
-            if (fullText.length() > 0) fullText.append("\n\n");
+            if (fullText.length() > 0)
+                fullText.append("\n\n");
             fullText.append(pageText);
         }
         return fullText.toString();
     }
 
-    /** Cluster raw characters (already ordered by page-stream position) into visual lines using Y proximity. */
+    /**
+     * Cluster raw characters (already ordered by page-stream position) into visual
+     * lines using Y proximity.
+     */
     private List<PdfLine> buildLines(List<CharSpan> pageSpans) {
         List<CharSpan> sorted = new ArrayList<>(pageSpans);
         sorted.sort(Comparator.comparing((CharSpan s) -> s.y).thenComparing(s -> s.x));
@@ -898,7 +958,8 @@ public class ResumeController {
                 currentY = span.y;
             }
         }
-        if (!currentGroup.isEmpty()) lines.add(finishLine(currentGroup));
+        if (!currentGroup.isEmpty())
+            lines.add(finishLine(currentGroup));
         return lines;
     }
 
@@ -910,7 +971,8 @@ public class ResumeController {
         line.y = group.get(0).y;
         float prevEndX = -1;
         for (CharSpan span : group) {
-            // insert a space if there's a visible horizontal gap between characters (word boundary)
+            // insert a space if there's a visible horizontal gap between characters (word
+            // boundary)
             if (prevEndX >= 0 && span.x - prevEndX > 1.5f && line.text.length() > 0
                     && line.text.charAt(line.text.length() - 1) != ' ') {
                 line.text.append(' ');
@@ -925,7 +987,8 @@ public class ResumeController {
      * Detects whether a page is laid out in two (or more) columns by looking for a
      * consistent horizontal gap that separates the left-starting-X of lines into
      * distinct clusters. If found, each column is emitted in full, top-to-bottom,
-     * widest/most-content column first (main body), narrower column after (sidebar).
+     * widest/most-content column first (main body), narrower column after
+     * (sidebar).
      * If no clear column gap is found, the page is treated as a single column and
      * lines are simply emitted in natural top-to-bottom order.
      */
@@ -945,8 +1008,10 @@ public class ResumeController {
         List<PdfLine> left = new ArrayList<>();
         List<PdfLine> right = new ArrayList<>();
         for (PdfLine line : lines) {
-            if (line.minX < boundary) left.add(line);
-            else right.add(line);
+            if (line.minX < boundary)
+                left.add(line);
+            else
+                right.add(line);
         }
         if (left.size() < MIN_LINES_PER_COLUMN || right.size() < MIN_LINES_PER_COLUMN) {
             lines.sort(Comparator.comparing(l -> l.y));
@@ -972,14 +1037,16 @@ public class ResumeController {
     private String joinLines(List<PdfLine> lines) {
         StringBuilder sb = new StringBuilder();
         for (PdfLine line : lines) {
-            if (sb.length() > 0) sb.append("\n");
+            if (sb.length() > 0)
+                sb.append("\n");
             sb.append(line.text.toString().replaceAll("\\s{2,}", " ").trim());
         }
         return sb.toString();
     }
 
     private Float detectColumnBoundary(List<Float> sortedDistinctStartXs, float pageWidth) {
-        if (sortedDistinctStartXs.size() < 2) return null;
+        if (sortedDistinctStartXs.size() < 2)
+            return null;
         float bestGap = 0f;
         float bestBoundary = -1f;
         for (int i = 1; i < sortedDistinctStartXs.size(); i++) {
@@ -989,9 +1056,11 @@ public class ResumeController {
                 bestBoundary = (sortedDistinctStartXs.get(i) + sortedDistinctStartXs.get(i - 1)) / 2f;
             }
         }
-        if (bestGap < MIN_COLUMN_GAP) return null;
+        if (bestGap < MIN_COLUMN_GAP)
+            return null;
         // Avoid treating a gap right at the page edges as a real column split
-        if (bestBoundary < pageWidth * 0.15f || bestBoundary > pageWidth * 0.85f) return null;
+        if (bestBoundary < pageWidth * 0.15f || bestBoundary > pageWidth * 0.85f)
+            return null;
         return bestBoundary;
     }
 
@@ -1005,12 +1074,11 @@ public class ResumeController {
 
         switch (type) {
             case "jobTitle" -> response.put("suggestions", List.of(
-                "UI Designer", "Software Developer", "Marketing Executive",
-                "Data Analyst", "Customer Support", "Product Manager",
-                "Full Stack Developer", "Business Analyst", "Graphic Designer",
-                "Web Developer", "DevOps Engineer", "Content Writer",
-                "HR Executive", "Sales Executive", "Project Manager"
-            ));
+                    "UI Designer", "Software Developer", "Marketing Executive",
+                    "Data Analyst", "Customer Support", "Product Manager",
+                    "Full Stack Developer", "Business Analyst", "Graphic Designer",
+                    "Web Developer", "DevOps Engineer", "Content Writer",
+                    "HR Executive", "Sales Executive", "Project Manager"));
             case "skills" -> {
                 List<String> skills = switch (context.toLowerCase()) {
                     case "ui designer" -> List.of("Figma", "Adobe XD", "User Interface Design",
@@ -1034,19 +1102,26 @@ public class ResumeController {
                 // Return 3 different AI summary options
                 String jobRole = context.isEmpty() ? "professional" : context;
                 response.put("summaries", List.of(
-                    Map.of("title", "Professional & Experienced",
-                        "text", "Results-driven " + jobRole + " with a proven track record of delivering high-quality work. " +
-                            "Experienced in collaborating with cross-functional teams to achieve project goals. " +
-                            "Passionate about continuous learning and contributing innovative solutions."),
-                    Map.of("title", "Creative & Motivated",
-                        "text", "Motivated and creative " + jobRole + " with a strong passion for excellence. " +
-                            "Skilled in applying best practices and modern tools to solve complex challenges. " +
-                            "Eager to grow professionally and deliver impactful results in a dynamic environment."),
-                    Map.of("title", "Detail-Oriented",
-                        "text", "Detail-oriented " + jobRole + " with solid understanding of industry standards and emerging trends. " +
-                            "Experienced in building scalable solutions and working in fast-paced environments. " +
-                            "Committed to quality and continuous improvement in every project undertaken.")
-                ));
+                        Map.of("title", "Professional & Experienced",
+                                "text",
+                                "Results-driven " + jobRole
+                                        + " with a proven track record of delivering high-quality work. " +
+                                        "Experienced in collaborating with cross-functional teams to achieve project goals. "
+                                        +
+                                        "Passionate about continuous learning and contributing innovative solutions."),
+                        Map.of("title", "Creative & Motivated",
+                                "text",
+                                "Motivated and creative " + jobRole + " with a strong passion for excellence. " +
+                                        "Skilled in applying best practices and modern tools to solve complex challenges. "
+                                        +
+                                        "Eager to grow professionally and deliver impactful results in a dynamic environment."),
+                        Map.of("title", "Detail-Oriented",
+                                "text",
+                                "Detail-oriented " + jobRole
+                                        + " with solid understanding of industry standards and emerging trends. " +
+                                        "Experienced in building scalable solutions and working in fast-paced environments. "
+                                        +
+                                        "Committed to quality and continuous improvement in every project undertaken.")));
             }
             default -> response.put("error", "Unknown suggestion type");
         }
@@ -1059,16 +1134,20 @@ public class ResumeController {
         String safeText = text == null ? "" : text.replace("\r", "");
 
         String email = firstMatch(safeText, "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}");
-        if (email != null) parsed.put("email", email);
+        if (email != null)
+            parsed.put("email", email);
 
         String phone = firstMatch(safeText, "(\\+?\\d[\\d\\s\\-()]{8,}\\d)");
-        if (phone != null) parsed.put("phone", phone.trim());
+        if (phone != null)
+            parsed.put("phone", phone.trim());
 
         String linkedin = firstMatch(safeText, "(https?://(?:www\\.)?linkedin\\.com/[^\\s]+|linkedin\\.com/[^\\s]+)");
-        if (linkedin != null) parsed.put("linkedin", linkedin.trim());
+        if (linkedin != null)
+            parsed.put("linkedin", linkedin.trim());
 
         String website = firstMatch(safeText, "(https?://(?![^\\s]*linkedin)[^\\s]+|www\\.[^\\s]+)");
-        if (website != null) parsed.put("website", website.trim());
+        if (website != null)
+            parsed.put("website", website.trim());
 
         List<String> lines = extractMeaningfulLines(safeText);
         String candidateName = extractCandidateName(lines);
@@ -1077,18 +1156,21 @@ public class ResumeController {
         }
 
         String jobTitle = extractJobTitle(lines);
-        if (jobTitle != null) parsed.put("jobTitle", jobTitle);
+        if (jobTitle != null)
+            parsed.put("jobTitle", jobTitle);
 
         Map<String, List<String>> sections = splitSections(lines);
         repairLeakedResumeSections(sections);
 
         String summary = extractSummary(sections, lines);
-        if (summary != null && !summary.isBlank()) parsed.put("profileSummary", summary);
+        if (summary != null && !summary.isBlank())
+            parsed.put("profileSummary", summary);
 
         List<String> skills = extractSkillsImproved(sections.get("skills"));
         if (skills.isEmpty()) {
             String headerSkillsLine = findHeaderSkillsLine(lines);
-            if (headerSkillsLine != null) skills = extractSkillsImproved(List.of(headerSkillsLine));
+            if (headerSkillsLine != null)
+                skills = extractSkillsImproved(List.of(headerSkillsLine));
         }
         if (!skills.isEmpty()) {
             parsed.put("skills", skills);
@@ -1096,13 +1178,17 @@ public class ResumeController {
         }
 
         List<Map<String, String>> education = parseEducationImproved(sections.get("education"));
-        if (!education.isEmpty()) parsed.put("education", education);
+        if (!education.isEmpty())
+            parsed.put("education", education);
 
-        List<Map<String, String>> experience = repairExperienceDateTitleRows(parseExperienceImproved(sections.get("experience")));
-        if (!experience.isEmpty()) parsed.put("experience", experience);
+        List<Map<String, String>> experience = repairExperienceDateTitleRows(
+                parseExperienceImproved(sections.get("experience")));
+        if (!experience.isEmpty())
+            parsed.put("experience", experience);
 
         List<Map<String, String>> projects = parseProjectsImprovedV2(sections.get("projects"));
-        if (!projects.isEmpty()) parsed.put("projects", projects);
+        if (!projects.isEmpty())
+            parsed.put("projects", projects);
 
         Map<String, List<String>> additionalSections = extractAdditionalSections(sections);
         if (!additionalSections.isEmpty()) {
@@ -1116,9 +1202,11 @@ public class ResumeController {
                 parsed.put("languages", String.join(", ", cleanLanguageSectionValues(languages)));
             }
             List<String> interests = new ArrayList<>();
-            for (String key : List.of("interests", "hobbies", "activities", "extracurricular activities", "extra curricular activities")) {
+            for (String key : List.of("interests", "hobbies", "activities", "extracurricular activities",
+                    "extra curricular activities")) {
                 List<String> values = additionalSections.get(key);
-                if (values != null) interests.addAll(values);
+                if (values != null)
+                    interests.addAll(values);
             }
             if (!interests.isEmpty()) {
                 parsed.put("interests", String.join(", ", interests));
@@ -1136,8 +1224,10 @@ public class ResumeController {
     }
 
     private String firstMatch(String text, String regex) {
-        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(regex, java.util.regex.Pattern.CASE_INSENSITIVE).matcher(text);
-        if (!matcher.find()) return null;
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile(regex, java.util.regex.Pattern.CASE_INSENSITIVE).matcher(text);
+        if (!matcher.find())
+            return null;
         return matcher.groupCount() >= 1 && matcher.group(1) != null ? matcher.group(1) : matcher.group();
     }
 
@@ -1145,26 +1235,31 @@ public class ResumeController {
         List<String> lines = new ArrayList<>();
         for (String rawLine : text.split("\\n")) {
             String line = rawLine.trim().replaceAll("\\s{2,}", " ");
-            if (line.isEmpty()) continue;
+            if (line.isEmpty())
+                continue;
             lines.add(line);
         }
         return lines;
     }
 
     private String extractCandidateName(List<String> lines) {
-        if (lines == null || lines.isEmpty()) return null;
+        if (lines == null || lines.isEmpty())
+            return null;
         for (int i = 0; i < Math.min(lines.size(), 15); i++) {
             String line = stripBullet(lines.get(i)).replaceAll("\\s+", " ").trim();
-            if (line.isBlank() || looksLikeBadNameLine(line)) continue;
+            if (line.isBlank() || looksLikeBadNameLine(line))
+                continue;
             String beforeComma = line.split("\\s*,\\s*", 2)[0].trim();
             String candidate = beforeComma;
-            if (candidate.matches("[A-Za-z][A-Za-z'.-]+(?:\\s+[A-Za-z][A-Za-z'.-]+){1,4}")) return candidate;
+            if (candidate.matches("[A-Za-z][A-Za-z'.-]+(?:\\s+[A-Za-z][A-Za-z'.-]+){1,4}"))
+                return candidate;
             java.util.regex.Matcher matcher = java.util.regex.Pattern
                     .compile("\\b([A-Z][A-Z'.-]+(?:\\s+[A-Z][A-Z'.-]+){1,4})\\b")
                     .matcher(line);
             if (matcher.find()) {
                 candidate = matcher.group(1).replaceAll("\\s+", " ").trim();
-                if (!looksLikeBadNameLine(candidate)) return candidate;
+                if (!looksLikeBadNameLine(candidate))
+                    return candidate;
             }
         }
         return null;
@@ -1173,11 +1268,16 @@ public class ResumeController {
     private boolean looksLikeBadNameLine(String line) {
         String value = line == null ? "" : line.trim();
         String lower = value.toLowerCase(Locale.ROOT);
-        if (value.isBlank() || value.length() > 90) return true;
-        if (looksLikeContactLine(value) || isSectionHeading(value) || looksLikeSkillsLine(value)) return true;
-        if (value.matches(".*\\d.*") || value.contains("|") || value.contains(":")) return true;
-        if (looksLikeSentence(value)) return true;
-        return lower.matches(".*\\b(details|nationality|driving licen[sc]e|place of birth|links|resume templates|build this template|education|skills|profile|summary|employment history|experience|certifications?)\\b.*");
+        if (value.isBlank() || value.length() > 90)
+            return true;
+        if (looksLikeContactLine(value) || isSectionHeading(value) || looksLikeSkillsLine(value))
+            return true;
+        if (value.matches(".*\\d.*") || value.contains("|") || value.contains(":"))
+            return true;
+        if (looksLikeSentence(value))
+            return true;
+        return lower.matches(
+                ".*\\b(details|nationality|driving licen[sc]e|place of birth|links|resume templates|build this template|education|skills|profile|summary|employment history|experience|certifications?)\\b.*");
     }
 
     private String extractJobTitle(List<String> lines) {
@@ -1186,15 +1286,16 @@ public class ResumeController {
             String lower = line.toLowerCase(Locale.ROOT);
             if (line.contains(",")) {
                 String[] parts = line.split("\\s*,\\s*", 2);
-                if (parts.length == 2 && looksLikeJobTitleLine(parts[1])) return parts[1].trim();
+                if (parts.length == 2 && looksLikeJobTitleLine(parts[1]))
+                    return parts[1].trim();
             }
             if (line.length() > 2 && line.length() < 90 &&
-                !line.contains("@") &&
-                !line.matches(".*\\d{5,}.*") &&
-                !isSectionHeading(lower) &&
-                !looksLikeBadNameLine(line) &&
-                !looksLikeSkillsLine(line) &&
-                looksLikeJobTitleLine(line)) {
+                    !line.contains("@") &&
+                    !line.matches(".*\\d{5,}.*") &&
+                    !isSectionHeading(lower) &&
+                    !looksLikeBadNameLine(line) &&
+                    !looksLikeSkillsLine(line) &&
+                    looksLikeJobTitleLine(line)) {
                 return line;
             }
         }
@@ -1204,17 +1305,22 @@ public class ResumeController {
     private boolean looksLikeJobTitleLine(String line) {
         String value = line == null ? "" : stripBullet(line).trim();
         String lower = value.toLowerCase(Locale.ROOT);
-        if (value.isBlank() || looksLikeSentence(value)) return false;
-        if (lower.matches(".*\\b(profile|summary|objective|experience|education|skills|competenc(?:y|ies)|project|certification|contact|language|tool|technology|details|nationality|driving licen[sc]e|place of birth|links)\\b.*")) return false;
+        if (value.isBlank() || looksLikeSentence(value))
+            return false;
+        if (lower.matches(
+                ".*\\b(profile|summary|objective|experience|education|skills|competenc(?:y|ies)|project|certification|contact|language|tool|technology|details|nationality|driving licen[sc]e|place of birth|links)\\b.*"))
+            return false;
         return lower.matches(".*\\b(" + EXPERIENCE_ROLE_WORDS + ")\\b.*");
     }
 
     private boolean looksLikeSkillsLine(String line) {
         String value = line == null ? "" : line.trim();
-        if (value.isEmpty()) return false;
+        if (value.isEmpty())
+            return false;
         if (value.matches("(?i)^(frontend|front end|backend|back end|full\\s*stack|tech\\s*stack|stack|"
                 + "programming languages|languages|frameworks|databases?|tools|devops|cloud|"
-                + "technologies|technical skills|skills|core competencies)\\s*[:\\-].*")) return true;
+                + "technologies|technical skills|skills|core competencies)\\s*[:\\-].*"))
+            return true;
         long commaCount = value.chars().filter(ch -> ch == ',').count();
         return value.contains(":") && commaCount >= 2;
     }
@@ -1222,20 +1328,28 @@ public class ResumeController {
     private String findHeaderSkillsLine(List<String> lines) {
         for (int i = 1; i < Math.min(lines.size(), 8); i++) {
             String line = lines.get(i);
-            if (looksLikeSkillsLine(line)) return line;
+            if (looksLikeSkillsLine(line))
+                return line;
         }
         return null;
     }
 
     private String extractLocation(List<String> lines, String candidateName) {
-        String normalizedName = candidateName == null ? "" : candidateName.replaceAll("[\\s.,]+", "").toLowerCase(Locale.ROOT);
+        String normalizedName = candidateName == null ? ""
+                : candidateName.replaceAll("[\\s.,]+", "").toLowerCase(Locale.ROOT);
         for (int i = 0; i < Math.min(lines.size(), 8); i++) {
-            if (i == 0) continue; // the very first line is virtually always the candidate's name/title header, never a location
+            if (i == 0)
+                continue; // the very first line is virtually always the candidate's name/title header,
+                          // never a location
             String line = lines.get(i);
-            if (line.contains("@") || line.matches(".*\\d{8,}.*") || isSectionHeading(line) || looksLikeContactLine(line)) continue;
+            if (line.contains("@") || line.matches(".*\\d{8,}.*") || isSectionHeading(line)
+                    || looksLikeContactLine(line))
+                continue;
             String normalizedLine = stripBullet(line).replaceAll("[\\s.,]+", "").toLowerCase(Locale.ROOT);
-            if (!normalizedName.isBlank() && normalizedLine.equals(normalizedName)) continue;
-            if (looksLikeAddressLine(line)) return stripBullet(line);
+            if (!normalizedName.isBlank() && normalizedLine.equals(normalizedName))
+                continue;
+            if (looksLikeAddressLine(line))
+                return stripBullet(line);
         }
         return null;
     }
@@ -1243,14 +1357,21 @@ public class ResumeController {
     private boolean looksLikeAddressLine(String line) {
         String value = line == null ? "" : stripBullet(line);
         String lower = value.toLowerCase(Locale.ROOT);
-        if (value.length() < 4 || value.length() > 100) return false;
-        if (looksLikeSentence(value)) return false;
-        if (lower.matches(".*\\b(support|customer|service|expert|engineer|developer|manager|analyst|summary|profile|skill)\\b.*")) return false;
+        if (value.length() < 4 || value.length() > 100)
+            return false;
+        if (looksLikeSentence(value))
+            return false;
+        if (lower.matches(
+                ".*\\b(support|customer|service|expert|engineer|developer|manager|analyst|summary|profile|skill)\\b.*"))
+            return false;
 
-        boolean hasGeoToken = lower.matches(".*\\b(india|tamil nadu|kerala|karnataka|chennai|surandai|tenkasi|tirunelveli|coimbatore|madurai|bangalore|bengaluru|hyderabad|mumbai|delhi|pune)\\b.*");
-        boolean hasAddressWord = lower.matches(".*\\b(street|road|nagar|city|district|state|pin|pincode|address|near|bus stand|complex|market)\\b.*");
+        boolean hasGeoToken = lower.matches(
+                ".*\\b(india|tamil nadu|kerala|karnataka|chennai|surandai|tenkasi|tirunelveli|coimbatore|madurai|bangalore|bengaluru|hyderabad|mumbai|delhi|pune)\\b.*");
+        boolean hasAddressWord = lower.matches(
+                ".*\\b(street|road|nagar|city|district|state|pin|pincode|address|near|bus stand|complex|market)\\b.*");
         boolean hasPostalCode = value.matches(".*\\b\\d{5,6}\\b.*");
-        boolean compactCommaPlace = !value.contains(":") && value.contains(",") && value.split("\\s+").length <= 8 && !value.matches(".*\\b[A-Z]{2,}\\b.*");
+        boolean compactCommaPlace = !value.contains(":") && value.contains(",") && value.split("\\s+").length <= 8
+                && !value.matches(".*\\b[A-Z]{2,}\\b.*");
         return hasGeoToken || hasAddressWord || hasPostalCode || compactCommaPlace;
     }
 
@@ -1261,40 +1382,74 @@ public class ResumeController {
     private String mapSectionHeading(String line) {
         String normalized = line.toLowerCase(Locale.ROOT).replace(":", "").trim();
         String compact = normalized.replaceAll("\\s+", " ");
-        if (Set.of("summary", "profile", "profile summary", "professional summary", "career summary", "objective", "career objective", "about me").contains(compact)) return "summary";
-        if (Set.of("experience", "work experience", "professional experience", "employment", "employment history", "career history", "work history",
+        if (Set.of("summary", "profile", "profile summary", "professional summary", "career summary", "objective",
+                "career objective", "about me").contains(compact))
+            return "summary";
+        if (Set.of("experience", "work experience", "professional experience", "employment", "employment history",
+                "career history", "work history",
                 "internship", "internships", "industrial training", "professional internship", "internship experience",
-                "roles and responsibilities", "responsibilities").contains(compact)) return "experience";
-        if (Set.of("education", "academic background", "academics", "educational qualification", "educational qualifications", "qualification", "qualifications").contains(compact)) return "education";
-        if (Set.of("skills", "skill set", "skillset", "technical skills", "core skills", "key skills", "professional skills", "areas of expertise", "competencies", "soft skills", "it proficiency", "technical proficiency", "computer proficiency").contains(compact)) return "skills";
-        if (Set.of("projects", "project", "personal projects", "academic projects", "key projects", "project details", "academic project",
-                "project experience", "internship projects", "major projects", "minor projects").contains(compact)) return "projects";
-        if (Set.of("certifications", "certification", "certification details", "certificates", "licenses", "licences", "courses", "professional certification", "professional certifications", "certifications and licenses", "certifications and licences").contains(compact)) return "certifications";
-        if (Set.of("languages", "language").contains(compact)) return "languages";
-        if (Set.of("training", "trainings", "professional training", "coursework", "workshops").contains(compact)) return "training";
-        if (Set.of("contact", "contact information", "personal details", "personal information", "details", "links", "driving license",
-                "driving licence", "place of birth", "nationality").contains(compact)) return "contact";
-        if (Set.of("extracurricular activities", "extra curricular activities", "extra-curricular", "extra-curricular activities",
+                "roles and responsibilities", "responsibilities").contains(compact))
+            return "experience";
+        if (Set.of("education", "academic background", "academics", "educational qualification",
+                "educational qualifications", "qualification", "qualifications").contains(compact))
+            return "education";
+        if (Set.of("skills", "skill set", "skillset", "technical skills", "core skills", "key skills",
+                "professional skills", "areas of expertise", "competencies", "soft skills", "it proficiency",
+                "technical proficiency", "computer proficiency").contains(compact))
+            return "skills";
+        if (Set.of("projects", "project", "personal projects", "academic projects", "key projects", "project details",
+                "academic project",
+                "project experience", "internship projects", "major projects", "minor projects").contains(compact))
+            return "projects";
+        if (Set.of("certifications", "certification", "certification details", "certificates", "licenses", "licences",
+                "courses", "professional certification", "professional certifications", "certifications and licenses",
+                "certifications and licences").contains(compact))
+            return "certifications";
+        if (Set.of("languages", "language").contains(compact))
+            return "languages";
+        if (Set.of("training", "trainings", "professional training", "coursework", "workshops").contains(compact))
+            return "training";
+        if (Set.of("contact", "contact information", "personal details", "personal information", "details", "links",
+                "driving license",
+                "driving licence", "place of birth", "nationality").contains(compact))
+            return "contact";
+        if (Set.of("extracurricular activities", "extra curricular activities", "extra-curricular",
+                "extra-curricular activities",
                 "extracurricular", "co-curricular activities", "co curricular activities", "activities", "achievements",
-                "accomplishments", "awards", "honors", "honours", "publications", "interests", "hobbies").contains(compact)) return compact;
-        if (normalized.equals("summary") || normalized.equals("profile summary") || normalized.equals("professional summary") || normalized.equals("objective") || normalized.equals("about me")) return "summary";
-        if (normalized.equals("experience") || normalized.equals("work experience") || normalized.equals("professional experience") || normalized.equals("employment") || normalized.equals("internship")) return "experience";
-        if (normalized.equals("education") || normalized.equals("academic background")) return "education";
-        if (normalized.equals("skills") || normalized.equals("technical skills") || normalized.equals("core skills")) return "skills";
-        if (normalized.equals("projects") || normalized.equals("personal projects")) return "projects";
+                "accomplishments", "awards", "honors", "honours", "publications", "interests", "hobbies")
+                .contains(compact))
+            return compact;
+        if (normalized.equals("summary") || normalized.equals("profile summary")
+                || normalized.equals("professional summary") || normalized.equals("objective")
+                || normalized.equals("about me"))
+            return "summary";
+        if (normalized.equals("experience") || normalized.equals("work experience")
+                || normalized.equals("professional experience") || normalized.equals("employment")
+                || normalized.equals("internship"))
+            return "experience";
+        if (normalized.equals("education") || normalized.equals("academic background"))
+            return "education";
+        if (normalized.equals("skills") || normalized.equals("technical skills") || normalized.equals("core skills"))
+            return "skills";
+        if (normalized.equals("projects") || normalized.equals("personal projects"))
+            return "projects";
         return null;
     }
 
     private String[] splitInlineSectionHeading(String line) {
         String value = line == null ? "" : line.trim();
         java.util.regex.Matcher matcher = java.util.regex.Pattern
-                .compile("(?i)^(profile\\s+summary|professional\\s+summary|career\\s+summary|summary|objective|about\\s+me|work\\s+experience|professional\\s+experience|experience|employment\\s+history|employment|internships?|internship\\s+experience|roles\\s+and\\s+responsibilities|responsibilities|education|academic\\s+background|technical\\s+skills|core\\s+skills|key\\s+skills|skills|projects?|academic\\s+projects|personal\\s+projects|project\\s+experience|internship\\s+projects|major\\s+projects|minor\\s+projects|certifications?|certificates|licenses|licences|courses|languages?|extra\\s*[- ]?curricular(?:\\s+activities)?|co\\s*[- ]?curricular(?:\\s+activities)?|activities|achievements|accomplishments|interests|hobbies|details|links|nationality|driving\\s+licen[sc]e|place\\s+of\\s+birth)\\b\\s*[:\\-]?\\s*(.*)$")
+                .compile(
+                        "(?i)^(profile\\s+summary|professional\\s+summary|career\\s+summary|summary|objective|about\\s+me|work\\s+experience|professional\\s+experience|experience|employment\\s+history|employment|internships?|internship\\s+experience|roles\\s+and\\s+responsibilities|responsibilities|education|academic\\s+background|technical\\s+skills|core\\s+skills|key\\s+skills|skills|projects?|academic\\s+projects|personal\\s+projects|project\\s+experience|internship\\s+projects|major\\s+projects|minor\\s+projects|certifications?|certificates|licenses|licences|courses|languages?|extra\\s*[- ]?curricular(?:\\s+activities)?|co\\s*[- ]?curricular(?:\\s+activities)?|activities|achievements|accomplishments|interests|hobbies|details|links|nationality|driving\\s+licen[sc]e|place\\s+of\\s+birth)\\b\\s*[:\\-]?\\s*(.*)$")
                 .matcher(value);
-        if (!matcher.matches()) return null;
+        if (!matcher.matches())
+            return null;
         String mapped = mapSectionHeading(matcher.group(1));
-        if (mapped == null) return null;
+        if (mapped == null)
+            return null;
         String afterHeading = value.substring(matcher.end(1)).trim();
-        if (afterHeading.matches("^[,;|].*")) return null;
+        if (afterHeading.matches("^[,;|].*"))
+            return null;
         return new String[] { mapped, matcher.group(2) == null ? "" : matcher.group(2).trim() };
     }
 
@@ -1305,15 +1460,21 @@ public class ResumeController {
             "technologies", "platforms", "operating systems");
 
     /**
-     * True when `line` is really just a skill-category label (e.g. the "Languages" row inside a
-     * SKILL SET table listing programming languages/tools) rather than a genuine new resume
-     * section. Only relevant while we're already inside the "skills" section -- prevents that row
-     * from being misread by mapSectionHeading as the start of a real "Languages" (spoken-language)
-     * section, which would otherwise hijack all the following skill-table rows into the wrong
+     * True when `line` is really just a skill-category label (e.g. the "Languages"
+     * row inside a
+     * SKILL SET table listing programming languages/tools) rather than a genuine
+     * new resume
+     * section. Only relevant while we're already inside the "skills" section --
+     * prevents that row
+     * from being misread by mapSectionHeading as the start of a real "Languages"
+     * (spoken-language)
+     * section, which would otherwise hijack all the following skill-table rows into
+     * the wrong
      * bucket.
      */
     private boolean looksLikeSkillSubcategoryLabel(String current, String line) {
-        if (!"skills".equals(current)) return false;
+        if (!"skills".equals(current))
+            return false;
         String compact = stripBullet(line).toLowerCase(Locale.ROOT).replace(":", "").trim();
         return SKILL_SUBCATEGORY_LABELS.contains(compact);
     }
@@ -1349,10 +1510,12 @@ public class ResumeController {
     }
 
     private void repairLeakedResumeSections(Map<String, List<String>> sections) {
-        if (sections == null || sections.isEmpty()) return;
+        if (sections == null || sections.isEmpty())
+            return;
         for (String source : new ArrayList<>(sections.keySet())) {
             List<String> values = sections.get(source);
-            if (values == null || values.isEmpty()) continue;
+            if (values == null || values.isEmpty())
+                continue;
             List<String> kept = new ArrayList<>();
             String current = source;
             for (String value : values) {
@@ -1384,41 +1547,52 @@ public class ResumeController {
                     .toList();
             String summary = String.join(" ", cleaned).trim();
             String headingSummary = extractSectionTextBetweenHeadings(lines, "summary");
-            if (!headingSummary.isBlank() && (summary.isBlank() || headingSummary.length() > summary.length() || startsLikeContinuation(summary))) {
+            if (!headingSummary.isBlank() && (summary.isBlank() || headingSummary.length() > summary.length()
+                    || startsLikeContinuation(summary))) {
                 return headingSummary;
             }
-            if (!summary.isBlank()) return summary;
+            if (!summary.isBlank())
+                return summary;
         }
 
         List<String> fallback = new ArrayList<>();
         for (int i = 0; i < Math.min(lines.size(), 18); i++) {
             String line = lines.get(i);
-            if (isSectionHeading(line)) break;
-            if (looksLikeContactLine(line) || looksLikeSidebarDetailLine(line) || looksLikeBadNameLine(line) || looksLikeJobTitleLine(line)) continue;
-            if (looksLikeSentence(line) || line.toLowerCase(Locale.ROOT).matches(".*\\b(experience|seeking|expert|skilled|specialized|professional|designer|developer|engineer|assistant)\\b.*")) {
+            if (isSectionHeading(line))
+                break;
+            if (looksLikeContactLine(line) || looksLikeSidebarDetailLine(line) || looksLikeBadNameLine(line)
+                    || looksLikeJobTitleLine(line))
+                continue;
+            if (looksLikeSentence(line) || line.toLowerCase(Locale.ROOT).matches(
+                    ".*\\b(experience|seeking|expert|skilled|specialized|professional|designer|developer|engineer|assistant)\\b.*")) {
                 fallback.add(stripBullet(line));
-                if (fallback.size() >= 3) break;
+                if (fallback.size() >= 3)
+                    break;
             }
         }
         return fallback.isEmpty() ? null : String.join(" ", fallback);
     }
 
     private String extractSectionTextBetweenHeadings(List<String> lines, String targetSection) {
-        if (lines == null || lines.isEmpty()) return "";
+        if (lines == null || lines.isEmpty())
+            return "";
         List<String> values = new ArrayList<>();
         boolean collecting = false;
         for (String line : lines) {
             String mapped = mapSectionHeading(line);
             if (mapped != null) {
-                if (collecting && !targetSection.equals(mapped)) break;
+                if (collecting && !targetSection.equals(mapped))
+                    break;
                 collecting = targetSection.equals(mapped);
                 continue;
             }
             String[] inlineHeading = splitInlineSectionHeading(line);
             if (inlineHeading != null) {
-                if (collecting && !targetSection.equals(inlineHeading[0])) break;
+                if (collecting && !targetSection.equals(inlineHeading[0]))
+                    break;
                 collecting = targetSection.equals(inlineHeading[0]);
-                if (collecting && !inlineHeading[1].isBlank()) values.add(inlineHeading[1]);
+                if (collecting && !inlineHeading[1].isBlank())
+                    values.add(inlineHeading[1]);
                 continue;
             }
             if (collecting) {
@@ -1433,20 +1607,24 @@ public class ResumeController {
 
     private boolean startsLikeContinuation(String value) {
         String text = value == null ? "" : value.trim();
-        if (text.isBlank()) return false;
+        if (text.isBlank())
+            return false;
         char first = text.charAt(0);
-        return Character.isLowerCase(first) || text.toLowerCase(Locale.ROOT).matches("^(and|or|with|using|deploying|developing|building)\\b.*");
+        return Character.isLowerCase(first)
+                || text.toLowerCase(Locale.ROOT).matches("^(and|or|with|using|deploying|developing|building)\\b.*");
     }
 
     private boolean looksLikeSidebarDetailLine(String line) {
         String lower = line == null ? "" : stripBullet(line).toLowerCase(Locale.ROOT);
-        return lower.matches(".*\\b(details|nationality|american|driving licen[sc]e|full|place of birth|links|resume templates|build this template|pinterest)\\b.*")
+        return lower.matches(
+                ".*\\b(details|nationality|american|driving licen[sc]e|full|place of birth|links|resume templates|build this template|pinterest)\\b.*")
                 || lower.matches(".*\\b\\d{3,}.*")
                 || lower.matches(".*\\b(street|avenue|ave|los angeles|new york|united states|san antonio)\\b.*");
     }
 
     private List<String> extractSkills(List<String> skillLines) {
-        if (skillLines == null || skillLines.isEmpty()) return List.of();
+        if (skillLines == null || skillLines.isEmpty())
+            return List.of();
 
         LinkedHashSet<String> skills = new LinkedHashSet<>();
         for (String line : skillLines) {
@@ -1462,30 +1640,37 @@ public class ResumeController {
     }
 
     private List<Map<String, String>> parseEducation(List<String> educationLines) {
-        if (educationLines == null || educationLines.isEmpty()) return List.of();
+        if (educationLines == null || educationLines.isEmpty())
+            return List.of();
 
         List<Map<String, String>> items = new ArrayList<>();
         Map<String, String> current = new LinkedHashMap<>();
         for (String line : educationLines) {
-            if (line.length() > 100) continue;
+            if (line.length() > 100)
+                continue;
             if (line.toLowerCase(Locale.ROOT).matches(".*(college|university|school|institute).*")) {
-                if (!current.isEmpty()) items.add(current);
+                if (!current.isEmpty())
+                    items.add(current);
                 current = new LinkedHashMap<>();
                 current.put("school", line);
                 String year = firstMatch(line, "(19|20)\\d{2}");
-                if (year != null) current.put("year", year);
+                if (year != null)
+                    current.put("year", year);
             } else if (!current.containsKey("degree")) {
                 current.put("degree", line);
                 String year = firstMatch(line, "(19|20)\\d{2}");
-                if (year != null) current.putIfAbsent("year", year);
+                if (year != null)
+                    current.putIfAbsent("year", year);
             }
         }
-        if (!current.isEmpty()) items.add(current);
+        if (!current.isEmpty())
+            items.add(current);
         return items.stream().filter(map -> !map.isEmpty()).limit(4).toList();
     }
 
     private List<Map<String, String>> parseExperience(List<String> experienceLines) {
-        if (experienceLines == null || experienceLines.isEmpty()) return List.of();
+        if (experienceLines == null || experienceLines.isEmpty())
+            return List.of();
 
         List<Map<String, String>> items = new ArrayList<>();
         Map<String, String> entry = new LinkedHashMap<>();
@@ -1503,35 +1688,43 @@ public class ResumeController {
     }
 
     private List<Map<String, String>> parseProjects(List<String> projectLines) {
-        if (projectLines == null || projectLines.isEmpty()) return List.of();
+        if (projectLines == null || projectLines.isEmpty())
+            return List.of();
 
         List<Map<String, String>> items = new ArrayList<>();
         for (String line : projectLines) {
-            if (line.length() < 3) continue;
+            if (line.length() < 3)
+                continue;
             Map<String, String> item = new LinkedHashMap<>();
             item.put("title", line.length() > 80 ? line.substring(0, 80) : line);
-            if (line.length() > 80) item.put("description", line);
+            if (line.length() > 80)
+                item.put("description", line);
             items.add(item);
-            if (items.size() >= 4) break;
+            if (items.size() >= 4)
+                break;
         }
         return items;
     }
 
     private List<String> extractSkillsImproved(List<String> skillLines) {
-        if (skillLines == null || skillLines.isEmpty()) return List.of();
+        if (skillLines == null || skillLines.isEmpty())
+            return List.of();
 
         LinkedHashSet<String> skills = new LinkedHashSet<>();
         for (String line : skillLines) {
-            if (looksLikeContactLine(line)) continue;
+            if (looksLikeContactLine(line))
+                continue;
             line = stripSkillCategory(line);
-            if (line.isBlank()) continue;
+            if (line.isBlank())
+                continue;
             String[] parts = line.split("[,|/;•·\\u2022\\u00B7]|\\s{2,}");
             if (parts.length == 1 && line.length() <= 140 && !looksLikeSentence(line)) {
                 parts = line.split("\\s+(?=(?:[A-Z][A-Za-z.+#-]*|REST\\b|AWS\\b|SQL\\b|HTML\\b|CSS\\b))");
             }
             for (String part : parts) {
                 String skill = stripBullet(part);
-                if (skill.length() >= 2 && skill.length() <= 45 && !looksLikeContactLine(skill) && !looksLikeSentence(skill) && !isSectionHeading(skill) && !looksLikeSkillCategory(skill)) {
+                if (skill.length() >= 2 && skill.length() <= 45 && !looksLikeContactLine(skill)
+                        && !looksLikeSentence(skill) && !isSectionHeading(skill) && !looksLikeSkillCategory(skill)) {
                     skills.add(skill);
                 }
             }
@@ -1541,53 +1734,68 @@ public class ResumeController {
 
     private String stripSkillCategory(String line) {
         String value = stripBullet(line);
-        return value.replaceFirst("(?i)^(programming languages|languages|frameworks|databases|database|tools|devops|cloud|frontend|front end|backend|back end|technologies|technical skills|skills)\\s*[:\\-]\\s*", "").trim();
+        return value.replaceFirst(
+                "(?i)^(programming languages|languages|frameworks|databases|database|tools|devops|cloud|frontend|front end|backend|back end|technologies|technical skills|skills)\\s*[:\\-]\\s*",
+                "").trim();
     }
 
     private boolean looksLikeSkillCategory(String value) {
         String lower = value == null ? "" : value.toLowerCase(Locale.ROOT).replace(":", "").trim();
-        return Set.of("programming languages", "languages", "frameworks", "databases", "database", "tools", "devops", "cloud", "frontend", "front end", "backend", "back end", "technologies", "technical skills", "skills").contains(lower);
+        return Set.of("programming languages", "languages", "frameworks", "databases", "database", "tools", "devops",
+                "cloud", "frontend", "front end", "backend", "back end", "technologies", "technical skills", "skills")
+                .contains(lower);
     }
 
     private List<Map<String, String>> parseEducationImproved(List<String> educationLines) {
-        if (educationLines == null || educationLines.isEmpty()) return List.of();
+        if (educationLines == null || educationLines.isEmpty())
+            return List.of();
 
         List<Map<String, String>> items = new ArrayList<>();
         Map<String, String> current = new LinkedHashMap<>();
         for (String line : educationLines) {
-            if (line.length() > 120) continue;
+            if (line.length() > 120)
+                continue;
             String lower = line.toLowerCase(Locale.ROOT);
             String year = extractYearRange(line);
             String clean = stripBullet(removeYearText(line));
             if (lower.matches(".*(college|university|school|institute|academy|polytechnic).*")) {
                 String[] degreeSchool = splitDegreeAndSchool(clean);
                 if (!current.isEmpty() && !current.containsKey("school")) {
-                    if (degreeSchool[0] != null && !degreeSchool[0].isBlank() && !current.containsKey("degree")) current.put("degree", degreeSchool[0]);
-                    current.put("school", degreeSchool[1] != null && !degreeSchool[1].isBlank() ? degreeSchool[1] : clean);
+                    if (degreeSchool[0] != null && !degreeSchool[0].isBlank() && !current.containsKey("degree"))
+                        current.put("degree", degreeSchool[0]);
+                    current.put("school",
+                            degreeSchool[1] != null && !degreeSchool[1].isBlank() ? degreeSchool[1] : clean);
                 } else {
-                    if (!current.isEmpty()) items.add(current);
+                    if (!current.isEmpty())
+                        items.add(current);
                     current = new LinkedHashMap<>();
-                    if (degreeSchool[0] != null && !degreeSchool[0].isBlank()) current.put("degree", degreeSchool[0]);
-                    current.put("school", degreeSchool[1] != null && !degreeSchool[1].isBlank() ? degreeSchool[1] : clean);
+                    if (degreeSchool[0] != null && !degreeSchool[0].isBlank())
+                        current.put("degree", degreeSchool[0]);
+                    current.put("school",
+                            degreeSchool[1] != null && !degreeSchool[1].isBlank() ? degreeSchool[1] : clean);
                 }
-                if (year != null) current.put("year", year);
+                if (year != null)
+                    current.put("year", year);
             } else if (!current.containsKey("degree")) {
                 current.put("degree", clean);
-                if (year != null) current.putIfAbsent("year", year);
+                if (year != null)
+                    current.putIfAbsent("year", year);
             } else if (year != null) {
                 current.putIfAbsent("year", year);
             } else if (lower.matches(".*(cgpa|gpa|percentage|%).*")) {
                 current.put("cgpa", stripBullet(line));
             }
         }
-        if (!current.isEmpty()) items.add(current);
+        if (!current.isEmpty())
+            items.add(current);
         return items.stream().filter(map -> !map.isEmpty()).limit(12).toList();
     }
 
     private String[] splitDegreeAndSchool(String line) {
         String[] result = new String[] { null, line };
         String[] parts = line.split("\\s*,\\s*", 2);
-        if (parts.length == 2 && parts[1].toLowerCase(Locale.ROOT).matches(".*(college|university|school|institute|academy|polytechnic).*")) {
+        if (parts.length == 2 && parts[1].toLowerCase(Locale.ROOT)
+                .matches(".*(college|university|school|institute|academy|polytechnic).*")) {
             result[0] = parts[0].trim();
             result[1] = parts[1].trim();
         }
@@ -1595,27 +1803,33 @@ public class ResumeController {
     }
 
     private String removeYearText(String line) {
-        if (line == null) return "";
+        if (line == null)
+            return "";
         String cleaned = line.replaceAll("\\(?\\b(?:19|20)\\d{2}\\b\\)?", "");
         // Collapse any pipe separators left orphaned by the year removal above
-        // (e.g. "School | 2015 | CGPA: 3.8" -> "School |  | CGPA: 3.8" -> "School | CGPA: 3.8")
+        // (e.g. "School | 2015 | CGPA: 3.8" -> "School | | CGPA: 3.8" -> "School |
+        // CGPA: 3.8")
         cleaned = cleaned.replaceAll("\\s*\\|\\s*\\|\\s*", " | ");
         cleaned = cleaned.replaceAll("^\\s*\\|\\s*|\\s*\\|\\s*$", "");
         return cleaned.replaceAll("\\s{2,}", " ").replaceAll("\\s*,\\s*$", "").trim();
     }
 
     private List<Map<String, String>> parseExperienceImproved(List<String> experienceLines) {
-        if (experienceLines == null || experienceLines.isEmpty()) return List.of();
+        if (experienceLines == null || experienceLines.isEmpty())
+            return List.of();
 
         List<Map<String, String>> items = new ArrayList<>();
         Map<String, String> entry = new LinkedHashMap<>();
         List<String> description = new ArrayList<>();
         for (String line : expandEmbeddedExperienceLines(experienceLines)) {
-            if (line.isBlank() || looksLikeContactLine(line)) continue;
+            if (line.isBlank() || looksLikeContactLine(line))
+                continue;
             String mappedHeading = mapSectionHeading(line);
-            if (mappedHeading != null && !"experience".equals(mappedHeading)) continue;
+            if (mappedHeading != null && !"experience".equals(mappedHeading))
+                continue;
             String clean = stripBullet(line);
-            if (clean.isBlank()) continue;
+            if (clean.isBlank())
+                continue;
             String dates = extractYearRange(clean);
             boolean dateOnly = dates != null && clean.replace(dates, "").replaceAll("[()\\-–—|,]", "").trim().isBlank();
             boolean startsNewEntry = (looksLikeExperienceTitle(clean) || !parseCompactExperienceHeader(clean).isEmpty())
@@ -1634,14 +1848,17 @@ public class ResumeController {
                 } else {
                     entry.put("jobTitle", cleanExperienceTitle(clean));
                 }
-                if (dates != null) putDateRange(entry, dates);
+                if (dates != null)
+                    putDateRange(entry, dates);
             } else if (dateOnly && !entry.isEmpty()) {
                 putDateRange(entry, dates);
             } else if (!entry.containsKey("company") && !looksLikeExperienceCompanyLine(clean, line)) {
                 description.add(clean);
-            } else if (!entry.containsKey("company") && line.length() <= 90 && !line.startsWith("-") && !line.startsWith("•")) {
+            } else if (!entry.containsKey("company") && line.length() <= 90 && !line.startsWith("-")
+                    && !line.startsWith("•")) {
                 entry.put("company", removeYearText(clean));
-                if (dates != null) putDateRange(entry, dates);
+                if (dates != null)
+                    putDateRange(entry, dates);
             } else {
                 description.add(clean);
             }
@@ -1656,8 +1873,8 @@ public class ResumeController {
     private List<String> expandEmbeddedExperienceLines(List<String> lines) {
         List<String> expanded = new ArrayList<>();
         java.util.regex.Pattern embeddedTitle = java.util.regex.Pattern.compile(
-                "(?i)^(.+?[.!?])\\s+((?:senior|junior|lead|principal|associate|assistant)?\\s*(?:ui/ux|ui|ux|product|graphic|web|software|full stack|frontend|backend|data|business|marketing|sales|hr|project|customer|fashion|video|fitness)?\\s*(?:" + EXPERIENCE_ROLE_WORDS + ")\\b.*)$"
-        );
+                "(?i)^(.+?[.!?])\\s+((?:senior|junior|lead|principal|associate|assistant)?\\s*(?:ui/ux|ui|ux|product|graphic|web|software|full stack|frontend|backend|data|business|marketing|sales|hr|project|customer|fashion|video|fitness)?\\s*(?:"
+                        + EXPERIENCE_ROLE_WORDS + ")\\b.*)$");
         for (String line : lines) {
             String clean = stripBullet(line);
             java.util.regex.Matcher matcher = embeddedTitle.matcher(clean);
@@ -1672,7 +1889,8 @@ public class ResumeController {
     }
 
     private List<Map<String, String>> repairExperienceDateTitleRows(List<Map<String, String>> items) {
-        if (items == null || items.isEmpty()) return List.of();
+        if (items == null || items.isEmpty())
+            return List.of();
         List<Map<String, String>> repaired = new ArrayList<>();
         for (Map<String, String> item : items) {
             Map<String, String> entry = new LinkedHashMap<>(item);
@@ -1709,8 +1927,7 @@ public class ResumeController {
         }
 
         java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
-                "(?i)^(.+?\\b(?:" + EXPERIENCE_ROLE_WORDS + ")\\b)\\s+(.{2,90})$"
-        ).matcher(withoutDates);
+                "(?i)^(.+?\\b(?:" + EXPERIENCE_ROLE_WORDS + ")\\b)\\s+(.{2,90})$").matcher(withoutDates);
         if (matcher.matches()) {
             String title = matcher.group(1).trim();
             String company = matcher.group(2).trim();
@@ -1728,8 +1945,9 @@ public class ResumeController {
         return text.length() >= 2
                 && text.length() <= 90
                 && !looksLikeSentence(text)
-                && (lower.matches(".*\\b(studio|pvt|private|ltd|limited|inc|llc|corp|company|solutions|technologies|systems|agency|labs)\\b.*")
-                    || text.matches(".*[A-Z][a-z]+\\s+[A-Z][A-Za-z]+.*"));
+                && (lower.matches(
+                        ".*\\b(studio|pvt|private|ltd|limited|inc|llc|corp|company|solutions|technologies|systems|agency|labs)\\b.*")
+                        || text.matches(".*[A-Z][a-z]+\\s+[A-Z][A-Za-z]+.*"));
     }
 
     private boolean looksLikeExperienceCompanyLine(String clean, String originalLine) {
@@ -1743,7 +1961,8 @@ public class ResumeController {
                 && !looksLikeSentence(text)
                 && !looksLikeExperienceTitle(text)
                 && !looksLikeProjectDescriptionLine(text)
-                && !lower.matches(".*\\b(developed|designed|created|built|implemented|managed|worked|responsible|collaborated|handled|used|using|tools|technologies|tech stack|description)\\b.*");
+                && !lower.matches(
+                        ".*\\b(developed|designed|created|built|implemented|managed|worked|responsible|collaborated|handled|used|using|tools|technologies|tech stack|description)\\b.*");
     }
 
     private String cleanExperienceTitle(String line) {
@@ -1753,27 +1972,35 @@ public class ResumeController {
     }
 
     private void putDateRange(Map<String, String> entry, String dates) {
-        if (dates == null || dates.isBlank()) return;
+        if (dates == null || dates.isBlank())
+            return;
         String clean = dates.replaceAll("\\s*to\\s*", " - ").replaceAll("\\s*[â€“â€”–-]+\\s*", " - ").trim();
         String[] parts = clean.split("\\s+-\\s+", 2);
-        if (parts.length > 0 && !parts[0].isBlank()) entry.put("startDate", parts[0].trim());
-        if (parts.length > 1 && !parts[1].isBlank()) entry.put("endDate", parts[1].trim());
+        if (parts.length > 0 && !parts[0].isBlank())
+            entry.put("startDate", parts[0].trim());
+        if (parts.length > 1 && !parts[1].isBlank())
+            entry.put("endDate", parts[1].trim());
     }
 
     private List<Map<String, String>> parseProjectsImprovedV2(List<String> projectLines) {
-        if (projectLines == null || projectLines.isEmpty()) return List.of();
+        if (projectLines == null || projectLines.isEmpty())
+            return List.of();
 
         List<Map<String, String>> items = new ArrayList<>();
         Map<String, String> current = new LinkedHashMap<>();
         for (String line : projectLines) {
-            if (line == null || line.trim().length() < 3) continue;
+            if (line == null || line.trim().length() < 3)
+                continue;
 
             String mappedHeading = mapSectionHeading(line);
-            if (mappedHeading != null && !"projects".equals(mappedHeading)) break;
-            if ("projects".equals(mappedHeading)) continue;
+            if (mappedHeading != null && !"projects".equals(mappedHeading))
+                break;
+            if ("projects".equals(mappedHeading))
+                continue;
 
             String clean = stripBullet(line);
-            if (clean.isBlank()) continue;
+            if (clean.isBlank())
+                continue;
 
             if (current.isEmpty()) {
                 current.put("title", clean.length() > 90 ? clean.substring(0, 90) : clean);
@@ -1788,7 +2015,8 @@ public class ResumeController {
                 current.merge("description", clean, (oldVal, newVal) -> oldVal + "\n" + newVal);
             }
         }
-        if (!current.isEmpty()) items.add(current);
+        if (!current.isEmpty())
+            items.add(current);
         return items.stream()
                 .filter(item -> item.values().stream().anyMatch(value -> value != null && !value.isBlank()))
                 .limit(20)
@@ -1796,15 +2024,19 @@ public class ResumeController {
     }
 
     private List<Map<String, String>> parseProjectsImproved(List<String> projectLines) {
-        if (projectLines == null || projectLines.isEmpty()) return List.of();
+        if (projectLines == null || projectLines.isEmpty())
+            return List.of();
 
         List<Map<String, String>> items = new ArrayList<>();
         Map<String, String> current = new LinkedHashMap<>();
         for (String line : projectLines) {
-            if (line.length() < 3) continue;
+            if (line.length() < 3)
+                continue;
             String mappedHeading = mapSectionHeading(line);
-            if (mappedHeading != null && !"projects".equals(mappedHeading)) break;
-            if ("projects".equals(mappedHeading)) continue;
+            if (mappedHeading != null && !"projects".equals(mappedHeading))
+                break;
+            if ("projects".equals(mappedHeading))
+                continue;
             String clean = stripBullet(line);
             List<String> splitTitles = splitProjectTitles(clean);
             if (splitTitles.size() > 1) {
@@ -1823,7 +2055,8 @@ public class ResumeController {
                 current.merge("description", clean, (oldVal, newVal) -> oldVal + "\n" + newVal);
                 continue;
             }
-            boolean newProject = current.isEmpty() || (!line.trim().startsWith("-") && !line.trim().startsWith("•") && clean.length() <= 90);
+            boolean newProject = current.isEmpty()
+                    || (!line.trim().startsWith("-") && !line.trim().startsWith("•") && clean.length() <= 90);
             if (newProject && !current.isEmpty()) {
                 items.add(current);
                 current = new LinkedHashMap<>();
@@ -1834,32 +2067,42 @@ public class ResumeController {
                 current.merge("description", clean, (oldVal, newVal) -> oldVal + "\n" + newVal);
             }
         }
-        if (!current.isEmpty()) items.add(current);
+        if (!current.isEmpty())
+            items.add(current);
         return items.stream().limit(20).toList();
     }
 
     private boolean looksLikeProjectTitleLine(String clean, String originalLine, Map<String, String> current) {
-        if (current == null || current.isEmpty()) return true;
+        if (current == null || current.isEmpty())
+            return true;
         String text = clean == null ? "" : clean.trim();
         String original = originalLine == null ? "" : originalLine.trim();
         String lower = text.toLowerCase(Locale.ROOT);
-        if (text.isBlank() || text.length() > 90 || original.startsWith("-") || original.startsWith("â€¢")) return false;
-        if (looksLikeProjectDescriptionLine(text)) return false;
-        if (lower.matches("^(tools|technologies|tech stack|environment|role|team size|duration)\\s*[:\\-].*")) return false;
-        if (lower.matches(".*\\b(system|portal|platform|application|app|website|dashboard|management|tracker|clone|redesign|project)\\b.*")) return true;
+        if (text.isBlank() || text.length() > 90 || original.startsWith("-") || original.startsWith("â€¢"))
+            return false;
+        if (looksLikeProjectDescriptionLine(text))
+            return false;
+        if (lower.matches("^(tools|technologies|tech stack|environment|role|team size|duration)\\s*[:\\-].*"))
+            return false;
+        if (lower.matches(
+                ".*\\b(system|portal|platform|application|app|website|dashboard|management|tracker|clone|redesign|project)\\b.*"))
+            return true;
         return !current.containsKey("description") && !looksLikeSentence(text);
     }
 
     private boolean looksLikeProjectDescriptionLine(String line) {
         String lower = line == null ? "" : stripBullet(line).toLowerCase(Locale.ROOT);
-        return lower.matches(".*\\b(developed|designed|created|built|implemented|managed|integrated|improved|used|using|allows|helps|responsible|collaborated|features?|modules?|database|frontend|backend|api|apis|details|exported|ats-friendly|patient|registration|appointment|booking|billing|pharmacy|laboratory|doctor|catalog|shopping|cart|payment|inventory|admin)\\b.*")
+        return lower.matches(
+                ".*\\b(developed|designed|created|built|implemented|managed|integrated|improved|used|using|allows|helps|responsible|collaborated|features?|modules?|database|frontend|backend|api|apis|details|exported|ats-friendly|patient|registration|appointment|booking|billing|pharmacy|laboratory|doctor|catalog|shopping|cart|payment|inventory|admin)\\b.*")
                 || looksLikeSentence(line);
     }
 
     private List<String> splitProjectTitles(String line) {
         String value = stripBullet(line);
-        if (value.isBlank()) return List.of();
-        if (!looksLikeStandaloneProjectTitle(value)) return List.of(value);
+        if (value.isBlank())
+            return List.of();
+        if (!looksLikeStandaloneProjectTitle(value))
+            return List.of(value);
         List<String> simple = Arrays.stream(value.split("\\s*(?:[,;|\\u2022\\u00B7â€¢Â·]|\\s+[-–—]+\\s+)\\s*"))
                 .map(String::trim)
                 .filter(part -> part.length() >= 3)
@@ -1878,20 +2121,26 @@ public class ResumeController {
     private boolean looksLikeStandaloneProjectTitle(String value) {
         String text = value == null ? "" : stripBullet(value).trim();
         String lower = text.toLowerCase(Locale.ROOT);
-        if (text.isBlank() || text.length() > 120) return false;
-        if (looksLikeProjectDescriptionLine(text)) return false;
-        if (lower.matches("^(technologies|tools|tech stack|environment|role|duration)\\s*[:\\-].*")) return false;
-        return lower.matches(".*\\b(resume parser|e-commerce|ecommerce|system|portal|platform|application|app|website|dashboard|management|tracker|clone|redesign|project)\\b.*");
+        if (text.isBlank() || text.length() > 120)
+            return false;
+        if (looksLikeProjectDescriptionLine(text))
+            return false;
+        if (lower.matches("^(technologies|tools|tech stack|environment|role|duration)\\s*[:\\-].*"))
+            return false;
+        return lower.matches(
+                ".*\\b(resume parser|e-commerce|ecommerce|system|portal|platform|application|app|website|dashboard|management|tracker|clone|redesign|project)\\b.*");
     }
 
     private List<String> splitProjectTitleRun(String value) {
         List<String> titles = new ArrayList<>();
         java.util.regex.Matcher matcher = java.util.regex.Pattern
-                .compile(".+?(?:Management System|Learning Portal|Enterprise Portal|E-Commerce Platform|Portal|Platform|System|Website UI|Website|Application|App Redesign|Appointment App|App|Dashboard)(?=\\s+[A-Z]|$)")
+                .compile(
+                        ".+?(?:Management System|Learning Portal|Enterprise Portal|E-Commerce Platform|Portal|Platform|System|Website UI|Website|Application|App Redesign|Appointment App|App|Dashboard)(?=\\s+[A-Z]|$)")
                 .matcher(value);
         while (matcher.find()) {
             String title = matcher.group().trim();
-            if (title.length() >= 3) titles.add(title);
+            if (title.length() >= 3)
+                titles.add(title);
         }
         return titles.isEmpty() ? List.of(value) : titles;
     }
@@ -1899,24 +2148,29 @@ public class ResumeController {
     private Map<String, List<String>> extractAdditionalSections(Map<String, List<String>> sections) {
         Map<String, List<String>> additional = new LinkedHashMap<>();
         for (String key : List.of("certifications", "languages", "training", "extracurricular activities",
-                "extra curricular activities", "activities", "achievements", "accomplishments", "awards", "honors", "honours",
+                "extra curricular activities", "activities", "achievements", "accomplishments", "awards", "honors",
+                "honours",
                 "publications", "interests", "hobbies")) {
             List<String> values = sections.get(key);
-            if (values == null || values.isEmpty()) continue;
+            if (values == null || values.isEmpty())
+                continue;
             List<String> cleaned = values.stream()
                     .map(this::stripBullet)
                     .filter(value -> !value.isBlank() && isValidAdditionalSectionLine(key, value))
                     .limit(40)
                     .toList();
-            if (!cleaned.isEmpty()) additional.put(key, cleaned);
+            if (!cleaned.isEmpty())
+                additional.put(key, cleaned);
         }
         if (!additional.containsKey("certifications")) {
             List<String> fallbackCerts = sections.values().stream()
                     .flatMap(List::stream)
                     .map(this::stripBullet)
                     .filter(value -> value.length() >= 5 && value.length() <= 100)
-                    .filter(value -> value.toLowerCase(Locale.ROOT).matches(".*\\b(certified|certification|certificate)\\b.*"))
-                    .filter(value -> !isSectionHeading(value) && !looksLikeContactLine(value) && isValidCertificationLine(value))
+                    .filter(value -> value.toLowerCase(Locale.ROOT)
+                            .matches(".*\\b(certified|certification|certificate)\\b.*"))
+                    .filter(value -> !isSectionHeading(value) && !looksLikeContactLine(value)
+                            && isValidCertificationLine(value))
                     .distinct()
                     .limit(10)
                     .toList();
@@ -1929,60 +2183,77 @@ public class ResumeController {
 
     private boolean isValidAdditionalSectionLine(String sectionKey, String value) {
         String key = sectionKey == null ? "" : sectionKey.toLowerCase(Locale.ROOT);
-        if ("languages".equals(key) || "language".equals(key)) return looksLikeLanguageLine(value);
-        if ("certifications".equals(key) || "certification".equals(key)) return isValidCertificationLine(value);
+        if ("languages".equals(key) || "language".equals(key))
+            return looksLikeLanguageLine(value);
+        if ("certifications".equals(key) || "certification".equals(key))
+            return isValidCertificationLine(value);
         if (key.contains("interest") || key.contains("hobb") || key.contains("activit")) {
             return !looksLikeContactLine(value) && value != null && !stripBullet(value).isBlank();
         }
-        if (looksLikeContactLine(value)) return false;
+        if (looksLikeContactLine(value))
+            return false;
         return true;
     }
 
     private boolean isValidCertificationLine(String value) {
         String text = value == null ? "" : stripBullet(value).trim();
         String lower = text.toLowerCase(Locale.ROOT);
-        if (text.isBlank()) return false;
-        if (lower.matches(".*\\b(certified|certification|certificate|professional|associate|oracle|aws|spring)\\b.*")) return true;
-        if (looksLikeSummaryLine(text)) return false;
-        if (lower.matches("^(tools?|technologies|tech stack|languages?|frameworks?|databases?|database)\\s*[:\\-].*")) return false;
-        if (lower.matches(".*\\b(react|mysql|docker|postman|jenkins|maven|kubernetes|hibernate|spring boot|javascript|html|css|apis?)\\b.*")
-                && !lower.matches(".*\\b(certified|certification|certificate|professional|associate)\\b.*")) return false;
+        if (text.isBlank())
+            return false;
+        if (lower.matches(".*\\b(certified|certification|certificate|professional|associate|oracle|aws|spring)\\b.*"))
+            return true;
+        if (looksLikeSummaryLine(text))
+            return false;
+        if (lower.matches("^(tools?|technologies|tech stack|languages?|frameworks?|databases?|database)\\s*[:\\-].*"))
+            return false;
+        if (lower.matches(
+                ".*\\b(react|mysql|docker|postman|jenkins|maven|kubernetes|hibernate|spring boot|javascript|html|css|apis?)\\b.*")
+                && !lower.matches(".*\\b(certified|certification|certificate|professional|associate)\\b.*"))
+            return false;
         return true;
     }
 
     private boolean looksLikeLanguageLine(String value) {
         String text = value == null ? "" : stripBullet(value).trim();
-        if (text.isBlank() || text.length() > 120) return false;
-        if (text.matches(".*\\d.*") || text.contains("@") || text.toLowerCase(Locale.ROOT).contains("linkedin")) return false;
+        if (text.isBlank() || text.length() > 120)
+            return false;
+        if (text.matches(".*\\d.*") || text.contains("@") || text.toLowerCase(Locale.ROOT).contains("linkedin"))
+            return false;
         String[] parts = text.split("[,;/|]+");
         int recognized = 0;
         for (String part : parts) {
             String language = part.trim();
-            if (language.isBlank()) continue;
+            if (language.isBlank())
+                continue;
             if (isKnownLanguageName(language)) {
                 recognized++;
                 continue;
             }
-            if (!language.matches("(?i)[a-z][a-z .'-]*(?:\\s*\\((?:native|fluent|professional|basic|intermediate|advanced)\\))?")) {
+            if (!language.matches(
+                    "(?i)[a-z][a-z .'-]*(?:\\s*\\((?:native|fluent|professional|basic|intermediate|advanced)\\))?")) {
                 return false;
             }
         }
-        if (recognized > 0) return true;
+        if (recognized > 0)
+            return true;
         return !looksLikeSentence(text) && !looksLikeJobTitleLine(text) && !looksLikeAddressLine(text);
     }
 
     private boolean isKnownLanguageName(String value) {
         String language = value == null ? "" : value.trim();
-        return language.matches("(?i)^(english|tamil|hindi|telugu|malayalam|kannada|marathi|urdu|french|german|spanish|arabic|japanese|chinese|mandarin|bengali|gujarati|punjabi)(?:\\s*\\((?:native|fluent|professional|basic|intermediate|advanced)\\))?$");
+        return language.matches(
+                "(?i)^(english|tamil|hindi|telugu|malayalam|kannada|marathi|urdu|french|german|spanish|arabic|japanese|chinese|mandarin|bengali|gujarati|punjabi)(?:\\s*\\((?:native|fluent|professional|basic|intermediate|advanced)\\))?$");
     }
 
     private List<String> cleanLanguageSectionValues(List<String> values) {
-        if (values == null || values.isEmpty()) return List.of();
+        if (values == null || values.isEmpty())
+            return List.of();
         return values.stream()
                 .flatMap(value -> Arrays.stream(stripBullet(value).split("[,;/|]+")))
                 .map(String::trim)
                 .filter(value -> !value.isBlank())
-                .filter(value -> !value.matches("(?i)^(programming languages|frameworks|database|databases|tools|devops|cloud|frontend|backend)\\s*:?.*"))
+                .filter(value -> !value.matches(
+                        "(?i)^(programming languages|frameworks|database|databases|tools|devops|cloud|frontend|backend)\\s*:?.*"))
                 .filter(this::isKnownLanguageName)
                 .distinct()
                 .limit(20)
@@ -1991,7 +2262,8 @@ public class ResumeController {
 
     private boolean looksLikeSummaryLine(String value) {
         String lower = value == null ? "" : stripBullet(value).toLowerCase(Locale.ROOT);
-        return lower.matches(".*\\b(results-driven|driven|professional|experience|building|applications|using|skilled|passionate|seeking|years?)\\b.*");
+        return lower.matches(
+                ".*\\b(results-driven|driven|professional|experience|building|applications|using|skilled|passionate|seeking|years?)\\b.*");
     }
 
     private boolean looksLikeContactLine(String line) {
@@ -2014,8 +2286,11 @@ public class ResumeController {
 
     private String extractYearRange(String line) {
         String value = line == null ? "" : line;
-        String monthYearRange = firstMatch(value, "\\b(?:0?[1-9]|1[0-2])\\s*/\\s*(?:19|20)\\d{2}\\s*(?:[-–—]|\\bto\\b)\\s*(?:(?:0?[1-9]|1[0-2])\\s*/\\s*(?:19|20)\\d{2}|Present|Current)\\b");
-        if (monthYearRange != null) return monthYearRange;
-        return firstMatch(line, "(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\\s+)?(?:19|20)\\d{2}\\s*(?:(?:[-–—]|\\bto\\b)\\s*(?:(?:Present|Current|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\\s+)?(?:19|20)\\d{2}|Present|Current))?");
+        String monthYearRange = firstMatch(value,
+                "\\b(?:0?[1-9]|1[0-2])\\s*/\\s*(?:19|20)\\d{2}\\s*(?:[-–—]|\\bto\\b)\\s*(?:(?:0?[1-9]|1[0-2])\\s*/\\s*(?:19|20)\\d{2}|Present|Current)\\b");
+        if (monthYearRange != null)
+            return monthYearRange;
+        return firstMatch(line,
+                "(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\\s+)?(?:19|20)\\d{2}\\s*(?:(?:[-–—]|\\bto\\b)\\s*(?:(?:Present|Current|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\\s+)?(?:19|20)\\d{2}|Present|Current))?");
     }
 }
