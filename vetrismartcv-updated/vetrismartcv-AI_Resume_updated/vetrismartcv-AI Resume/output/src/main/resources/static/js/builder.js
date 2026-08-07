@@ -1338,11 +1338,15 @@ function normalizeParsedCvPayload(parsed) {
         // raw, unsplit duplicate inside additionalSections that still has certifications and
         // awards merged together -- only fall back to that if the clean field wasn't already set.
         if (certifications && !payload.certifications) payload.certifications = certifications;
+<<<<<<< HEAD
         // Deliberately NOT falling back to additionalSections.languages here: that raw
         // duplicate is unreliable (it often contains the "Languages" row from a SKILL SET
         // table -- programming languages/tools -- not real spoken languages). If the clean
         // top-level languages field is absent, that correctly means there's no languages
         // section to show, rather than showing wrong data.
+=======
+        if (languages && !payload.languages) payload.languages = languages;
+>>>>>>> 1060f58a5f35f25d11b84dfe669e71deff71cb38
         if (awards && !payload.awards) payload.awards = awards;
         if (interests) payload.interests = interests;
     }

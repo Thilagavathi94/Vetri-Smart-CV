@@ -435,17 +435,13 @@ public class ResumeController {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/"
                         + safeGeminiModel() + ":generateContent"))
-                .timeout(Duration.ofSeconds(45))
+                .timeout(Duration.ofSeconds(60))
                 .header("x-goog-api-key", geminiApiKey.trim())
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload), StandardCharsets.UTF_8))
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            String body = response.body() == null ? "" : response.body();
-            throw new IllegalStateException("Gemini API failed with HTTP " + response.statusCode() + ": " + body);
-        }
+        HttpResponse<String> response = sendGeminiRequestWithRetry(request);
 
         String jsonText = extractGeminiText(response.body());
         Map<String, Object> geminiParsed = objectMapper.readValue(cleanJsonText(jsonText), new TypeReference<>() {});
@@ -475,6 +471,49 @@ public class ResumeController {
         return merged;
     }
 
+    /**
+     * Gemini occasionally returns HTTP 503 ("model overloaded, try again") or the
+     * request times out, especially on longer resumes. Instead of giving up on the
+     * first hiccup (which was silently dumping users into the much worse regex
+     * parser), retry a few times with a short backoff before giving up for real.
+     */
+    private HttpResponse<String> sendGeminiRequestWithRetry(HttpRequest request) throws Exception {
+        int maxAttempts = 3;
+        long backoffMillis = 1500;
+        Exception lastError = null;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                int status = response.statusCode();
+
+                if (status >= 200 && status < 300) {
+                    return response;
+                }
+
+                boolean transient_ = status == 503 || status == 429 || status >= 500;
+                String body = response.body() == null ? "" : response.body();
+                if (!transient_ || attempt == maxAttempts) {
+                    throw new IllegalStateException("Gemini API failed with HTTP " + status + ": " + body);
+                }
+                System.out.println("[GEMINI] Attempt " + attempt + " got HTTP " + status + ", retrying in " + backoffMillis + "ms...");
+            } catch (java.net.http.HttpTimeoutException timeoutEx) {
+                lastError = timeoutEx;
+                if (attempt == maxAttempts) {
+                    throw new IllegalStateException("Gemini API request timed out after " + maxAttempts + " attempts", timeoutEx);
+                }
+                System.out.println("[GEMINI] Attempt " + attempt + " timed out, retrying in " + backoffMillis + "ms...");
+            }
+
+            Thread.sleep(backoffMillis);
+            backoffMillis *= 2; // 1.5s, 3s, 6s
+        }
+
+        // Unreachable, but keeps the compiler happy
+        throw new IllegalStateException("Gemini API failed after " + maxAttempts + " attempts", lastError);
+    }
+
+
     private String safeGeminiModel() {
         String model = geminiModel == null ? "" : geminiModel.trim();
         return model.isBlank() ? "gemini-flash-latest" : model;
@@ -503,18 +542,33 @@ public class ResumeController {
                   words). Include every certification mentioned anywhere in the resume, even ones
                   next to special characters like "&". Do not include section headings (like the
                   literal words "Certifications" or "Awards") as array elements.
+                - Any section titled "Trainings", "Internal Training", "Learning Program",
+                  "Courses Completed", or similar completed-training content must ALSO go into the
+                  certifications array, one training per array element, formatted exactly as written
+                  (e.g. "Spring Microservices (Internal training at Citi, Duration - 20 hrs)"). Do not
+                  drop these and do not invent a separate field for them.
                 - awards must be a JSON array of strings, one full award/honor/recognition/highlight
                   per array element, from ANY section titled things like "Highlights", "Awards",
                   "Achievements", "Recognitions", etc. Capture every single one — do not drop the
                   first, last, or any middle item. Never mix award entries into the certifications
                   array or vice versa; they are separate lists even if they appear near each other
                   in the resume text. Do not include section headings as array elements.
+                  This list is frequently long (10+ bullet items) — re-scan the section before
+                  finishing and confirm every bullet is present as its own array element; a
+                  partial list is treated as a failed extraction.
                 - languages must be a JSON array of strings, one spoken/written human language per
                   element (e.g. "English", "Tamil (Native)"). Resumes sometimes have a "Languages:"
                   line under a Skills/Technical Skills section listing PROGRAMMING languages (e.g.
                   "Languages: Java, JavaScript, SQL") — that is NOT what this field means; those
                   belong in skills instead. If the resume has no section about spoken/written human
                   languages, omit the languages key entirely.
+                  This same caution applies to EVERY OTHER row label in a skills/tech table, not just
+                  "Languages" — labels like "Tools", "Frameworks", "Databases", "Servers",
+                  "Continuous Integration", "Methodology" and their values are technical skills, never
+                  spoken/written languages, even if they appear in the same table as a real
+                  "Languages" row. If a resume has a skills table but no dedicated section for
+                  spoken/written human languages, omit the languages key entirely rather than
+                  reusing table content.
                 - interests and hobbies must be strings using comma-separated values.
                 - Keep project descriptions with the correct project title.
 
@@ -589,6 +643,42 @@ public class ResumeController {
             "certification", "certifications", "license", "licenses", "licence", "licences");
 
     /**
+<<<<<<< HEAD
+=======
+     * Code-level backstop for the "languages" field getting polluted with skills-table row
+     * labels/values (e.g. "Tools Tortoise SVN, GIT..." or "Continuous Integration Jenkins").
+     * The prompt now instructs Gemini to avoid this, but LLM output isn't guaranteed, so we
+     * also filter deterministically: drop any "language" entry that contains a known
+     * technical/table-label keyword and does not itself contain a recognizable human language
+     * name.
+     */
+    private static final Set<String> LANGUAGE_DENY_KEYWORDS = Set.of(
+            "tool", "tools", "framework", "frameworks", "database", "databases", "server", "servers",
+            "continuous integration", "methodology", "jenkins", "maven", "jira", " git", "svn",
+            "tortoise", "openshift", "appdynamics", "agile", "waterfall", "spring boot", "hibernate",
+            "tomcat", "weblogic", "web logic", "struts", "profiler", "jvisualvm", "jprofiler");
+
+    private static final Set<String> KNOWN_HUMAN_LANGUAGES = Set.of(
+            "english", "hindi", "tamil", "telugu", "kannada", "malayalam", "marathi", "gujarati",
+            "bengali", "punjabi", "urdu", "sanskrit", "french", "german", "spanish", "mandarin",
+            "chinese", "japanese", "korean", "arabic", "russian", "portuguese", "italian", "dutch");
+
+    private List<String> sanitizeLanguages(List<String> rawLanguages) {
+        List<String> clean = new ArrayList<>();
+        for (String entry : rawLanguages) {
+            String lower = " " + entry.toLowerCase(Locale.ROOT) + " ";
+            boolean isKnownLanguage = KNOWN_HUMAN_LANGUAGES.stream().anyMatch(lower::contains);
+            boolean looksLikeTechNoise = LANGUAGE_DENY_KEYWORDS.stream().anyMatch(lower::contains);
+            if (looksLikeTechNoise && !isKnownLanguage) {
+                continue; // e.g. "Tools Tortoise SVN, GIT..." / "Continuous Integration Jenkins"
+            }
+            clean.add(entry);
+        }
+        return clean;
+    }
+
+    /**
+>>>>>>> 1060f58a5f35f25d11b84dfe669e71deff71cb38
      * Reduces text to only its lowercase letters (a-z), discarding every space, punctuation
      * mark, and any invisible/unicode character (e.g. a non-breaking space that PDF/AI text
      * extraction sometimes produces in place of a normal space). This makes heading detection
@@ -645,6 +735,14 @@ public class ResumeController {
 
         Map<String, Object> normalized = new LinkedHashMap<>();
         putString(normalized, "fullName", parsed);
+        if (normalized.get("fullName") instanceof String rawGeminiName) {
+            String cleanedName = cleanCandidateName(rawGeminiName);
+            if (cleanedName != null) {
+                normalized.put("fullName", cleanedName);
+            } else {
+                normalized.remove("fullName");
+            }
+        }
         putString(normalized, "jobTitle", parsed);
         putString(normalized, "email", parsed);
         putString(normalized, "phone", parsed);
@@ -658,7 +756,9 @@ public class ResumeController {
         separateCertificationsFromAwards(rawCertifications, rawAwards);
         if (!rawCertifications.isEmpty()) normalized.put("certifications", String.join("\n", rawCertifications));
         if (!rawAwards.isEmpty()) normalized.put("awards", String.join("\n", rawAwards));
-        putStringOrJoined(normalized, "languages", parsed);
+        List<String> rawLanguages = extractStringList(parsed, "languages");
+        List<String> cleanLanguages = sanitizeLanguages(rawLanguages);
+        if (!cleanLanguages.isEmpty()) normalized.put("languages", String.join("\n", cleanLanguages));
         putStringOrJoined(normalized, "interests", parsed);
         putStringOrJoined(normalized, "hobbies", parsed);
 
@@ -1071,7 +1171,7 @@ public class ResumeController {
         if (website != null) parsed.put("website", website.trim());
 
         List<String> lines = extractMeaningfulLines(safeText);
-        String candidateName = extractCandidateName(lines);
+        String candidateName = cleanCandidateName(extractCandidateName(lines));
         if (candidateName != null) {
             parsed.put("fullName", candidateName);
         }
@@ -1111,6 +1211,10 @@ public class ResumeController {
             if (certifications != null && !certifications.isEmpty()) {
                 parsed.put("certifications", String.join("\n", certifications));
             }
+            List<String> awards = additionalSections.get("awards");
+            if (awards != null && !awards.isEmpty()) {
+                parsed.put("awards", String.join("\n", awards));
+            }
             List<String> languages = additionalSections.get("languages");
             if (languages != null && !languages.isEmpty()) {
                 parsed.put("languages", String.join(", ", cleanLanguageSectionValues(languages)));
@@ -1149,6 +1253,34 @@ public class ResumeController {
             lines.add(line);
         }
         return lines;
+    }
+
+    private static final Set<String> NAME_TRAILING_SUFFIXES = Set.of(
+            "b.e", "be", "b.tech", "btech", "m.tech", "mtech", "mba", "mca", "bca", "b.sc", "bsc",
+            "m.sc", "msc", "b.com", "bcom", "m.com", "mcom", "ph.d", "phd", "b.a", "ba", "m.a", "ma",
+            "b.e.,", "cpa", "pmp");
+
+    /**
+     * Resume headers often look like "M.Aarthy B.E.," — a personal name immediately followed by
+     * a degree abbreviation and stray punctuation. That whole string technically satisfies the
+     * "looks like a name" regex used during extraction, but showing "M.Aarthy B.E." as the
+     * person's display name (and feeding it into client-side name validation that rejects
+     * periods) causes real problems downstream. Strip a trailing degree-abbreviation token and
+     * any trailing punctuation so the stored name is just the person's name.
+     */
+    private String cleanCandidateName(String rawName) {
+        if (rawName == null) return null;
+        String name = rawName.trim();
+        if (name.isBlank()) return null;
+        String[] words = name.split("\\s+");
+        if (words.length > 1) {
+            String lastWordKey = words[words.length - 1].toLowerCase(Locale.ROOT).replaceAll("[.,]+$", "").replace(".", "");
+            if (NAME_TRAILING_SUFFIXES.contains(lastWordKey) || NAME_TRAILING_SUFFIXES.contains(words[words.length - 1].toLowerCase(Locale.ROOT))) {
+                name = String.join(" ", Arrays.copyOf(words, words.length - 1));
+            }
+        }
+        name = name.replaceAll("[.,\\s]+$", "").trim();
+        return name.isBlank() ? null : name;
     }
 
     private String extractCandidateName(List<String> lines) {
@@ -1260,7 +1392,12 @@ public class ResumeController {
 
     private String mapSectionHeading(String line) {
         String normalized = line.toLowerCase(Locale.ROOT).replace(":", "").trim();
-        String compact = normalized.replaceAll("\\s+", " ");
+        // Normalize "&" to "and" BEFORE compacting whitespace, so headings like
+        // "AWARDS & RECOGNITION" match the same way "Awards and Recognition" does,
+        // instead of silently falling through as unrecognized (which was causing
+        // award/highlight sections to merge into whatever section came before them).
+        normalized = normalized.replaceAll("\\s*&\\s*", " and ");
+        String compact = normalized.replaceAll("\\s+", " ").trim();
         if (Set.of("summary", "profile", "profile summary", "professional summary", "career summary", "objective", "career objective", "about me").contains(compact)) return "summary";
         if (Set.of("experience", "work experience", "professional experience", "employment", "employment history", "career history", "work history",
                 "internship", "internships", "industrial training", "professional internship", "internship experience",
@@ -1271,12 +1408,25 @@ public class ResumeController {
                 "project experience", "internship projects", "major projects", "minor projects").contains(compact)) return "projects";
         if (Set.of("certifications", "certification", "certification details", "certificates", "licenses", "licences", "courses", "professional certification", "professional certifications", "certifications and licenses", "certifications and licences").contains(compact)) return "certifications";
         if (Set.of("languages", "language").contains(compact)) return "languages";
-        if (Set.of("training", "trainings", "professional training", "coursework", "workshops").contains(compact)) return "training";
+        if (Set.of("training", "trainings", "professional training", "coursework", "workshops", "internal training", "internal trainings").contains(compact)) return "training";
         if (Set.of("contact", "contact information", "personal details", "personal information", "details", "links", "driving license",
                 "driving licence", "place of birth", "nationality").contains(compact)) return "contact";
         if (Set.of("extracurricular activities", "extra curricular activities", "extra-curricular", "extra-curricular activities",
                 "extracurricular", "co-curricular activities", "co curricular activities", "activities", "achievements",
-                "accomplishments", "awards", "honors", "honours", "publications", "interests", "hobbies").contains(compact)) return compact;
+                "accomplishments", "awards", "honors", "honours", "publications", "interests", "hobbies",
+                "highlights", "highlight", "recognition", "recognitions", "awards and recognition",
+                "awards and recognitions", "award and recognition", "awards and honors", "awards and honours",
+                "honors and awards", "honours and awards", "key achievements", "key highlights").contains(compact)) {
+            // Fold all of these variants into a single canonical "awards" bucket so the
+            // downstream certifications/awards split logic has one consistent key to read,
+            // regardless of which exact heading wording the resume used.
+            if (compact.contains("award") || compact.contains("honor") || compact.contains("honour")
+                    || compact.contains("highlight") || compact.contains("recognition")
+                    || compact.equals("achievements") || compact.equals("accomplishments")) {
+                return "awards";
+            }
+            return compact;
+        }
         if (normalized.equals("summary") || normalized.equals("profile summary") || normalized.equals("professional summary") || normalized.equals("objective") || normalized.equals("about me")) return "summary";
         if (normalized.equals("experience") || normalized.equals("work experience") || normalized.equals("professional experience") || normalized.equals("employment") || normalized.equals("internship")) return "experience";
         if (normalized.equals("education") || normalized.equals("academic background")) return "education";
