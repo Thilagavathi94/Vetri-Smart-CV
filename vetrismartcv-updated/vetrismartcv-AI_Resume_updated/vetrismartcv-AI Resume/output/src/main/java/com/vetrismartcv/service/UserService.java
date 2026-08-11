@@ -100,10 +100,12 @@ public class UserService {
             User user = User.builder()
                     .name(normalizedName)
                     .email(normalizedEmail)
+                    .username(normalizedEmail)
                     .password(hashPassword(password))
                     .provider("LOCAL")
                     .role("USER")
                     .plan("FREE")
+                    .active(true)
                     .resumeDownloads(0)
                     .build();
 
@@ -165,6 +167,9 @@ public class UserService {
             User u = byEmail.get();
             u.setProvider(provider);
             u.setProviderId(providerId);
+            if (safeTrim(u.getUsername()).isBlank()) {
+                u.setUsername(normalizedEmail);
+            }
             if ((u.getName() == null || u.getName().isBlank()) && !normalizedName.isBlank()) {
                 u.setName(normalizedName);
             }
@@ -174,10 +179,12 @@ public class UserService {
         User user = User.builder()
                 .name(normalizedName)
                 .email(normalizedEmail)
+                .username(oauthUsername(provider, providerId, normalizedEmail))
                 .provider(provider)
                 .providerId(providerId)
                 .role("USER")
                 .plan("FREE")
+                .active(true)
                 .resumeDownloads(0)
                 .build();
         return userRepository.save(user);
@@ -264,6 +271,10 @@ public class UserService {
                 admin.setPlan("PREMIUM");
                 changed = true;
             }
+            if (safeTrim(admin.getUsername()).isBlank()) {
+                admin.setUsername(email);
+                changed = true;
+            }
             if (changed) {
                 userRepository.save(admin);
             }
@@ -273,10 +284,12 @@ public class UserService {
         User admin = User.builder()
                 .name(safeTrim(defaultAdminName).isBlank() ? "Admin" : safeTrim(defaultAdminName))
                 .email(email)
+                .username(email)
                 .password(hashPassword(defaultAdminPassword))
                 .provider("LOCAL")
                 .role("ADMIN")
                 .plan("PREMIUM")
+                .active(true)
                 .resumeDownloads(0)
                 .build();
         userRepository.save(admin);
@@ -614,8 +627,10 @@ public class UserService {
         m.put("id", user.getId());
         m.put("name", user.getName());
         m.put("email", user.getEmail());
+        m.put("username", user.getUsername());
         m.put("role", normalizeRole(user.getRole()));
         m.put("plan", normalizePlan(user.getPlan()));
+        m.put("active", user.getActive() == null || user.getActive());
         m.put("resumeDownloads", user.getResumeDownloads());
         m.put("provider", user.getProvider());
         m.put("createdAt", user.getCreatedAt());
@@ -693,6 +708,21 @@ public class UserService {
 
     private String normalizeEmail(String email) {
         return safeTrim(email).toLowerCase(Locale.ROOT);
+    }
+
+    private String oauthUsername(String provider, String providerId, String email) {
+        String normalizedEmail = normalizeEmail(email);
+        if (!normalizedEmail.isBlank()) {
+            return normalizedEmail;
+        }
+
+        String normalizedProvider = safeTrim(provider).toLowerCase(Locale.ROOT);
+        String normalizedProviderId = safeTrim(providerId);
+        if (!normalizedProvider.isBlank() && !normalizedProviderId.isBlank()) {
+            return normalizedProvider + "_" + normalizedProviderId;
+        }
+
+        return "user_" + UUID.randomUUID().toString().replace("-", "");
     }
 
     private boolean isValidSignupEmail(String email) {

@@ -21,14 +21,41 @@
         .plan-opt .plan-name { font-size: 14px; font-weight: 700; color: #1a1a2e; }
         .plan-opt .plan-price { font-size: 1.2rem; font-weight: 800; color: #7c3aed; margin: 4px 0; }
         .plan-opt .plan-price span { font-size: 12px; color: #6b7280; font-weight: 400; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .form-group input { width: 100%; padding: 12px 16px; border: 1.5px solid #e5e7eb; border-radius: 12px; font-size: 15px; outline: none; background: #f9fafb; box-sizing: border-box; }
+        .form-group input:focus { border-color: #7c3aed; }
+        .card-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
         .pay-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; }
         .pay-btn:hover { opacity: 0.92; }
-        .pay-btn:disabled { cursor: not-allowed; opacity: 0.7; }
         .secure-note { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 14px; }
         .summary-box { background: #f9fafb; border-radius: 12px; padding: 16px; margin-bottom: 24px; }
         .summary-row { display: flex; justify-content: space-between; font-size: 14px; color: #374151; padding: 4px 0; }
         .summary-row.total { font-weight: 700; border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 6px; }
         .err-msg { color: #ef4444; font-size: 13px; margin-top: 8px; display: none; }
+
+        /* ── Per-field validation ── */
+        .field-msg {
+            font-size: 12px;
+            margin-top: 5px;
+            min-height: 16px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s;
+        }
+        .field-msg.error  { color: #ef4444; }
+        .field-msg.success { color: #22c55e; }
+        .field-msg.hint   { color: #9ca3af; }
+        .field-msg::before { font-size: 11px; }
+        .field-msg.error::before  { content: '✕'; font-weight: 700; }
+        .field-msg.success::before { content: '✓'; font-weight: 700; }
+
+        .form-group input.input-error   { border-color: #ef4444; background: #fff5f5; }
+        .form-group input.input-success { border-color: #22c55e; background: #f0fdf4; }
+        .form-group input.input-error:focus   { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+        .form-group input.input-success:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+        .form-group input:focus { box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
 
         @media (max-width: 1024px) {
             .pay-nav {
@@ -55,9 +82,12 @@
             .pay-card {
                 padding: 28px 22px;
             }
-            .plan-sel {
-                display: grid;
+            .plan-sel,
+            .card-row {
                 grid-template-columns: 1fr;
+                display: grid;
+            }
+            .plan-sel {
                 gap: 10px;
             }
         }
@@ -105,222 +135,165 @@
 <nav class="pay-nav">
     <a href="/" class="logo-text">VetriSmartCV</a>
     <div class="pay-nav-actions">
+        <!-- Logged-in user widget -->
         <div th:if="${loggedIn}" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);border-radius:99px;padding:5px 14px 5px 7px;">
             <div th:text="${userInitial}" style="width:28px;height:28px;background:#f59e0b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;">?</div>
             <span th:text="${userName}" style="color:#fff;font-size:13px;font-weight:600;">User</span>
         </div>
         <button th:if="${loggedIn}" onclick="doLogout()" style="background:transparent;border:1.5px solid rgba(255,255,255,0.4);color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit;">Logout</button>
-        <a href="/pricing" style="color:rgba(255,255,255,0.8);font-size:13px;text-decoration:none;">Back to Pricing</a>
+        <a href="/pricing" style="color:rgba(255,255,255,0.8);font-size:13px;text-decoration:none;">← Back to Pricing</a>
     </div>
 </nav>
 
 <div class="pay-page">
     <div class="pay-card">
         <h2>Upgrade Your Plan</h2>
-        <p class="pay-sub">Choose a plan and continue securely with Razorpay Checkout.</p>
+        <p class="pay-sub">Choose a plan and enter your payment details</p>
 
         <div class="plan-sel">
             <div class="plan-opt selected" id="planPro" onclick="selectPlan('PRO')">
                 <div class="plan-name">Pro</div>
-                <div class="plan-price">Rs.120 <span>one-time</span></div>
+                <div class="plan-price">₹120 <span>/mo</span></div>
             </div>
             <div class="plan-opt" id="planPremium" onclick="selectPlan('PREMIUM')">
                 <div class="plan-name">Premium</div>
-                <div class="plan-price">Rs.250 <span>one-time</span></div>
+                <div class="plan-price">₹250 <span>/mo</span></div>
             </div>
         </div>
 
         <div class="summary-box">
-            <div class="summary-row"><span id="summaryPlan">Pro Plan</span><span id="summaryPrice">Rs.120</span></div>
-            <div class="summary-row total"><span>Total today</span><span id="summaryTotal">Rs.120</span></div>
+            <div class="summary-row"><span id="summaryPlan">Pro Plan</span><span id="summaryPrice">₹120/mo</span></div>
+            <div class="summary-row total"><span>Total today</span><span id="summaryTotal">₹120</span></div>
         </div>
 
-        <button class="pay-btn" id="payBtn" onclick="processPayment()">Pay Rs.120</button>
+        <button class="pay-btn" id="payBtn" onclick="startRazorpayCheckout()">🔒 Pay with Razorpay</button>
         <div class="err-msg" id="payErr"></div>
-        <div class="secure-note">Payment details are collected securely by Razorpay.</div>
+        <div class="secure-note">🔒 Payments are processed securely by Razorpay. We never see or store your card details.</div>
     </div>
 </div>
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 let selectedPlan = 'PRO';
-
-const params = new URLSearchParams(window.location.search);
-
-function getPlanAmountText(plan) {
-    return plan === 'PRO' ? 'Rs.120' : 'Rs.250';
-}
-
-function getPlanName(plan) {
-    return plan === 'PRO' ? 'Pro Plan' : 'Premium Plan';
-}
-
-function setPayButtonText(button) {
-    button.textContent = selectedPlan === 'PRO' ? 'Pay Rs.120' : 'Pay Rs.250';
-}
-
-function redirectAfterPayment(plan) {
-    sessionStorage.setItem('justUpgraded', plan);
-
-    const explicitRedirect = params.get('redirect');
-    const storedReviewReturn = sessionStorage.getItem('pendingReviewReturnUrl');
-
-    if (explicitRedirect) {
-        const redirectUrl = new URL(explicitRedirect, window.location.origin);
-        redirectUrl.searchParams.set('upgraded', '1');
-        redirectUrl.searchParams.set('payment', 'success');
-        window.location.href = redirectUrl.pathname + redirectUrl.search;
-        return;
-    }
-
-    if (storedReviewReturn) {
-        const redirectUrl = new URL(storedReviewReturn, window.location.origin);
-        redirectUrl.searchParams.set('upgraded', '1');
-        redirectUrl.searchParams.set('payment', 'success');
-        window.location.href = redirectUrl.pathname + redirectUrl.search;
-        return;
-    }
-
-    const resumeId = sessionStorage.getItem('pendingResumeId') || '';
-    if (resumeId) {
-        window.location.href = '/review/' + resumeId + '?upgraded=1&payment=success';
-    } else {
-        window.location.href = '/dashboard?payment=success';
-    }
-}
-
-function showPaymentError(message) {
-    const errEl = document.getElementById('payErr');
-    errEl.textContent = message;
-    errEl.style.display = 'block';
-}
+const PLAN_PRICES = { PRO: 120, PREMIUM: 250 };
 
 function selectPlan(plan) {
     selectedPlan = plan;
-
-    document
-        .getElementById('planPro')
-        .classList.toggle(
-            'selected',
-            plan === 'PRO'
-        );
-
-    document
-        .getElementById('planPremium')
-        .classList.toggle(
-            'selected',
-            plan === 'PREMIUM'
-        );
-
-    document.getElementById('summaryPlan').textContent = getPlanName(plan);
-    document.getElementById('summaryPrice').textContent = getPlanAmountText(plan);
-    document.getElementById('summaryTotal').textContent = getPlanAmountText(plan);
-    setPayButtonText(document.getElementById('payBtn'));
+    document.getElementById('planPro').classList.toggle('selected', plan === 'PRO');
+    document.getElementById('planPremium').classList.toggle('selected', plan === 'PREMIUM');
+    document.getElementById('summaryPlan').textContent = plan === 'PRO' ? 'Pro Plan' : 'Premium Plan';
+    document.getElementById('summaryPrice').textContent = `₹${PLAN_PRICES[plan]}/mo`;
+    document.getElementById('summaryTotal').textContent = `₹${PLAN_PRICES[plan]}`;
 }
 
-async function processPayment() {
-    const button = document.getElementById('payBtn');
+function showPayError(msg) {
     const errEl = document.getElementById('payErr');
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+}
 
+async function startRazorpayCheckout() {
+    const errEl = document.getElementById('payErr');
     errEl.style.display = 'none';
-    button.disabled = true;
-    button.textContent = 'Preparing payment...';
+
+    const btn = document.getElementById('payBtn');
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    btn.textContent = 'Starting secure checkout…';
 
     try {
-        const orderResponse =
-            await fetch('/api/payment/create-order', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    plan: selectedPlan
-                })
-            });
+        // 1) Ask our server to create a real Razorpay order (server-side, using our secret key)
+        const orderRes = await fetch('/api/payment/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan: selectedPlan })
+        });
+        const order = await orderRes.json();
 
-        const order = await orderResponse.json();
-
-        if (!order.success) {
-            throw new Error(
-                order.message || 'Unable to create order'
-            );
+        if (!orderRes.ok || !order.success) {
+            if (order.requireLogin) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                return;
+            }
+            showPayError(order.message || 'Could not start payment. Please try again.');
+            btn.disabled = false; btn.textContent = originalLabel;
+            return;
         }
 
-        const options = {
-            key: order.key,
+        // 2) Open Razorpay's own hosted checkout — card/UPI/etc details are typed
+        // there, never on our page or server.
+        const rzp = new Razorpay({
+            key: order.keyId,
             amount: order.amount,
             currency: order.currency,
-            name: 'VetriSmartCV',
-            description:
-                selectedPlan + ' Plan',
             order_id: order.orderId,
-            handler: async function(response) {
-                const verifyResponse =
-                    await fetch('/api/payment/verify', {
+            name: 'VetriSmartCV',
+            description: (selectedPlan === 'PREMIUM' ? 'Premium' : 'Pro') + ' Plan Subscription',
+            theme: { color: '#7c3aed' },
+            handler: async function (response) {
+                // 3) Hand the response back to our server, which re-derives the
+                // signature with our secret key and only THEN upgrades the plan.
+                btn.textContent = 'Verifying payment…';
+                try {
+                    const verifyRes = await fetch('/api/payment/verify', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type':
-                                'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            razorpay_payment_id:
-                                response.razorpay_payment_id,
-                            razorpay_order_id:
-                                response.razorpay_order_id,
-                            razorpay_signature:
-                                response.razorpay_signature
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature
                         })
                     });
-
-                const result =
-                    await verifyResponse.json();
-
-                if (result.success) {
-                    redirectAfterPayment(result.plan);
-                } else {
-                    showPaymentError(
-                        result.message ||
-                        'Payment verification failed.'
-                    );
+                    const verify = await verifyRes.json();
+                    if (verify.success) {
+                        sessionStorage.setItem('justUpgraded', selectedPlan);
+                        const explicitRedirect = params.get('redirect');
+                        const storedReviewReturn = sessionStorage.getItem('pendingReviewReturnUrl');
+                        if (explicitRedirect) {
+                            const redirectUrl = new URL(explicitRedirect, window.location.origin);
+                            redirectUrl.searchParams.set('upgraded', '1');
+                            window.location.href = redirectUrl.pathname + redirectUrl.search;
+                            return;
+                        }
+                        if (storedReviewReturn) {
+                            const redirectUrl = new URL(storedReviewReturn, window.location.origin);
+                            redirectUrl.searchParams.set('upgraded', '1');
+                            window.location.href = redirectUrl.pathname + redirectUrl.search;
+                            return;
+                        }
+                        const resumeId = sessionStorage.getItem('pendingResumeId') || '';
+                        window.location.href = resumeId ? ('/review/' + resumeId + '?upgraded=1') : '/dashboard?upgraded=1';
+                    } else {
+                        showPayError(verify.message || 'Payment verification failed. If money was deducted, it will be auto-refunded by Razorpay.');
+                        btn.disabled = false; btn.textContent = originalLabel;
+                    }
+                } catch (e) {
+                    showPayError('Payment succeeded but verification failed. Please contact support with your payment id: ' + response.razorpay_payment_id);
+                    btn.disabled = false; btn.textContent = originalLabel;
                 }
             },
             modal: {
-                ondismiss: function() {
-                    button.disabled = false;
-                    setPayButtonText(button);
+                ondismiss: function () {
+                    btn.disabled = false; btn.textContent = originalLabel;
                 }
-            },
-            theme: {
-                color: '#6c3fc9'
             }
-        };
-
-        const razorpay =
-            new Razorpay(options);
-
-        razorpay.on(
-            'payment.failed',
-            function(response) {
-                showPaymentError(
-                    'Payment failed: ' +
-                    response.error.description
-                );
-            }
-        );
-
-        razorpay.open();
-
-    } catch (error) {
-        showPaymentError(error.message);
-    } finally {
-        button.disabled = false;
-        setPayButtonText(button);
+        });
+        rzp.on('payment.failed', function (resp) {
+            showPayError('Payment failed: ' + (resp.error && resp.error.description ? resp.error.description : 'Please try again.'));
+            btn.disabled = false; btn.textContent = originalLabel;
+        });
+        rzp.open();
+        btn.textContent = originalLabel;
+        btn.disabled = false;
+    } catch (e) {
+        showPayError('Payment processing error. Please try again.');
+        btn.disabled = false; btn.textContent = originalLabel;
     }
 }
 
-if (params.get('plan') === 'PREMIUM') {
-    selectPlan('PREMIUM');
-}
+// Pre-select plan from URL
+const params = new URLSearchParams(window.location.search);
+if (params.get('plan') === 'PREMIUM') selectPlan('PREMIUM');
 </script>
 <script src="/js/navbar.js"></script>
 </body>

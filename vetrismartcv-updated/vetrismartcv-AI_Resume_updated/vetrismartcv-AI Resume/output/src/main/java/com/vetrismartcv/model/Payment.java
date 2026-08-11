@@ -2,13 +2,11 @@ package com.vetrismartcv.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "payments")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -18,29 +16,42 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private Long userId;
 
-    private String plan;
+    @Column(nullable = false)
+    private String plan; // PRO | PREMIUM
 
-    private Integer amount;
+    @Column(nullable = false)
+    private Integer amount; // whole rupees (e.g. 120, not 12000) — matches dashboard/invoice display
 
-    private String currency;
+    // Was missing — InvoiceService/PaymentService both call getCurrency(),
+    // and the PDF invoice needs it to format the amount (e.g. "Rs." vs other symbols).
+    @Builder.Default
+    private String currency = "INR";
 
     @Column(unique = true)
     private String razorpayOrderId;
 
     private String razorpayPaymentId;
 
-    private String status;
+    @Column(length = 512)
+    private String razorpaySignature;
+
+    private String status; // CREATED | PAID | FAILED
+
+    // Was missing — InvoiceService.generateForPayment() and generateMissingPaidInvoicesForUser()
+    // call payment.setInvoiceId(...)/getInvoiceId() to link a Payment back to the Invoice
+    // generated for it, so it doesn't regenerate/duplicate an invoice on the next backfill.
+    private Long invoiceId;
 
     private LocalDateTime createdAt;
-
     private LocalDateTime paidAt;
 
     @PrePersist
-    public void prePersist() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        if (status == null) status = "CREATED";
+        if (currency == null) currency = "INR";
     }
 }

@@ -10,6 +10,7 @@ let parsedCvData = {};
 let profilePhotoBase64 = '';
 const BUILDER_RECOVERY_KEY = 'vetrismartcv.builder.recovery';
 let builderRecoveryTimer = null;
+let builderCurrentUser = null;
 
 const resumeData = {
     jobTitle: '',
@@ -47,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = '/login?redirect=' + encodeURIComponent(redirectBack);
             return; // Stop all further initialization
         }
+        builderCurrentUser = sessionData.user || null;
     } catch (e) {
         // On session check failure, redirect to login as safe fallback
         window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
@@ -130,6 +132,7 @@ async function checkSession() {
         const data = await res.json();
         if (data.loggedIn && data.user) {
             const user = data.user;
+            builderCurrentUser = user;
             const initial = (user.name || '?').charAt(0).toUpperCase();
             const userName = user.name || 'User';
             const loginLi = document.getElementById('navLoginLi');
@@ -400,6 +403,8 @@ function persistBuilderRecoveryDraft() {
         collectVisibleBuilderData();
         localStorage.setItem(BUILDER_RECOVERY_KEY, JSON.stringify({
             resumeId,
+            userId: builderCurrentUser?.id || null,
+            userEmail: (builderCurrentUser?.email || resumeData.email || '').toLowerCase(),
             currentStep,
             updatedAt: new Date().toISOString(),
             data: resumeData

@@ -6,15 +6,18 @@
 const API_BASE = '/api/resume';
 let resumeId   = null;
 let resumeData = {};
-let currentTemplate = 'olivia';   // default
-let currentColor    = '#2daf7f';
+let currentTemplate = 'template1';   // default
+let currentColor    = '#4b1fa8';
 let currentFontSize = 'medium';
 let currentFont     = 'Inter';
 let currentSectionSpacing = '16';
 let currentLetterSpacing  = '0';
 let currentLineSpacing    = '1.5';
+let currentPhotoSize      = 90;
 let currentHeaderAlignment = 'center';
+let hasCustomHeaderAlignment = false;
 let currentSectionOrder = ['profileSummary', 'experienceJson', 'projectsJson', 'certifications', 'awards', 'educationJson', 'skillsJson', 'languages', 'interests'];
+let hasCustomSectionOrder = false;
 let currentSectionSides = {};
 let currentJobTitlePosition = { x: 0, y: 0 };
 let suppressJobTitleEditClickUntil = 0;
@@ -27,7 +30,90 @@ let activeSections = {};
 let templatePageMarkup = null;
 let reviewRenderSeq = 0;
 let reviewRecoveryAttempts = 0;
-const FREE_ALLOWED_TEMPLATES = new Set(['template1', 'template2', 'template3']);
+const FREE_ALLOWED_TEMPLATES = new Set(['template1', 'template2', 'template3', 'robert', 'olivia', 'tanya']);
+const REVIEW_DEFAULT_TEMPLATE = 'template1';
+const REVIEW_TEMPLATE_DEFAULT_COLORS = {
+    robert:      '#7a1e28',
+    olivia:      '#2daf7f',
+    mary:        '#2daf7f',
+    tanya:       '#b8860b',
+    samuel:      '#f5c842',
+    alexander:   '#1e3a5f',
+    minimal:     '#111111',
+    traditional: '#1e3a5f',
+    'narmatha-pro':       '#3d1a1a',
+    'donna':              '#d946ef',
+    'john-purple-left':   '#7c3aed',
+    'john-dark-teal':     '#1a2a2e',
+    'john-green-sidebar': '#1a4a2a',
+    'product-manager':    '#f59e0b',
+    'botanica':           '#f59e0b',
+    'smith-orange':       '#f97316',
+    'brian':              '#0891b2',
+    'dark-pro':           '#f59e0b',
+    'rudolf':             '#a855f7',
+    'emily':              '#7c3aed',
+    'kelly':              '#f59e0b',
+    'suhail':             '#f97316',
+    'ricktang':           '#1e3a5f',
+    'hani':               '#6c3fc9',
+    'narmatha2':          '#8b1c1c',
+    'guy-hawkins':        '#1a1a2e',
+    'kate-bishop':        '#6c3fc9',
+    'smith-graphic':      '#f97316',
+    'template1':  '#4b1fa8',
+    'template2':  '#6b7280',
+    'template3':  '#d97706',
+    'template4':  '#f59e0b',
+    'template5':  '#1a1a2e',
+    'template6':  '#7c3aed',
+    'template7':  '#0f766e',
+    'template8':  '#f97316',
+    'template9':  '#166534',
+    'template10': '#f59e0b',
+    'template11': '#4b1fa8',
+    'template12': '#f43f5e',
+    'template13': '#7c3aed',
+    'template14': '#1e3a5f',
+    'template15': '#1a1a2e',
+    'template16': '#3d5a3e',
+    'template17': '#c084fc',
+    'template18': '#0284c7',
+    'template19': '#a78bfa',
+    'template20': '#0284c7',
+    'template21': '#1e3a5f',
+    'template22': '#166534',
+    'template23': '#f97316',
+    'template24': '#4d7c0f',
+    'template25': '#06b6d4',
+    'template26': '#f59e0b',
+    'template27': '#1e3a5f',
+    'template28': '#f43f5e',
+    'template29': '#0d9488',
+    'template30': '#475569',
+    'template31': '#4f46e5',
+    'template32': '#1a2a4a',
+    'template33': '#1a3a4a',
+    'template34': '#1e2d40',
+    'template35': '#1d3557',
+    'template36': '#2d4a3e',
+    'template37': '#374151',
+    'template38': '#2d3f6c',
+    'template39': '#00bcd4',
+    'template40': '#3d4d8a',
+    'template41': '#1d3557',
+    'template42': '#1d3557',
+    'template43': '#f5c842',
+    'template44': '#2563eb',
+    'template45': '#c9a065',
+    'template46': '#1a5f5a',
+    'template47': '#1a5fb4',
+    'template48': '#00b3c6',
+    'template49': '#2563eb',
+    'template50': '#2d3748',
+    'template51': '#1a1a2e',
+    'template52': '#1a1a2e'
+};
 
 function isPaidPlan(plan) {
     const normalized = String(plan || '').toUpperCase();
@@ -36,19 +122,6 @@ function isPaidPlan(plan) {
 
 function isFreeTemplateAllowed(templateId) {
     return FREE_ALLOWED_TEMPLATES.has(normalizeReviewTemplate(templateId));
-}
-
-function cleanLanguageEntries(value) {
-    return String(value || '')
-        .split(/[,;\n|/]+/)
-        .map(item => item.trim())
-        .filter(item => item
-            && !/@/.test(item)
-            && !/\d/.test(item)
-            && !/linkedin|www\.|https?:\/\//i.test(item)
-            && !/\b(usa|india|new york|chennai|phone|email|address|contact)\b/i.test(item)
-            && /^[a-z][a-z .'-]*(?:\((?:native|fluent|professional|basic|intermediate|advanced)\))?$/i.test(item))
-        .filter((item, index, all) => all.findIndex(other => other.toLowerCase() === item.toLowerCase()) === index);
 }
 
 function getTemplatePlanLabel(templateId) {
@@ -148,10 +221,7 @@ function applyPendingProTemplateIfAllowed() {
 }
 
 const REVIEW_TEMPLATE_ALIASES = {
-    robert: 'template46',
-    olivia: 'template28',
-    mary: 'template10',
-    tanya: 'template10',
+    mary: 'tanya',
     samuel: 'template32',
     alexander: 'template40',
     minimal: 'template37',
@@ -193,6 +263,21 @@ const REVIEW_TEMPLATE_ALIASES = {
 function normalizeReviewTemplate(templateId) {
     const raw = String(templateId || '').trim();
     return REVIEW_TEMPLATE_ALIASES[raw] || raw;
+}
+
+function getSelectedTemplateFromUrl() {
+    const selected = new URLSearchParams(window.location.search).get('template');
+    return selected ? normalizeReviewTemplate(selected) : '';
+}
+
+function getReviewDefaultColor(templateId) {
+    const normalized = normalizeReviewTemplate(templateId || REVIEW_DEFAULT_TEMPLATE);
+    return REVIEW_TEMPLATE_DEFAULT_COLORS[normalized] || REVIEW_TEMPLATE_DEFAULT_COLORS[REVIEW_DEFAULT_TEMPLATE];
+}
+
+function applyReviewTemplateSelection(templateId) {
+    currentTemplate = normalizeReviewTemplate(templateId || REVIEW_DEFAULT_TEMPLATE);
+    currentColor = getReviewDefaultColor(currentTemplate);
 }
 
 function resolveExactTemplateId(templateId) {
@@ -285,14 +370,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const parsedId  = parseInt(pathParts[pathParts.length - 1], 10);
     resumeId = (!isNaN(parsedId) && parsedId > 0) ? parsedId : null;
 
-    // Read template from URL param (?template=olivia)
+    // URL template is an explicit user selection. Without it, use template1.
     const urlParams = new URLSearchParams(window.location.search);
-    const tmplParam = urlParams.get('template');
-    if (tmplParam) currentTemplate = normalizeReviewTemplate(tmplParam);
+    const tmplParam = getSelectedTemplateFromUrl();
+    applyReviewTemplateSelection(tmplParam || REVIEW_DEFAULT_TEMPLATE);
 
     await checkSession();
     if (isTemplateLockedForCurrentUser(currentTemplate)) {
-        currentTemplate = 'template1';
+        applyReviewTemplateSelection(REVIEW_DEFAULT_TEMPLATE);
         setTimeout(() => showUpgradePlanPopup('TEMPLATE_LIMIT'), 250);
     }
 
@@ -303,21 +388,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (stored) {
             try { resumeData = JSON.parse(stored); } catch {}
         }
-        // A URL template is an explicit user selection; do not let saved legacy
-        // names like "robert" switch the review page back to old fallback layouts.
-        currentTemplate = normalizeReviewTemplate(tmplParam || resumeData.templateName || currentTemplate);
-        if (isTemplateLockedForCurrentUser(currentTemplate)) currentTemplate = 'template1';
+        // A URL template is an explicit user selection. If absent, default to the
+        // first template so saved legacy names do not change the initial preview.
+        applyReviewTemplateSelection(tmplParam || REVIEW_DEFAULT_TEMPLATE);
+        if (isTemplateLockedForCurrentUser(currentTemplate)) applyReviewTemplateSelection(REVIEW_DEFAULT_TEMPLATE);
+        hydrateLayoutSettingsFromResume(resumeData);
         renderResume();
     }
 
     buildColorSwatches();
     await buildTemplateGrid();
     applyPendingProTemplateIfAllowed();
-
-    // D_RES07 FIX: recover any edits that weren't confirmed as saved before
-    // the page last closed/crashed, then keep autosaving going forward.
-    checkForUnsavedChangesRecovery();
-    startAutosaveLoop();
 
     // Auto-trigger download if coming from dashboard or after login redirect
     if (urlParams.get('download') === '1' || urlParams.get('autoDownload') === '1') {
@@ -429,25 +510,20 @@ async function loadResume(id) {
         const res = await fetch(`${API_BASE}/${id}`);
         if (!res.ok) throw new Error('Not found');
         resumeData = await res.json();
-        const selectedFromUrl = new URLSearchParams(window.location.search).get('template');
-        // Prefer explicit URL/click selection over saved templateName so the
-        // preview always matches the card the user opened or selected.
-        currentTemplate = normalizeReviewTemplate(selectedFromUrl || resumeData.templateName || currentTemplate);
+        const selectedFromUrl = getSelectedTemplateFromUrl();
+        // Prefer explicit URL/click selection. If absent, default to template1
+        // instead of silently reusing an older saved template.
+        applyReviewTemplateSelection(selectedFromUrl || REVIEW_DEFAULT_TEMPLATE);
         if (isTemplateLockedForCurrentUser(currentTemplate)) {
-            currentTemplate = 'template1';
+            applyReviewTemplateSelection(REVIEW_DEFAULT_TEMPLATE);
             showUpgradePlanPopup('TEMPLATE_LIMIT');
         }
-        if (resumeData.selectedColor)  currentColor          = resumeData.selectedColor;
         if (resumeData.fontFamily)     currentFont           = resumeData.fontFamily;
         if (resumeData.fontStyle)      currentFontSize       = resumeData.fontStyle.toLowerCase();
         if (resumeData.sectionSpacing) { currentSectionSpacing = resumeData.sectionSpacing; const el = document.getElementById('sectionSpacing'); if(el) el.value = resumeData.sectionSpacing; }
         if (resumeData.letterSpacing)  { currentLetterSpacing  = resumeData.letterSpacing;  const el = document.getElementById('letterSpacing');  if(el) el.value = resumeData.letterSpacing; }
         if (resumeData.lineSpacing)    { currentLineSpacing     = resumeData.lineSpacing;    const el = document.getElementById('lineSpacing');     if(el) el.value = resumeData.lineSpacing; }
-        if (resumeData.headerAlignment) currentHeaderAlignment = normalizeHeaderAlignment(resumeData.headerAlignment);
-        currentSectionOrder = normalizeSectionOrder(resumeData.sectionOrder);
-        currentSectionSides = normalizeSectionSides(resumeData.sectionLayoutJson || resumeData.sectionSidesJson || resumeData.sectionSides);
-        currentJobTitlePosition = normalizeJobTitlePosition(resumeData.jobTitlePositionJson || resumeData.jobTitlePosition);
-        syncLayoutControlState();
+        hydrateLayoutSettingsFromResume(resumeData);
         renderResume();
     } catch (err) {
         console.error('Failed to load resume:', err);
@@ -2383,7 +2459,7 @@ function buildMiniPreview(id) {
         'template35': '#1d3557', 'template36': '#2d4a3e', 'template37': '#374151',
         'template38': '#2d3f6c',
         'template39': '#3a3a3a', 'template40': '#3d4d8a', 'template41': '#1d3557',
-        'template42': '#1d3557', 'template43': '#2d2d2d', 'template44': '#2563eb',
+        'template42': '#1d3557', 'template43': '#f5c842', 'template44': '#2563eb',
         'template45': '#c9a065',
         'template46': '#1a5f5a', 'template47': '#1a5fb4', 'template48': '#00b3c6',
         'template49': '#2563eb', 'template50': '#2d3748', 'template51': '#1a1a2e',
@@ -2473,91 +2549,7 @@ function changeTemplate(name) {
     }
     currentTemplate = normalizeReviewTemplate(name);
     reviewRecoveryAttempts = 0;
-    // Update colour default per template
-    const colorMap = {
-        robert:      '#7a1e28',
-        olivia:      '#2daf7f',
-        mary:        '#2daf7f',
-        tanya:       '#b8860b',
-        samuel:      '#f5c842',
-        alexander:   '#1e3a5f',
-        minimal:     '#111111',
-        traditional: '#1e3a5f',
-        'narmatha-pro':       '#3d1a1a',
-        'donna':              '#d946ef',
-        'john-purple-left':   '#7c3aed',
-        'john-dark-teal':     '#1a2a2e',
-        'john-green-sidebar': '#1a4a2a',
-        'product-manager':    '#f59e0b',
-        'botanica':           '#f59e0b',
-        'smith-orange':       '#f97316',
-        'brian':              '#0891b2',
-        'dark-pro':           '#f59e0b',
-        'rudolf':             '#a855f7',
-        'emily':              '#7c3aed',
-        'kelly':              '#f59e0b',
-        'suhail':             '#f97316',
-        'ricktang':           '#1e3a5f',
-        'hani':               '#6c3fc9',
-        'narmatha2':          '#8b1c1c',
-        'guy-hawkins':        '#1a1a2e',
-        'kate-bishop':        '#6c3fc9',
-        'smith-graphic':      '#f97316',
-        // template1–template31
-        'template1':  '#4b1fa8',
-        'template2':  '#6b7280',
-        'template3':  '#d97706',
-        'template4':  '#f59e0b',
-        'template5':  '#1a1a2e',
-        'template6':  '#7c3aed',
-        'template7':  '#0f766e',
-        'template8':  '#f97316',
-        'template9':  '#166534',
-        'template10': '#f59e0b',
-        'template11': '#4b1fa8',
-        'template12': '#f43f5e',
-        'template13': '#7c3aed',
-        'template14': '#1e3a5f',
-        'template15': '#1a1a2e',
-        'template16': '#3d5a3e',
-        'template17': '#c084fc',
-        'template18': '#0284c7',
-        'template19': '#a78bfa',
-        'template20': '#0284c7',
-        'template21': '#1e3a5f',
-        'template22': '#166534',
-        'template23': '#f97316',
-        'template24': '#4d7c0f',
-        'template25': '#06b6d4',
-        'template26': '#f59e0b',
-        'template27': '#1e3a5f',
-        'template28': '#f43f5e',
-        'template29': '#0d9488',
-        'template30': '#475569',
-        'template31': '#4f46e5',
-        'template32': '#1a2a4a',
-        'template33': '#1a3a4a',
-        'template34': '#1e2d40',
-        'template35': '#1d3557',
-        'template36': '#2d4a3e',
-        'template37': '#374151',
-        'template38': '#2d3f6c',
-        'template39': '#00bcd4',
-        'template40': '#3d4d8a',
-        'template41': '#1d3557',
-        'template42': '#1d3557',
-        'template43': '#2d2d2d',
-        'template44': '#2563eb',
-        'template45': '#c9a065',
-        'template46': '#1a5f5a',
-        'template47': '#1a5fb4',
-        'template48': '#00b3c6',
-        'template49': '#2563eb',
-        'template50': '#2d3748',
-        'template51': '#1a1a2e',
-        'template52': '#1a1a2e',
-    };
-    currentColor = colorMap[currentTemplate] || colorMap[name] || '#2daf7f';
+    currentColor = getReviewDefaultColor(currentTemplate);
     if (window.history && window.location) {
         const url = new URL(window.location.href);
         url.searchParams.set('template', currentTemplate);
@@ -2572,6 +2564,8 @@ function changeTemplate(name) {
         s.classList.toggle('active', s.style.background === currentColor ||
             s.dataset.color === currentColor);
     });
+    applyTemplateLayoutSettings(resumeData, currentTemplate);
+    syncLayoutControlState();
     renderResume();
     autosaveDesign();
 }
@@ -2607,26 +2601,25 @@ function buildColorSwatches() {
 // DESIGN CONTROLS
 // Colors = ALL plans | Font/Spacing = Premium only
 // ============================================================
-function isPremium() { return userPlan === 'PREMIUM'; }
+function isPremium() { return true; }
 
 function setFontSize(size) {
-    if (!isPremium()) { showPremiumUpgradeAlert('Font Size'); return; }
     currentFontSize = size;
     document.querySelectorAll('.fsz-btn').forEach(b => b.classList.remove('active'));
     if (event && event.target) event.target.classList.add('active');
     const doc = document.getElementById('resumeDoc');
     if (doc) doc.style.fontSize = size === 'small' ? '11px' : size === 'large' ? '15px' : '13px';
+    renderResume();
     autosaveDesign();
 }
 function applyFont(font) {
-    if (!isPremium()) { showPremiumUpgradeAlert('Font Family'); return; }
     currentFont = font;
     const doc = document.getElementById('resumeDoc');
     if (doc) doc.style.fontFamily = font + ', sans-serif';
+    renderResume();
     autosaveDesign();
 }
 function applySectionSpacing(val) {
-    if (!isPremium()) { showPremiumUpgradeAlert('Section Spacing'); return; }
     currentSectionSpacing = val;
     const el = document.getElementById('spacingVal');
     if (el) el.textContent = val + 'px';
@@ -2634,121 +2627,550 @@ function applySectionSpacing(val) {
     autosaveDesign();
 }
 function applyLetterSpacing(val) {
-    if (!isPremium()) { showPremiumUpgradeAlert('Letter Spacing'); return; }
     currentLetterSpacing = val;
     const el = document.getElementById('letterVal');
     if (el) el.textContent = val + 'px';
     const doc = document.getElementById('resumeDoc');
     if (doc) doc.style.letterSpacing = val + 'px';
+    renderResume();
     autosaveDesign();
 }
 function applyLineSpacing(val) {
-    if (!isPremium()) { showPremiumUpgradeAlert('Line Spacing'); return; }
     currentLineSpacing = val;
     const el = document.getElementById('lineVal');
     if (el) el.textContent = val;
     const doc = document.getElementById('resumeDoc');
     if (doc) doc.style.lineHeight = val;
-    autosaveDesign();
-}
-function applyPhotoSize(val) {
-    if (!isPremium()) { showPremiumUpgradeAlert('Photo Size'); return; }
-    currentPhotoSize = parseInt(val);
-    const el = document.getElementById('photoSizeVal');
-    if (el) el.textContent = val + 'px';
     renderResume();
     autosaveDesign();
 }
+const LAYOUT_SECTION_FIELDS = ['profileSummary', 'experienceJson', 'projectsJson', 'certifications', 'awards', 'educationJson', 'skillsJson', 'languages', 'interests'];
+
+function parseMaybeJson(value, fallback) {
+    if (value == null || value === '') return fallback;
+    if (typeof value === 'object') return value;
+    try { return JSON.parse(value); } catch { return fallback; }
+}
 
 function normalizeHeaderAlignment(value) {
-    const val = String(value || '').toLowerCase();
-    return ['left', 'center', 'right'].includes(val) ? val : 'center';
+    const alignment = String(value || '').toLowerCase();
+    return ['left', 'center', 'right'].includes(alignment) ? alignment : 'center';
 }
 
 function normalizeSectionOrder(value) {
-    const defaults = ['profileSummary', 'experienceJson', 'projectsJson', 'certifications', 'awards', 'educationJson', 'skillsJson', 'languages', 'interests'];
-    let parsed = value;
-    if (typeof value === 'string') {
-        try { parsed = JSON.parse(value); } catch { parsed = value.split(','); }
-    }
-    const clean = Array.isArray(parsed) ? parsed.filter(field => defaults.includes(field)) : [];
-    defaults.forEach(field => { if (!clean.includes(field)) clean.push(field); });
-    const profileIndex = clean.indexOf('profileSummary');
-    if (profileIndex > 0) clean.unshift(clean.splice(profileIndex, 1)[0]);
-    return clean;
+    const parsed = parseMaybeJson(value, value);
+    const source = Array.isArray(parsed) ? parsed : [];
+    const cleaned = source.filter(field => LAYOUT_SECTION_FIELDS.includes(field));
+    return [...cleaned, ...LAYOUT_SECTION_FIELDS.filter(field => !cleaned.includes(field))];
+}
+
+function isDefaultSectionOrder(order) {
+    const normalized = normalizeSectionOrder(order);
+    return normalized.length === LAYOUT_SECTION_FIELDS.length
+        && normalized.every((field, index) => field === LAYOUT_SECTION_FIELDS[index]);
 }
 
 function normalizeSectionSides(value) {
-    let parsed = value;
-    if (typeof value === 'string') {
-        try { parsed = JSON.parse(value); } catch { parsed = {}; }
+    const parsed = parseMaybeJson(value, {});
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const next = {};
+    Object.entries(parsed).forEach(([field, side]) => {
+        if (LAYOUT_SECTION_FIELDS.includes(field) && ['left', 'right'].includes(side)) next[field] = side;
+    });
+    return next;
+}
+
+function getTemplateLayoutKey(template = currentTemplate) {
+    return normalizeReviewTemplate(template || currentTemplate || 'template1');
+}
+
+function getResumeLayoutStorageKey(template = currentTemplate) {
+    const id = resumeId || resumeData?.id || resumeData?.resumeId || 'draft';
+    return `vetrismartcv.layout.${id}.${getTemplateLayoutKey(template)}`;
+}
+
+function readStoredTemplateLayout(template = currentTemplate) {
+    try {
+        const raw = localStorage.getItem(getResumeLayoutStorageKey(template));
+        const parsed = raw ? JSON.parse(raw) : null;
+        return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch {
+        return null;
     }
-    const allowed = new Set(normalizeSectionOrder([]));
-    const sides = {};
-    if (parsed && typeof parsed === 'object') {
-        Object.entries(parsed).forEach(([field, side]) => {
-            if (allowed.has(field) && ['left', 'right'].includes(String(side))) sides[field] = String(side);
-        });
+}
+
+function writeStoredTemplateLayout(template = currentTemplate) {
+    try {
+        const payload = {
+            order: hasCustomSectionOrder ? JSON.stringify(normalizeSectionOrder(currentSectionOrder)) : '',
+            sides: JSON.stringify(normalizeSectionSides(currentSectionSides))
+        };
+        localStorage.setItem(getResumeLayoutStorageKey(template), JSON.stringify(payload));
+    } catch {}
+}
+
+function clearStoredTemplateLayout(template = currentTemplate) {
+    try { localStorage.removeItem(getResumeLayoutStorageKey(template)); } catch {}
+}
+
+function applyTemplateLayoutSettings(data = {}, template = currentTemplate) {
+    if (shouldSkipSectionOrderForTemplate(null, template)) {
+        currentSectionOrder = normalizeSectionOrder([]);
+        hasCustomSectionOrder = false;
+        currentSectionSides = {};
+        clearStoredTemplateLayout(template);
+        return;
     }
-    return sides;
+    const stored = readStoredTemplateLayout(template);
+    const savedTemplate = normalizeReviewTemplate(data?.templateName || template);
+    const allowLegacyLayout = getTemplateLayoutKey(template) === savedTemplate;
+    const orderSource = stored?.order || (allowLegacyLayout ? data.sectionOrder : '');
+    const sideSource = stored?.sides || (allowLegacyLayout ? (data.sectionLayoutJson || data.sectionSides) : '');
+
+    currentSectionOrder = normalizeSectionOrder(orderSource || []);
+    hasCustomSectionOrder = !!orderSource && !isDefaultSectionOrder(currentSectionOrder);
+    currentSectionSides = normalizeSectionSides(sideSource || {});
+}
+
+function persistCurrentTemplateLayoutState() {
+    writeStoredTemplateLayout(currentTemplate);
+    if (resumeData && typeof resumeData === 'object') {
+        resumeData.sectionOrder = hasCustomSectionOrder ? JSON.stringify(normalizeSectionOrder(currentSectionOrder)) : '';
+        resumeData.sectionLayoutJson = JSON.stringify(normalizeSectionSides(currentSectionSides));
+        sessionStorage.setItem('resumeData', JSON.stringify(resumeData));
+    }
 }
 
 function normalizeJobTitlePosition(value) {
-    let parsed = value;
-    if (typeof value === 'string') {
-        try { parsed = JSON.parse(value); } catch { parsed = {}; }
-    }
-    const x = Number(parsed?.x || 0);
-    const y = Number(parsed?.y || 0);
+    const parsed = parseMaybeJson(value, {});
+    const x = Number(parsed && parsed.x);
+    const y = Number(parsed && parsed.y);
     return {
-        x: Number.isFinite(x) ? Math.max(-220, Math.min(220, x)) : 0,
-        y: Number.isFinite(y) ? Math.max(-120, Math.min(120, y)) : 0
+        x: Number.isFinite(x) ? Math.max(-220, Math.min(220, Math.round(x))) : 0,
+        y: Number.isFinite(y) ? Math.max(-120, Math.min(120, Math.round(y))) : 0
     };
 }
 
+function hydrateLayoutSettingsFromResume(data = {}) {
+    currentHeaderAlignment = normalizeHeaderAlignment(data.headerAlignment || currentHeaderAlignment);
+    hasCustomHeaderAlignment = !!data.headerAlignment && normalizeHeaderAlignment(data.headerAlignment) !== 'center';
+    applyTemplateLayoutSettings(data, currentTemplate);
+    currentJobTitlePosition = normalizeJobTitlePosition(data.jobTitlePositionJson || data.jobTitlePosition || currentJobTitlePosition);
+    syncLayoutControlState();
+}
+
 function syncLayoutControlState() {
+    document.querySelectorAll('.hdr-align-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.align === currentHeaderAlignment);
+    });
+    const pos = normalizeJobTitlePosition(currentJobTitlePosition);
+    currentJobTitlePosition = pos;
+    const xRange = document.getElementById('jobTitleXRange');
+    const yRange = document.getElementById('jobTitleYRange');
+    const xVal = document.getElementById('jobTitleXVal');
+    const yVal = document.getElementById('jobTitleYVal');
+    if (xRange) xRange.value = pos.x;
+    if (yRange) yRange.value = pos.y;
+    if (xVal) xVal.textContent = pos.x + 'px';
+    if (yVal) yVal.textContent = pos.y + 'px';
+
+    currentSectionOrder = normalizeSectionOrder(currentSectionOrder);
+    const lockSectionControls = shouldSkipSectionOrderForTemplate(null, currentTemplate);
+    const sectionPanel = document.getElementById('ds-section-position');
+    if (sectionPanel) sectionPanel.classList.toggle('section-position-locked', lockSectionControls);
     document.querySelectorAll('.section-position-row').forEach(row => {
         const field = row.dataset.field;
-        const idx = currentSectionOrder.indexOf(field);
+        const index = currentSectionOrder.indexOf(field);
         const up = row.querySelector('button:nth-of-type(1)');
         const down = row.querySelector('button:nth-of-type(2)');
-        const left = row.querySelector('button:nth-of-type(3)');
-        const right = row.querySelector('button:nth-of-type(4)');
-        if (up) up.disabled = idx <= 0;
-        if (down) down.disabled = idx < 0 || idx >= currentSectionOrder.length - 1;
-        row.dataset.side = currentSectionSides[field] || '';
-        if (left) left.classList.toggle('active', currentSectionSides[field] === 'left');
-        if (right) right.classList.toggle('active', currentSectionSides[field] === 'right');
+        row.querySelectorAll('button').forEach(btn => { btn.disabled = lockSectionControls; });
+        if (!lockSectionControls) {
+            if (up) up.disabled = index <= 0;
+            if (down) down.disabled = index < 0 || index >= currentSectionOrder.length - 1;
+            row.style.order = index >= 0 ? String(index) : '99';
+        } else {
+            row.style.order = '';
+        }
     });
+    const resetSectionBtn = document.querySelector('.section-position-reset');
+    if (resetSectionBtn) resetSectionBtn.disabled = lockSectionControls;
 }
 
 function applyHeaderAlignment(alignment) {
     currentHeaderAlignment = normalizeHeaderAlignment(alignment);
+    hasCustomHeaderAlignment = true;
+    applyHeaderLayoutSettings(document.getElementById('resumeDoc'));
+    syncLayoutControlState();
+    autosaveDesign();
+}
+
+function applyJobTitlePosition(axis, value) {
+    const pos = normalizeJobTitlePosition(currentJobTitlePosition);
+    if (axis === 'x') pos.x = Number(value) || 0;
+    if (axis === 'y') pos.y = Number(value) || 0;
+    currentJobTitlePosition = normalizeJobTitlePosition(pos);
+    applyHeaderLayoutSettings(document.getElementById('resumeDoc'));
+    syncLayoutControlState();
+    autosaveDesign();
+}
+
+function nudgeJobTitlePosition(dx, dy) {
+    const pos = normalizeJobTitlePosition(currentJobTitlePosition);
+    currentJobTitlePosition = normalizeJobTitlePosition({ x: pos.x + dx, y: pos.y + dy });
+    applyHeaderLayoutSettings(document.getElementById('resumeDoc'));
+    syncLayoutControlState();
+    autosaveDesign();
+}
+
+function resetJobTitlePosition() {
+    currentJobTitlePosition = { x: 0, y: 0 };
     applyHeaderLayoutSettings(document.getElementById('resumeDoc'));
     syncLayoutControlState();
     autosaveDesign();
 }
 
 function moveResumeSection(field, direction) {
+    if (shouldSkipSectionOrderForTemplate(null, currentTemplate)) {
+        currentSectionOrder = normalizeSectionOrder([]);
+        currentSectionSides = {};
+        hasCustomSectionOrder = false;
+        clearStoredTemplateLayout(currentTemplate);
+        syncLayoutControlState();
+        showToast('This template uses a fixed section layout');
+        return;
+    }
     currentSectionOrder = normalizeSectionOrder(currentSectionOrder);
+    if (direction === 'left' || direction === 'right') {
+        currentSectionSides = normalizeSectionSides(currentSectionSides);
+        currentSectionSides[field] = direction;
+        hasCustomSectionOrder = true;
+        persistCurrentTemplateLayoutState();
+        renderResume();
+        syncLayoutControlState();
+        autosaveDesign();
+        return;
+    }
     const index = currentSectionOrder.indexOf(field);
     if (index < 0) return;
-    if (direction === 'left' || direction === 'right') {
-        currentSectionSides[field] = direction;
-    } else {
-        const nextIndex = direction === 'up' ? index - 1 : index + 1;
-        if (nextIndex < 0 || nextIndex >= currentSectionOrder.length) return;
-        const [item] = currentSectionOrder.splice(index, 1);
-        currentSectionOrder.splice(nextIndex, 0, item);
-    }
+    const nextIndex = direction === 'up' ? index - 1 : direction === 'down' ? index + 1 : index;
+    if (nextIndex < 0 || nextIndex >= currentSectionOrder.length || nextIndex === index) return;
+    const [item] = currentSectionOrder.splice(index, 1);
+    currentSectionOrder.splice(nextIndex, 0, item);
+    hasCustomSectionOrder = !isDefaultSectionOrder(currentSectionOrder);
+    persistCurrentTemplateLayoutState();
     renderResume();
     syncLayoutControlState();
     autosaveDesign();
 }
 
+function resetResumeSectionPositions() {
+    currentSectionOrder = normalizeSectionOrder([]);
+    currentSectionSides = {};
+    hasCustomSectionOrder = false;
+    clearStoredTemplateLayout(currentTemplate);
+    persistCurrentTemplateLayoutState();
+    renderResume();
+    syncLayoutControlState();
+    autosaveDesign();
+    showToast('Section positions reset for this template');
+}
+
 function applyHeaderLayoutSettings(doc) {
     if (!doc) return;
-    doc.removeAttribute('data-header-align');
+    const alignment = normalizeHeaderAlignment(currentHeaderAlignment);
+    if (hasCustomHeaderAlignment) {
+        doc.dataset.headerAlign = alignment;
+        getHeaderAlignmentTargets(doc).forEach(node => {
+            node.style.textAlign = alignment;
+        });
+    } else {
+        doc.removeAttribute('data-header-align');
+    }
+    applyJobTitleTransform(doc);
+}
+
+function getHeaderAlignmentTargets(doc) {
+    if (!doc) return [];
+    const selectors = [
+        '.resume-name', '.resume-jobtitle',
+        '[class*="-name"]', '[class*="_name"]', '[class*="name"]',
+        '[class*="-role"]', '[class*="_role"]', '[class*="role"]',
+        '[data-rv-line-field="fullName"]', '[data-rv-line-field="jobTitle"]'
+    ];
+    return Array.from(doc.querySelectorAll(selectors.join(','))).filter(node => {
+        const text = (node.textContent || '').trim();
+        if (!text || text.length > 80) return false;
+        const cls = (node.className || '').toString();
+        return !/(section|experience|project|skill|education|date|company|bullet|modal|button|btn)/i.test(cls);
+    });
+}
+
+function getSectionRootForField(doc, field) {
+    if (!doc || !field) return null;
+    const id = typeof exactSectionIdForField === 'function' ? exactSectionIdForField(field) : '';
+    const direct = [
+        id ? `#${id}` : '',
+        `[data-rv-field="${field}"]`,
+        `[data-rv-line-field="${field}"]`,
+        `[onclick*="openEditModal('${field}'"]`,
+        field === 'experienceJson' ? '#rv-experience-section' : '',
+        field === 'educationJson' ? '#rv-education-section' : '',
+        field === 'projectsJson' ? '#rv-projects-section' : '',
+        field === 'skillsJson' ? '#rv-skills-section' : '',
+        field === 'certifications' ? '#rv-section-certificates' : '',
+        field === 'awards' ? '#rv-section-awards' : '',
+        field === 'languages' ? '#rv-section-languages' : '',
+        field === 'interests' ? '#rv-section-interests' : ''
+    ].filter(Boolean);
+
+    for (const selector of direct) {
+        const node = doc.querySelector(selector);
+        if (node) return node.closest('.rv-stb-group, .rv-exact-appended, .extra-user-section, .section-block, section') || node;
+    }
+
+    const labelMap = {
+        profileSummary: ['profile', 'profile summary', 'professional summary', 'summary', 'about me'],
+        experienceJson: ['experience', 'professional experience', 'work experience', 'employment history', 'career'],
+        projectsJson: ['projects', 'project'],
+        certifications: ['certifications', 'certificates', 'certification', 'courses'],
+        awards: ['awards', 'awards honors', 'honors awards'],
+        educationJson: ['education', 'academic'],
+        skillsJson: ['skills', 'technical skills', 'professional skills', 'key skills'],
+        languages: ['languages', 'language'],
+        interests: ['interests', 'interest', 'hobbies']
+    };
+    const labels = labelMap[field] || [];
+    const headings = Array.from(doc.querySelectorAll('h1,h2,h3,h4,div,span')).filter(node => {
+        const text = (node.textContent || '').replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+        return labels.includes(text);
+    });
+    for (const heading of headings) {
+        const root = heading.closest('.rv-stb-group, .rv-exact-appended, .extra-user-section, .section-block, section') || heading.parentElement;
+        if (root && root !== doc && !root.classList?.contains('resume-doc')) return root;
+    }
+    return null;
+}
+
+function isLikelySectionHeadingNode(node) {
+    if (!node || !(node instanceof HTMLElement)) return false;
+    const cls = (node.className || '').toString();
+    return /^H[1-4]$/i.test(node.tagName || '')
+        || /section-title|sec-title|sidebar-title|green-btn|role-badge|rv-normalized-core-title/i.test(cls);
+}
+
+function wrapSectionRangeForField(doc, field, root) {
+    if (!doc || !root || !root.parentElement) return root;
+    if (root.classList && root.classList.contains('rv-movable-section')) return root;
+
+    let start = root;
+    const previous = root.previousElementSibling;
+    if (isLikelySectionHeadingNode(previous)) start = previous;
+
+    const nodes = [];
+    let node = start;
+    while (node && node.parentElement === start.parentElement) {
+        if (node !== start && isLikelySectionHeadingNode(node)) break;
+        nodes.push(node);
+        if (node === root && root.classList && root.classList.contains('section-block')) {
+            const next = node.nextElementSibling;
+            if (!next || isLikelySectionHeadingNode(next)) break;
+        }
+        node = node.nextElementSibling;
+    }
+    if (nodes.length < 2) return root;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'rv-movable-section';
+    wrapper.dataset.rvMoveField = field;
+    start.parentElement.insertBefore(wrapper, start);
+    nodes.forEach(item => wrapper.appendChild(item));
+    return wrapper;
+}
+
+function getTemplateSideContainers(doc) {
+    const root = doc && doc.firstElementChild;
+    if (!root) return null;
+    const match = String(root.className || '').match(/\bresume-t(\d+)\b/);
+    const n = match ? match[1] : '';
+    const candidates = n ? [
+        [`.t${n}-left`, `.t${n}-right`],
+        [`.t${n}-col-left`, `.t${n}-col-right`],
+        [`.t${n}-left-col`, `.t${n}-right-col`],
+        [`.t${n}-sidebar`, `.t${n}-main`],
+        [`.t${n}-side`, `.t${n}-content`]
+    ] : [];
+    for (const [leftSelector, rightSelector] of candidates) {
+        const left = root.querySelector(leftSelector);
+        const right = root.querySelector(rightSelector);
+        if (left && right && left !== right) return { left, right };
+    }
+    const flexRows = Array.from(root.querySelectorAll('*')).filter(el => {
+        if (!(el instanceof HTMLElement) || el.children.length < 2) return false;
+        const style = window.getComputedStyle(el);
+        return style.display === 'flex' && !/column/.test(style.flexDirection || '');
+    });
+    for (const row of flexRows) {
+        const children = Array.from(row.children).filter(child => child instanceof HTMLElement);
+        if (children.length >= 2) return { left: children[0], right: children[children.length - 1] };
+    }
+    return null;
+}
+
+function applySectionSides(doc) {
+    if (!doc) return;
+    const sides = normalizeSectionSides(currentSectionSides);
+    const containers = getTemplateSideContainers(doc);
+    if (!containers) return;
+    Object.entries(sides).forEach(([field, side]) => {
+        const target = containers[side];
+        if (!target) return;
+        const root = wrapSectionRangeForField(doc, field, getSectionRootForField(doc, field));
+        if (root && root.parentElement !== target && !root.closest('.rv-stb,.rv-line-actions')) {
+            target.appendChild(root);
+        }
+    });
+}
+
+function applySectionOrder(doc) {
+    if (!doc) return;
+    currentSectionOrder = normalizeSectionOrder(currentSectionOrder);
+    if (!hasCustomSectionOrder || isDefaultSectionOrder(currentSectionOrder)) return;
+    const sections = currentSectionOrder
+        .map(field => ({ field, el: wrapSectionRangeForField(doc, field, getSectionRootForField(doc, field)) }))
+        .filter(item => item.el && item.el.parentElement && !item.el.closest('.rv-stb,.rv-line-actions'));
+    if (sections.length < 2) return;
+
+    const groups = new Map();
+    sections.forEach(item => {
+        const parent = item.el.parentElement;
+        if (!groups.has(parent)) groups.set(parent, []);
+        groups.get(parent).push(item);
+    });
+    groups.forEach(items => {
+        if (items.length < 2) return;
+        const parent = items[0].el.parentElement;
+        currentSectionOrder
+            .map(field => items.find(item => item.field === field))
+            .filter(Boolean)
+            .forEach(item => parent.appendChild(item.el));
+    });
+}
+
+function shouldSkipSectionOrderForTemplate(doc, templateName = currentTemplate) {
+    const template = normalizeReviewTemplate(templateName || currentTemplate || '');
+    const match = /^template(\d+)$/.exec(template);
+    if (match) {
+        const templateNumber = Number(match[1]);
+        if (
+            templateNumber >= 33 && templateNumber <= 43 ||
+            [6, 8, 10, 11, 16, 24, 26, 27, 28, 29, 31].includes(templateNumber)
+        ) return true;
+    }
+    const root = doc && doc.firstElementChild;
+    const className = root && root.className ? String(root.className) : '';
+    return /\bresume-t(6|8|10|11|16|24|26|27|28|29|31|33|34|35|36|37|38|39|40|41|42|43)\b/.test(className);
+}
+
+function applySectionPositioning(doc) {
+    if (shouldSkipSectionOrderForTemplate(doc)) return;
+    applySectionSides(doc);
+    applySectionOrder(doc);
+}
+
+function normalizeDoubleBullets(doc) {
+    if (!doc) return;
+    const bulletLike = Array.from(doc.querySelectorAll('[class*="bullet"], [class*="skill"], [class*="hobby"], [class*="lang"]'));
+    bulletLike.forEach(node => {
+        if (!node || node.closest('.no-print-export')) return;
+        Array.from(node.childNodes).forEach(child => {
+            if (child.nodeType !== Node.TEXT_NODE) return;
+            child.textContent = child.textContent.replace(/^\s*[•\-]\s+(?=[•\-]\s*)/, '').replace(/^\s*•\s+•\s+/, '');
+        });
+    });
+}
+
+function getJobTitleDragTargets(doc) {
+    if (!doc) return [];
+    const selector = [
+        '.resume-jobtitle', '.t1-role', '.t2-role-badge', '.t3-role', '.t4-role',
+        '.t5-header-role', '.t6-role', '.t7-h-role', '.t8-role', '.t9-role',
+        '.t10-role', '.t11-role', '.t12-role', '.t17-role', '.t19-role',
+        '.t22-pos-desired', '.t23-role-badge', '.t25-role', '.t28-role',
+        '.t32-role', '.t33-title', '.t34-role', '.t35-job-title', '.t36-role',
+        '.t38-role-l', '.t39-role', '.t40-role', '.t41-title', '.t42-role-l',
+        '.t43-title', '.t44-title', '.t45-role-tag', '.t47-role-badge',
+        '.t48-title-48', '.t49-subtitle', '.t50-title-50', '.t51-title-51',
+        '.t52-title-52', '[data-rv-line-field="jobTitle"]',
+        '.editable-field[onclick*="jobTitle"]'
+    ].join(',');
+    return Array.from(doc.querySelectorAll(selector)).filter(node => {
+        const cls = (node.className || '').toString();
+        const explicit = node.dataset.rvLineField === 'jobTitle' || /openEditModal\('jobTitle'/.test(node.getAttribute('onclick') || '');
+        if (explicit) return true;
+        return !/(experience|project|skill|education|section|company|date|bullet)/i.test(cls);
+    });
+}
+
+function applyJobTitleTransform(doc) {
+    const pos = normalizeJobTitlePosition(currentJobTitlePosition);
+    getJobTitleDragTargets(doc).forEach(target => {
+        target.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+    });
+}
+
+function bindJobTitleDrag(doc) {
+    const targets = getJobTitleDragTargets(doc);
+    if (!targets.length) return;
+    currentJobTitlePosition = normalizeJobTitlePosition(currentJobTitlePosition);
+    targets.forEach(node => {
+        node.classList.add('rv-job-title-draggable');
+        node.style.transform = `translate(${currentJobTitlePosition.x}px, ${currentJobTitlePosition.y}px)`;
+        node.title = 'Drag job role to reposition it';
+        if (node.dataset.jobTitleDragBound === 'true') return;
+        node.dataset.jobTitleDragBound = 'true';
+        node.addEventListener('click', event => {
+            if (Date.now() < suppressJobTitleEditClickUntil) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
+        }, true);
+        node.addEventListener('pointerdown', event => {
+            if (event.button !== 0) return;
+            const startX = event.clientX;
+            const startY = event.clientY;
+            const start = normalizeJobTitlePosition(currentJobTitlePosition);
+            let didDrag = false;
+            node.setPointerCapture?.(event.pointerId);
+            getJobTitleDragTargets(doc).forEach(target => target.classList.toggle('rv-job-title-selected', target === node));
+            const onMove = moveEvent => {
+                const dx = moveEvent.clientX - startX;
+                const dy = moveEvent.clientY - startY;
+                if (!didDrag && Math.hypot(dx, dy) < 4) return;
+                didDrag = true;
+                moveEvent.preventDefault();
+                currentJobTitlePosition = normalizeJobTitlePosition({ x: start.x + dx, y: start.y + dy });
+                getJobTitleDragTargets(doc).forEach(target => {
+                    target.classList.toggle('rv-job-title-dragging', target === node);
+                    target.style.transform = `translate(${currentJobTitlePosition.x}px, ${currentJobTitlePosition.y}px)`;
+                });
+                syncLayoutControlState();
+            };
+            const onUp = () => {
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onUp);
+                getJobTitleDragTargets(doc).forEach(target => {
+                    target.classList.remove('rv-job-title-dragging', 'rv-job-title-selected');
+                });
+                if (didDrag) {
+                    suppressJobTitleEditClickUntil = Date.now() + 450;
+                    autosaveDesign();
+                    showToast('Job role position updated.');
+                }
+            };
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp, { once: true });
+        });
+    });
 }
 // ============================================================
 // PLAN BADGE — shows current plan in sidebar
@@ -3000,68 +3422,64 @@ function deleteExtraSection(name) {
     showToast('✓ Section "' + name + '" removed.');
 }
 
-// ============================================================
-// RENDER RESUME
-// ============================================================
-function normalizeWorkItemText(item) {
-    if (!item) return '';
-    if (typeof item === 'string') return item;
-    return [
-        item.jobTitle, item.role, item.title, item.name, item.company,
-        item.description, Array.isArray(item.bullets) ? item.bullets.join(' ') : item.bullets,
-        item.tools, item.startDate, item.endDate, item.from, item.to
-    ].map(value => String(value || '')).join(' ').replace(/\s+/g, ' ').trim();
+function normalizeWorkText(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim();
 }
 
-function looksLikeProjectItem(item) {
-    const text = normalizeWorkItemText(item);
-    const title = String((item && (item.title || item.name || item.jobTitle || item.role)) || text).trim();
-    const lower = text.toLowerCase();
-    const hasCompanyOrDates = !!(item && (item.company || item.startDate || item.endDate || item.from || item.to));
-    const projectKeyword = /\b(project|api|app|application|portal|platform|dashboard|website|tracker|kanban|e-commerce|system|tool|websocket|jwt|mern|spring boot|postgresql|mongodb)\b/i.test(text);
-    const experienceTitle = /\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|internship|associate|specialist|lead|architect|administrator|tester|qa|support|trainer|assistant|coordinator|officer|representative|supervisor|instructor|producer|editor)\b/i.test(title);
-    return projectKeyword && !experienceTitle && !looksLikeExperienceHeaderText(title);
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function normalizeProjectItem(item) {
+    if (!item || typeof item !== 'object') return { title: normalizeWorkText(item) };
+    const title = normalizeWorkText(item.title || item.name || item.projectName || item.jobTitle || item.role || 'Project');
+    const description = String(item.description || item.summary || item.details || item.bullets || item.responsibilities || item.achievements || '').trim();
+    const tools = normalizeWorkText(item.tools || item.technologies || item.techStack || item.stack || item.tech || '');
+    return { ...item, title, name: title, description, tools };
+}
+
+function normalizeExperienceItem(item) {
+    if (!item || typeof item !== 'object') return { jobTitle: normalizeWorkText(item) };
+    return {
+        ...item,
+        jobTitle: normalizeWorkText(item.jobTitle || item.role || item.title || ''),
+        company: normalizeWorkText(item.company || item.organization || item.employer || ''),
+        description: String(item.description || item.bullets || item.responsibilities || item.achievements || '').trim()
+    };
+}
+
+function looksLikeProjectDescription(value) {
+    const text = normalizeWorkText(value).replace(/^[\s\-–—•]+/, '');
+    if (!text) return false;
+    if (text.length > 70) return true;
+    return /\b(built|developed|created|designed|implemented|integrated|automated|analyzed|dashboard|portal|application|website|model|prediction|campaign|seo|content|loyalty)\b/i.test(text);
+}
+
+function looksLikeProjectTitle(value) {
+    const text = normalizeWorkText(value).replace(/^[\s\-–—•]+/, '');
+    if (!text || text.length > 100 || looksLikeProjectDescription(text)) return false;
+    return /\b(project|campaign|program|launch|dashboard|portal|platform|system|app|application|website|model|prediction|analysis|overhaul)\b/i.test(text)
+        || /^[A-Z][A-Za-z0-9&()/.+-]+(?:\s+[A-Z][A-Za-z0-9&()/.+-]+){1,8}$/.test(text);
 }
 
 function looksLikeExperienceItem(item) {
-    const title = String((item && (item.jobTitle || item.role || item.title || item.name)) || '').trim();
-    const text = normalizeWorkItemText(item);
-    return !!(item && (item.company || item.startDate || item.endDate || item.from || item.to))
-        || /\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|internship|associate|specialist|lead|architect|administrator|tester|qa|support|trainer|assistant|coordinator|officer|representative|supervisor|instructor|producer|editor)\b/i.test(title || text);
-}
-
-function toProjectItem(item) {
-    if (!item || typeof item !== 'object') return { title: String(item || '').trim() };
-    const title = item.title || item.name || item.projectName || item.jobTitle || item.role || 'Project';
-    const description = item.description || (Array.isArray(item.bullets) ? item.bullets.join('\n') : item.bullets) || '';
-    const tools = item.tools || item.technologies || item.techStack || '';
-    return { ...item, title, name: undefined, jobTitle: undefined, role: undefined, company: undefined, startDate: undefined, endDate: undefined, from: undefined, to: undefined, description, tools };
-}
-
-function looksLikeProjectDescriptionLine(value) {
-    const text = String(value || '').replace(/^[\s\-–—•]+/, '').trim();
-    return text.length > 70
-        || /^(built|created|designed|developed|implemented|reduced|integrated|used|managed|added|worked|wrote|tested|automated|configured|deployed)\b/i.test(text);
-}
-
-function looksLikeProjectTitleText(value) {
-    const text = String(value || '').replace(/^[\s\-–—•]+/, '').trim();
-    const lower = text.toLowerCase();
-    if (!text || text.length > 100) return false;
-    if (looksLikeProjectDescriptionLine(text)) return false;
-    if (/^(and|using|with|for|to|in|on)\b/i.test(text)) return false;
-    if (/\b(project|model|dashboard|portal|platform|system|suite|framework|api|app|application|website|tool|tracker|prediction|forecasting|automation|gateway|churn|analysis)\b/i.test(text)) return true;
-    return /^[A-Z][A-Za-z0-9&()/.+-]+(?:\s+[A-Z][A-Za-z0-9&()/.+-]+){1,7}$/.test(text);
+    const title = normalizeWorkText(item && (item.jobTitle || item.role || item.title || item.name));
+    const hasCompanyOrDates = !!(item && (item.company || item.startDate || item.endDate || item.from || item.to));
+    return hasCompanyOrDates || /\b(manager|analyst|developer|engineer|designer|executive|associate|specialist|lead|intern|consultant|assistant|coordinator)\b/i.test(title);
 }
 
 function mergeProjectDescriptionFragments(projects) {
     const merged = [];
-    (Array.isArray(projects) ? projects : []).forEach(item => {
-        const title = String((item && (item.title || item.name)) || '').trim();
-        const hasBody = !!(item && (item.description || item.tools || item.technologies || item.techStack));
-        if (merged.length && title && !hasBody && (looksLikeProjectDescriptionLine(title) || !looksLikeProjectTitleText(title))) {
+    (Array.isArray(projects) ? projects : []).forEach(raw => {
+        const item = normalizeProjectItem(raw);
+        if (merged.length && item.title && !item.description && !item.tools && !looksLikeProjectTitle(item.title)) {
             const previous = merged[merged.length - 1];
-            previous.description = [previous.description, title].filter(Boolean).join('\n');
+            previous.description = [previous.description, item.title].filter(Boolean).join('\n');
             return;
         }
         merged.push(item);
@@ -3069,97 +3487,37 @@ function mergeProjectDescriptionFragments(projects) {
     return merged;
 }
 
-function toExperienceItem(item) {
-    if (!item || typeof item !== 'object') return { jobTitle: String(item || '').trim() };
-    const jobTitle = item.jobTitle || item.role || item.title || item.name || 'Experience';
-    return { ...item, jobTitle, title: undefined, name: undefined };
-}
-
-function parseExperienceHeaderText(value) {
-    const text = String(value || '').replace(/^[\s\-–—•]+/, '').trim();
-    if (!/\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|internship|associate|specialist|lead|architect|administrator|tester|qa|support|trainer|assistant|coordinator|officer|representative|supervisor|instructor|producer|editor)\b/i.test(text)) return null;
-    const parts = text.split(/\s+[–—-]\s+/, 2);
-    if (parts.length === 2 && parts[0].trim() && parts[1].trim()) {
-        return { jobTitle: parts[0].trim(), company: parts[1].trim() };
-    }
-    return null;
-}
-
-function splitLeakedExperienceEntries(items) {
-    const fixed = [];
-    (Array.isArray(items) ? items : []).forEach(raw => {
-        const base = toExperienceItem(raw);
-        const lines = String(base.description || '').split(/\n+/).map(line => line.trim()).filter(Boolean);
-        let current = { ...base, description: '' };
-        lines.forEach(line => {
-            const header = parseExperienceHeaderText(line);
-            if (header && current && (current.description || current.company)) {
-                fixed.push(current);
-                current = { ...header, description: '' };
-                return;
-            }
-            current.description = [current.description, line.replace(/^[\s\-–—•]+/, '').trim()].filter(Boolean).join('\n');
-        });
-        if (current && (current.jobTitle || current.company || current.description)) fixed.push(current);
-    });
-    return fixed;
-}
-
 function normalizeExperienceProjectData(experience, projects) {
     const cleanExperience = [];
     const cleanProjects = [];
 
-    splitLeakedExperienceEntries(experience).forEach(item => {
-        if (looksLikeProjectItem(item)) {
-            cleanProjects.push(toProjectItem(item));
+    (Array.isArray(experience) ? experience : []).forEach(item => {
+        const title = normalizeWorkText(item && (item.title || item.name || item.jobTitle || item.role));
+        const text = normalizeWorkText([title, item && item.description, item && item.tools].filter(Boolean).join(' '));
+        if (!looksLikeExperienceItem(item) && (looksLikeProjectTitle(title) || looksLikeProjectDescription(text))) {
+            cleanProjects.push(normalizeProjectItem(item));
         } else {
-            cleanExperience.push(toExperienceItem(item));
+            cleanExperience.push(normalizeExperienceItem(item));
         }
     });
 
     (Array.isArray(projects) ? projects : []).forEach(item => {
-        if (looksLikeExperienceItem(item) && !looksLikeProjectItem(item)) {
-            cleanExperience.push(toExperienceItem(item));
+        if (looksLikeExperienceItem(item) && !looksLikeProjectTitle(item.title || item.name)) {
+            cleanExperience.push(normalizeExperienceItem(item));
         } else {
-            cleanProjects.push(toProjectItem(item));
+            cleanProjects.push(normalizeProjectItem(item));
         }
     });
 
-    const dedupe = (items, getKey) => {
-        const seen = new Set();
-        return items.filter(item => {
-            const key = getKey(item).toLowerCase().replace(/\s+/g, ' ').trim();
-            if (!key || seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
-    };
-
     return {
-        experience: dedupe(cleanExperience, item => `${item.jobTitle || item.role || item.title || ''}|${item.company || ''}`),
-        projects: mergeProjectDescriptionFragments(dedupe(cleanProjects, item => `${item.title || item.name || ''}|${item.description || ''}`))
+        experience: cleanExperience,
+        projects: mergeProjectDescriptionFragments(cleanProjects)
     };
 }
 
-function isBadParsedJobTitle(value) {
-    const text = String(value || '').replace(/\s+/g, ' ').trim();
-    const lower = text.toLowerCase();
-    if (!text) return false;
-    if (/^(profile|summary|objective|experience|professional experience|work experience|education|skills|core competencies|competencies|projects?|certifications?|contact|languages?|tools?|technologies|details|nationality|driving license|driving licence|place of birth|links)$/i.test(text)) return true;
-    if (/\b(profile|summary|objective|experience|education|skills|competenc(?:y|ies)|project|certification|contact|language|tool|technology|details|nationality|driving licen[sc]e|place of birth|links)\b/i.test(text)) return true;
-    const roleLike = /\b(developer|engineer|manager|analyst|designer|executive|consultant|intern|internship|associate|specialist|lead|architect|administrator|tester|qa|support|scientist|devops|full\s*stack|backend|frontend|trainer|assistant|coordinator|officer|representative|supervisor|instructor|producer|editor)\b/i.test(text);
-    return !roleLike;
-}
-
-function isBadParsedFullName(value) {
-    const text = String(value || '').replace(/\s+/g, ' ').trim();
-    if (!text) return false;
-    if (text.length > 90) return true;
-    if (/@|\d{3,}|[|:]/.test(text)) return true;
-    if (/\b(details|nationality|driving licen[sc]e|place of birth|links|resume templates|build this template|education|skills|profile|summary|employment history|experience|certifications?)\b/i.test(text)) return true;
-    return !/^[A-Za-z][A-Za-z'.-]+(?:\s+[A-Za-z][A-Za-z'.-]+){1,4}$/.test(text.split(/\s*,\s*/, 1)[0]);
-}
-
+// ============================================================
+// RENDER RESUME
+// ============================================================
 function renderResume() {
     const doc = document.getElementById('resumeDoc');
     if (!doc) return;
@@ -3192,14 +3550,6 @@ function renderResume() {
     projects = projects.filter(p => p && (p.title || p.name || p.description || p.tools));
     experience = experience.filter(e => e && (e.jobTitle || e.role || e.title || e.company || e.description || e.bullets));
     ({ experience, projects } = normalizeExperienceProjectData(experience, projects));
-    if (isBadParsedJobTitle(resumeData.jobTitle)) {
-        resumeData.jobTitle = '';
-    }
-    if (isBadParsedFullName(resumeData.fullName)) {
-        resumeData.fullName = '';
-    }
-    resumeData.experienceJson = JSON.stringify(experience);
-    resumeData.projectsJson = JSON.stringify(projects);
 
     const ctx = { resumeData, edu, skills, projects, experience, color: currentColor };
 
@@ -3367,16 +3717,132 @@ function renderResume() {
     finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, renderSeq });
 }
 
+// Universal safety net for profile photos across ALL ~50 templates. Every
+// template renders its photo the same way — an <img> whose src is exactly
+// resumeData.profilePhotoData — but only Template 1 had logic to gracefully
+// fall back to an initial-letter avatar if that image fails to load (broken
+// data URL, unsupported format, stale reference, etc). Every other template
+// just went blank. Rather than hand-edit 70+ individual template snippets
+// (risky without visual verification), this runs once after every render and
+// wires an onerror fallback onto whichever <img> actually is the profile
+// photo, restoring the design's own colors/shape instead of leaving a gap.
+function ensurePhotoFallbacks(doc, data) {
+    if (!doc) return;
+    const src = data && typeof data.profilePhotoData === 'string' ? data.profilePhotoData.trim() : '';
+    const initial = ((data.fullName || 'U') + '').trim().charAt(0).toUpperCase() || 'U';
+    const accent = (typeof currentColor === 'string' && currentColor) || '#7c3aed';
+    ensureAvatarInitialPlaceholders(doc, initial, accent);
+    if (!src) return;
+
+    Array.from(doc.querySelectorAll('img')).forEach(img => {
+        if (img.getAttribute('src') !== src) return; // not a profile-photo image
+        if (img.dataset.rvPhotoFallbackWired) return;
+        img.dataset.rvPhotoFallbackWired = '1';
+
+        const applyFallback = () => {
+            if (!img.isConnected || img.dataset.rvPhotoFallbackApplied) return;
+            img.dataset.rvPhotoFallbackApplied = '1';
+            const cs = window.getComputedStyle(img);
+            const fallback = document.createElement('div');
+            fallback.className = 'rv-photo-fallback';
+            fallback.textContent = initial;
+            const onclickAttr = img.getAttribute('onclick');
+            const preservePosition = cs.position === 'absolute' || cs.position === 'fixed';
+            fallback.style.cssText = [
+                `width:${cs.width}`,
+                `height:${cs.height}`,
+                `border-radius:${cs.borderRadius}`,
+                `border:${cs.borderWidth} ${cs.borderStyle} ${cs.borderColor}`,
+                `background:linear-gradient(135deg,${accent},${accent}99)`,
+                'color:#fff','display:flex','align-items:center','justify-content:center',
+                `font-size:${Math.max(14, parseFloat(cs.width) / 2.4 || 24)}px`,
+                'font-weight:800','cursor:pointer','flex-shrink:0',
+                preservePosition ? `position:${cs.position}` : '',
+                preservePosition ? `top:${cs.top}` : '',
+                preservePosition ? `left:${cs.left}` : '',
+                preservePosition ? `right:${cs.right}` : '',
+                preservePosition ? `z-index:${cs.zIndex !== 'auto' ? cs.zIndex : '2'}` : '',
+                `margin:${cs.margin}`
+            ].filter(Boolean).join(';');
+            if (onclickAttr) fallback.setAttribute('onclick', onclickAttr);
+            img.replaceWith(fallback);
+        };
+
+        if (img.complete && img.naturalWidth === 0) {
+            applyFallback(); // already failed before we attached the listener
+        } else {
+            img.addEventListener('error', applyFallback, { once: true });
+        }
+    });
+}
+
+function ensureAvatarInitialPlaceholders(doc, initial, accent) {
+    const selector = [
+        '[class*="avatar"]',
+        '[class*="photo-ph"]',
+        '[class*="avatar-ph"]',
+        '[class*="photo-placeholder"]',
+        '[class*="avatar-placeholder"]',
+        '.t12-photo-ph'
+    ].join(',');
+    Array.from(doc.querySelectorAll(selector)).forEach(node => {
+        if (!(node instanceof HTMLElement)) return;
+        if (node.querySelector('img') || (node.textContent || '').trim()) return;
+        const cls = (node.className || '').toString();
+        if (/wrap|outer|container|controls/i.test(cls) && !/placeholder|photo-ph|avatar-ph/i.test(cls)) return;
+        node.textContent = initial;
+        node.style.display = node.style.display || 'flex';
+        node.style.alignItems = node.style.alignItems || 'center';
+        node.style.justifyContent = node.style.justifyContent || 'center';
+        node.style.fontWeight = node.style.fontWeight || '900';
+        if (!node.style.background) node.style.background = `linear-gradient(135deg,${accent},${accent}99)`;
+        if (!node.style.color) node.style.color = '#fff';
+    });
+}
+
+function ensureProjectDescriptionsRendered(doc, projects = []) {
+    if (!doc || !Array.isArray(projects) || !projects.length) return;
+    const section = getSectionRootForField(doc, 'projectsJson') || doc.querySelector('#rv-projects-section');
+    if (!section) return;
+    const currentText = normalizeWorkText(section.textContent).toLowerCase();
+    const missing = projects
+        .map(normalizeProjectItem)
+        .filter(project => {
+            const desc = normalizeWorkText(project.description);
+            if (!desc) return false;
+            const probe = desc.slice(0, Math.min(50, desc.length)).toLowerCase();
+            return probe && !currentText.includes(probe);
+        });
+    if (!missing.length || section.querySelector('.rv-project-desc-fallback')) return;
+
+    const fallback = document.createElement('div');
+    fallback.className = 'rv-project-desc-fallback';
+    fallback.style.cssText = 'margin-top:8px;font-size:10.5px;line-height:1.55;color:#4b5563;';
+    fallback.innerHTML = missing.map(project => {
+        const title = normalizeWorkText(project.title || project.name);
+        const desc = String(project.description || '').split('\n').map(line => line.trim()).filter(Boolean);
+        return `<div style="margin-bottom:8px;">${title ? `<div style="font-weight:800;color:#111827;">${escapeHtml(title)}</div>` : ''}${desc.map(line => `<div>• ${escapeHtml(line.replace(/^[•\-]\s*/, ''))}</div>`).join('')}</div>`;
+    }).join('');
+    section.appendChild(fallback);
+}
+
 function finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, skipCleanup = false, renderSeq = 0 }) {
-    applyHeaderLayoutSettings(doc);
+    ensurePhotoFallbacks(doc, (ctx && ctx.resumeData) || resumeData);
+    applyReviewDesignOverrides(doc);
     applyActiveSections();
     if (!skipCleanup) {
         cleanEmptyReviewContent(doc, { edu, skills, projects, experience });
     }
     ensureExtraSectionsRendered(doc, (ctx && ctx.color) || currentColor);
-    applyActiveSections();
+    // Project descriptions are rendered inside each template's own project layout.
+    // A global append here creates duplicate/misaligned project blocks on multi-column templates.
+    normalizeReviewSections(doc);
+    normalizeDoubleBullets(doc);
+    applyHeaderLayoutSettings(doc);
     applySectionPositioning(doc);
+    applyActiveSections();
     bindJobTitleDrag(doc);
+    syncLayoutControlState();
     // Inject edit buttons into ALL templates universally
     injectEditOverlays(ctx);
     if (doc && doc.dataset.exactTemplate === 'true') {
@@ -3386,7 +3852,6 @@ function finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, s
         setTimeout(() => injectLineItemControls(), 90);
         setTimeout(() => bindExactTemplateLineClicks(), 120);
     }
-    syncLayoutControlState();
     setTimeout(() => {
         if (renderSeq !== reviewRenderSeq || reviewRecoveryAttempts >= 2) return;
         const liveDoc = document.getElementById('resumeDoc');
@@ -3395,188 +3860,6 @@ function finalizeRenderedResume(doc, ctx, { edu, skills, projects, experience, s
         reviewRecoveryAttempts += 1;
         renderResume();
     }, 1100);
-}
-
-function getSectionRootForField(doc, field) {
-    if (!doc || !field) return null;
-    const id = typeof exactSectionIdForField === 'function' ? exactSectionIdForField(field) : null;
-    const direct = [
-        id ? `#${id}` : '',
-        `[data-rv-field="${field}"]`,
-        `[data-rv-line-field="${field}"]`,
-        field === 'experienceJson' ? '#rv-experience-section' : '',
-        field === 'educationJson' ? '#rv-education-section' : '',
-        field === 'projectsJson' ? '#rv-projects-section' : '',
-        field === 'skillsJson' ? '#rv-skills-section' : '',
-        field === 'certifications' ? '#rv-section-certificates' : '',
-        field === 'languages' ? '#rv-section-languages' : ''
-    ].filter(Boolean);
-
-    for (const selector of direct) {
-        const node = doc.querySelector(selector);
-        if (node) return node.closest('.rv-stb-group, .rv-exact-appended, .section-block') || node;
-    }
-
-    const labelMap = {
-        profileSummary: ['summary', 'profile summary', 'professional summary', 'profile'],
-        experienceJson: ['experience', 'work experience', 'employment history', 'career'],
-        skillsJson: ['skills', 'technical skills', 'professional skills'],
-        projectsJson: ['projects'],
-        educationJson: ['education', 'academic'],
-        certifications: ['certifications', 'certificates', 'courses'],
-        languages: ['languages', 'language']
-    };
-    const labels = labelMap[field] || [];
-    const headings = Array.from(doc.querySelectorAll('h2,h3,h4,div,span')).filter(node => {
-        const text = _rvNormalizeHeading(node.textContent || '');
-        return labels.includes(text);
-    });
-    for (const heading of headings) {
-        const root = heading.closest('.rv-stb-group, .rv-exact-appended, .section-block') || heading.parentElement;
-        if (root && root !== doc) return root;
-    }
-    return null;
-}
-
-function applySectionOrder(doc) {
-    if (!doc) return;
-    currentSectionOrder = normalizeSectionOrder(currentSectionOrder);
-    const sections = currentSectionOrder
-        .map(field => ({ field, el: getSectionRootForField(doc, field) }))
-        .filter(item => item.el && item.el.parentElement);
-    if (sections.length < 2) return;
-
-    const groups = new Map();
-    sections.forEach(item => {
-        const parent = item.el.parentElement;
-        if (!groups.has(parent)) groups.set(parent, []);
-        groups.get(parent).push(item);
-    });
-
-    groups.forEach(items => {
-        if (items.length < 2) return;
-        const parent = items[0].el.parentElement;
-        const ordered = currentSectionOrder
-            .map(field => items.find(item => item.field === field))
-            .filter(Boolean);
-        ordered.forEach(item => parent.appendChild(item.el));
-    });
-}
-
-function getSectionSideContainer(doc, side) {
-    if (!doc) return null;
-    const selectors = side === 'left'
-        ? ['.t1-left', '.t2-left', '.t3-left', '.t4-left', '.t5-left', '.t6-left', '.t7-left', '.t8-left', '.t9-left', '.sidebar', '[class*="left"]']
-        : ['.t1-right', '.t2-right', '.t3-right', '.t4-right', '.t5-right', '.t6-right', '.t7-right', '.t8-right', '.t9-right', '.main', '[class*="right"]'];
-    for (const selector of selectors) {
-        const node = doc.querySelector(selector);
-        if (node && node !== doc) return node;
-    }
-    return null;
-}
-
-function applySectionPositioning(doc) {
-    if (!doc) return;
-    currentSectionSides = normalizeSectionSides(currentSectionSides);
-    Object.entries(currentSectionSides).forEach(([field, side]) => {
-        const section = getSectionRootForField(doc, field);
-        const target = getSectionSideContainer(doc, side);
-        if (!section || !target || section === target || target.contains(section)) return;
-        section.classList.add('rv-positioned-section');
-        target.appendChild(section);
-    });
-    applySectionOrder(doc);
-}
-
-function getJobTitleDragTargets(doc) {
-    if (!doc) return [];
-    const selector = [
-        '.t1-role', '.t2-role-badge', '.t3-role', '.t4-role', '.t5-header-role',
-        '.t6-role', '.t7-h-role', '.t8-role', '.t9-role', '.t10-role',
-        '.t11-role', '.t12-role', '.t17-role', '.t19-role', '.t22-pos-desired',
-        '.t23-role-badge', '.t25-role', '.t28-role', '.t32-role', '.t33-title',
-        '.t34-role', '.t35-job-title', '.t36-role', '.t38-role-l', '.t39-role',
-        '.t40-role', '.t41-title', '.t42-role-l', '.t43-title', '.t44-title',
-        '.t45-role-tag', '.t47-role-badge', '.t48-title-48', '.t49-subtitle',
-        '.t50-title-50', '.t51-title-51', '.t52-title-52',
-        '[data-rv-line-field="jobTitle"]',
-        '.editable-field[onclick*="jobTitle"]'
-    ].join(',');
-    return Array.from(doc.querySelectorAll(selector)).filter(node => {
-        const cls = (node.className || '').toString();
-        const explicitJobTitle = node.dataset.rvLineField === 'jobTitle'
-            || /openEditModal\('jobTitle'/.test(node.getAttribute('onclick') || '');
-        if (explicitJobTitle) return true;
-        return !/(job-title|exp|experience|project|skill|education|section)/i.test(cls);
-    });
-}
-
-function bindJobTitleDrag(doc) {
-    const targets = getJobTitleDragTargets(doc);
-    if (!targets.length) return;
-    currentJobTitlePosition = normalizeJobTitlePosition(currentJobTitlePosition);
-    const applyPosition = () => {
-        getJobTitleDragTargets(doc).forEach(target => {
-            target.style.transform = `translate(${currentJobTitlePosition.x}px, ${currentJobTitlePosition.y}px)`;
-        });
-    };
-    const setSelected = (selectedNode, isDragging = false) => {
-        getJobTitleDragTargets(doc).forEach(target => {
-            target.classList.toggle('rv-job-title-selected', target === selectedNode);
-            target.classList.toggle('rv-job-title-dragging', isDragging && target === selectedNode);
-        });
-    };
-    targets.forEach(node => {
-        node.classList.add('rv-job-title-draggable');
-        node.style.transform = `translate(${currentJobTitlePosition.x}px, ${currentJobTitlePosition.y}px)`;
-        node.style.cursor = 'grab';
-        node.title = 'Select and drag job title to move it';
-        if (node.dataset.jobTitleDragBound === 'true') return;
-        node.dataset.jobTitleDragBound = 'true';
-        node.addEventListener('click', (event) => {
-            if (Date.now() < suppressJobTitleEditClickUntil) {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-            }
-        }, true);
-        node.addEventListener('pointerdown', (event) => {
-            if (event.button !== 0) return;
-            event.stopPropagation();
-            const startX = event.clientX;
-            const startY = event.clientY;
-            const start = normalizeJobTitlePosition(currentJobTitlePosition);
-            let didDrag = false;
-            node.setPointerCapture?.(event.pointerId);
-            setSelected(node, false);
-            const onMove = (moveEvent) => {
-                const dx = moveEvent.clientX - startX;
-                const dy = moveEvent.clientY - startY;
-                if (!didDrag && Math.hypot(dx, dy) < 4) return;
-                didDrag = true;
-                moveEvent.preventDefault();
-                node.style.cursor = 'grabbing';
-                setSelected(node, true);
-                currentJobTitlePosition = normalizeJobTitlePosition({
-                    x: start.x + dx,
-                    y: start.y + dy
-                });
-                applyPosition();
-            };
-            const onUp = () => {
-                node.style.cursor = 'grab';
-                setSelected(node, false);
-                window.removeEventListener('pointermove', onMove);
-                window.removeEventListener('pointerup', onUp);
-                if (didDrag) {
-                    suppressJobTitleEditClickUntil = Date.now() + 450;
-                    autosaveDesign();
-                    showToast('Job title position updated.');
-                }
-            };
-            window.addEventListener('pointermove', onMove);
-            window.addEventListener('pointerup', onUp, { once: true });
-        });
-    });
 }
 
 function cleanEmptyReviewContent(doc, { edu = [], skills = [], projects = [], experience = [] } = {}) {
@@ -3638,12 +3921,6 @@ function cleanEmptyReviewContent(doc, { edu = [], skills = [], projects = [], ex
         const key = normalize(heading.textContent);
         if (!Object.prototype.hasOwnProperty.call(sectionData, key) || sectionData[key]) return;
 
-        const sectionWrapper = heading.closest('[data-rv-field].section-block');
-        if (sectionWrapper && sectionWrapper !== heading) {
-            sectionWrapper.remove();
-            return;
-        }
-
         const removable = [];
         let sib = heading.nextElementSibling;
         while (sib && removable.length < 3) {
@@ -3659,6 +3936,8 @@ function cleanEmptyReviewContent(doc, { edu = [], skills = [], projects = [], ex
 
     Array.from(doc.querySelectorAll('.editable-field')).forEach(el => {
         if (!el.isConnected) return;
+        const marker = `${el.className || ''} ${el.getAttribute('onclick') || ''} ${el.dataset?.rvLineField || ''}`;
+        if (el.querySelector('img') || /profilePhoto|photo|avatar/i.test(marker)) return;
         const text = normalize(el.textContent);
         if (!text) el.remove();
     });
@@ -3679,8 +3958,8 @@ function buildTemplate25Template({ resumeData: d, edu, skills, projects, experie
     const summary = d.profileSummary || '';
     const initial = (name || 'B').charAt(0).toUpperCase();
     const photoHTML = d.profilePhotoData
-        ? `<img src="${d.profilePhotoData}" style="width:70px;height:70px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,.5);cursor:pointer;" class="editable-field t25-photo" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t25-photo editable-field" style="cursor:pointer;background:${accent}99;border-color:rgba(255,255,255,.5);" ${editBtn('profilePhoto','Profile Photo','')}>${initial}</div>`;
+        ? `<img src="${d.profilePhotoData}" style="width:70px;height:70px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,.5);cursor:pointer;display:block;" class="editable-field t25-photo" ${editBtn('profilePhoto','Profile Photo','')}>`
+        : `<div class="t25-photo editable-field" style="cursor:pointer;background:${accent}99;border-color:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:900;" ${editBtn('profilePhoto','Profile Photo','')}>${initial}</div>`;
     const contactItems = [
         phone    && `<div class="t25-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>`,
         email    && `<div class="t25-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}>✉ ${email} <span class="edit-pen">✏</span></div>`,
@@ -3736,17 +4015,13 @@ function buildTemplate25Template({ resumeData: d, edu, skills, projects, experie
 // ============================================================
 function buildTemplate1Template({ resumeData: d, edu, skills, projects, experience, color }) {
     const accent = color || '#7c3aed';
-    const emailUsername = (d.email || '').split('@')[0].replace(/[._\-]+/g, ' ').trim();
-    const fallbackName = emailUsername
-        ? emailUsername.replace(/\b\w/g, c => c.toUpperCase())
-        : 'Your Name';
-    const name   = d.fullName || fallbackName;
+    const name   = d.fullName || 'Your Name';
     const title  = d.jobTitle || '';
     const email  = d.email   || '';
     const phone  = d.phone   || '';
     const addr   = d.address || d.location || '';
     const summary= d.profileSummary || '';
-    const initial = (name || 'U').charAt(0).toUpperCase();
+    const initial = (name||'Y').charAt(0).toUpperCase();
     const photoSrc = typeof d.profilePhotoData === 'string' ? d.profilePhotoData.trim() : '';
     const hasUsablePhoto = /^(data:image\/(png|jpe?g|webp|gif);base64,|https?:\/\/|\/)/i.test(photoSrc)
         && !/placeholder|default|avatar/i.test(photoSrc);
@@ -3757,37 +4032,11 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
         ? skills.map(s=>`<span class="t1-skill" style="background:${accent}22;color:${accent};">${s.name||s}</span>`).join('')
         : `<span class="t1-skill" style="color:#9ca3af;cursor:pointer;" ${editBtn('skillsJson','Skills','')}>Add skills ✏</span>`;
     const eduHTML = edu.length
-        ? edu.map(e=>`<div class="t1-edu-item"><div class="t1-edu-main"><div class="t1-edu-name">${e.degree||''}</div><div class="t1-edu-deg">${e.school||e.university||''}</div>${e.field?`<div class="t1-edu-deg">${e.field}</div>`:''}</div>${e.year?`<div class="t1-edu-date">${e.year}</div>`:''}</div>`).join('')
+        ? edu.map(e=>`<div class="t1-edu-item"><div class="t1-edu-main"><div class="t1-edu-name">${e.school||e.university||''}</div><div class="t1-edu-deg">${e.degree||''}</div></div><div class="t1-edu-date">${e.year||''}</div></div>`).join('')
         : `<div style="font-size:10px;color:#9ca3af;cursor:pointer;" ${editBtn('educationJson','Education','')}>Add education ✏</div>`;
     const expHTML = experience.length
         ? experience.map(e=>`<div class="t1-job"><div class="t1-job-title" style="color:${accent};">${e.jobTitle||e.role||e.title||''}</div><div class="t1-job-date">${e.company||''} · ${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div><div class="t1-job-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
-    const certItems = (d.certifications || '').toString()
-        .replace(/\r/g, '\n')
-        .split(/\n|;|•|(?=\b(?:Meta|Cloud|Microsoft|Google|Oracle)\b)/)
-        .map(item => item.replace(/^[\s\-–—•]+/, '').trim())
-        .filter(Boolean);
-    const certHTML = certItems.length
-        ? certItems.map(item => `<div style="margin-bottom:4px;padding-left:11px;text-indent:-11px;">• ${item}</div>`).join('')
-        : '';
-    const awardItems = (d.awards || '').toString()
-        .replace(/\r/g, '\n')
-        .split(/\n|;|•/)
-        .map(item => item.replace(/^[\s\-–—•]+/, '').trim())
-        .filter(Boolean);
-    const awardHTML = awardItems.length
-        ? awardItems.map(item => `<div style="margin-bottom:4px;padding-left:11px;text-indent:-11px;">• ${item}</div>`).join('')
-        : '';
-    const languageHTML = (d.languages || '').toString().split(/[,;\n]+/)
-        .map(item => item.trim())
-        .filter(Boolean)
-        .map(item => `<div style="margin-bottom:4px;padding-left:11px;text-indent:-11px;">• ${item}</div>`)
-        .join('');
-    const interestHTML = (d.interests || '').toString().split(/[,;\n]+/)
-        .map(item => item.trim())
-        .filter(Boolean)
-        .map(item => `<div style="margin-bottom:4px;padding-left:11px;text-indent:-11px;">• ${item}</div>`)
-        .join('');
     return `<div class="resume-t1">
   <div class="t1-header" style="background:linear-gradient(135deg,${accent}dd 0%,${accent} 100%);">
     <div class="t1-header-bg"></div>
@@ -3810,13 +4059,11 @@ function buildTemplate1Template({ resumeData: d, edu, skills, projects, experien
       <div class="section-block editable-field" style="cursor:pointer;" ${editBtn('educationJson','Education','')}>${eduHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
     </div>
     <div class="t1-right">
-      ${summary?`<div class="t1-section section-block" id="rv-section-profile" data-rv-field="profileSummary"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};">Profile Summary</div><div class="t1-job-desc editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.6;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div></div>`:''}
-      <div class="t1-section section-block" id="rv-experience-section" data-rv-field="experienceJson"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:${summary?'14px':'0'};">Experience</div><div class="editable-field" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div></div>
-      ${projects.length?`<div class="t1-section section-block" id="rv-projects-section" data-rv-field="projectsJson"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Projects</div><div class="editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t1-job t1-project-item"><div class="t1-job-title" style="color:${accent};">${p.title||p.name||''}</div>${p.tools?`<div class="t1-job-date">Tools: ${p.tools}</div>`:''}<div class="t1-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')} <span class="edit-pen">✏</span></div></div>`:''}
-      ${d.certifications?`<div class="t1-section section-block" id="rv-section-certificates" data-rv-field="certifications"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Certifications</div><div class="editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.55;" ${editBtn('certifications','Certifications',d.certifications||'')}>${certHTML || d.certifications} <span class="edit-pen">✏</span></div></div>`:''}
-      ${d.awards?`<div class="t1-section section-block" id="rv-section-awards" data-rv-field="awards"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Awards &amp; Recognition</div><div class="editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.55;" ${editBtn('awards','Awards',d.awards||'')}>${awardHTML || d.awards} <span class="edit-pen">✏</span></div></div>`:''}
-      ${d.languages?`<div class="t1-section section-block" id="rv-section-languages" data-rv-field="languages"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Languages</div><div class="editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.55;" ${editBtn('languages','Languages',d.languages||'')}>${languageHTML || d.languages} <span class="edit-pen">✏</span></div></div>`:''}
-      ${d.interests?`<div class="t1-section section-block" id="rv-section-interests" data-rv-field="interests"><div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Interests</div><div class="editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.55;" ${editBtn('interests','Interests',d.interests||'')}>${interestHTML || d.interests} <span class="edit-pen">✏</span></div></div>`:''}
+      ${summary?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};">Profile Summary</div><div class="t1-job-desc editable-field" style="cursor:pointer;font-size:11px;color:#555;line-height:1.6;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
+      <div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:${summary?'14px':'0'};">Experience</div>
+      <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
+      ${projects.length?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t1-job"><div class="t1-job-title" style="color:${accent};">${p.title||p.name||''}</div>${p.tools?`<div class="t1-job-date">Tools: ${p.tools}</div>`:''}<div class="t1-job-desc">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
+      ${d.certifications?`<div class="t1-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Certifications</div><div class="section-block editable-field" style="cursor:pointer;font-size:11px;color:#555;" ${editBtn('certifications','Certifications',d.certifications||'')}>${d.certifications} <span class="edit-pen">✏</span></div>`:''}
       ${buildExtraSections(accent)}
     </div>
   </div>
@@ -3843,12 +4090,6 @@ function buildTemplate2Template({ resumeData: d, edu, skills, projects, experien
     const skillsHTML = skills.length
         ? skills.map(s=>`<div class="t2-skill-item">${s.name||s}</div>`).join('')
         : `<div style="font-size:10px;color:#9ca3af;cursor:pointer;" ${editBtn('skillsJson','Skills','')}>Add skills ✏</div>`;
-    const contactHTML = [
-        email ? `<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}><span class="t2-contact-icon">&#9993;</span> ${email} <span class="edit-pen">&#9997;</span></div>` : '',
-        phone ? `<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}><span class="t2-contact-icon">&#9742;</span> ${phone} <span class="edit-pen">&#9997;</span></div>` : '',
-        d.linkedin ? `<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}><span class="t2-contact-icon">&#128279;</span> ${d.linkedin} <span class="edit-pen">&#9997;</span></div>` : '',
-        d.website ? `<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('website','Website',d.website||'')}><span class="t2-contact-icon">&#127760;</span> ${d.website} <span class="edit-pen">&#9997;</span></div>` : ''
-    ].filter(Boolean).join('');
     const expHTML = experience.length
         ? experience.map(e=>`<div class="t2-job"><div class="t2-job-title" style="color:${accent};">${e.jobTitle||e.role||e.title||''}</div><div class="t2-job-meta"><span>${e.company||''}</span><span>${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</span></div><div class="t2-job-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')
         : `<div style="font-size:10px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
@@ -3857,7 +4098,6 @@ function buildTemplate2Template({ resumeData: d, edu, skills, projects, experien
     <div class="t2-name editable-field" style="cursor:pointer;" ${editBtn('fullName','Full Name',name)}>${name} <span class="edit-pen">✏</span></div>
     <div class="t2-roles"><div class="t2-role-badge editable-field" style="cursor:pointer;" ${editBtn('jobTitle','Job Title',title)}>${title} <span class="edit-pen">✏</span></div></div>
     ${addr?`<div class="t2-location editable-field" style="cursor:pointer;" ${editBtn('address','Address',addr)}>&#128205; ${addr} <span class="edit-pen">&#9997;</span></div>`:''}
-    ${contactHTML?`<div class="t2-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Contact</div><div class="t2-contact-list">${contactHTML}</div>`:''}
     <div class="t2-section-title" style="border-bottom-color:${accent};color:${accent};">Education</div>
     <div class="section-block editable-field" ${editBtn('educationJson','Education','')}>${eduHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
     <div class="t2-section-title" style="border-bottom-color:${accent};color:${accent};margin-top:14px;">Skills</div>
@@ -3867,6 +4107,12 @@ function buildTemplate2Template({ resumeData: d, edu, skills, projects, experien
   <div class="t2-right">
     <div class="t2-photo-contact">
       <div class="t2-photo">${photoHTML}</div>
+      <div class="t2-contact-list">
+        ${email?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('email','Email',email)}><span class="t2-contact-icon">&#9993;</span> ${email} <span class="edit-pen">&#9997;</span></div>`:''}
+        ${phone?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}><span class="t2-contact-icon">&#9742;</span> ${phone} <span class="edit-pen">&#9997;</span></div>`:''}
+        ${d.linkedin?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('linkedin','LinkedIn',d.linkedin||'')}><span class="t2-contact-icon">&#128279;</span> ${d.linkedin} <span class="edit-pen">&#9997;</span></div>`:''}
+        ${d.website?`<div class="t2-contact-item editable-field" style="cursor:pointer;" ${editBtn('website','Website',d.website||'')}><span class="t2-contact-icon">&#127760;</span> ${d.website} <span class="edit-pen">&#9997;</span></div>`:''}
+      </div>
     </div>
     ${summary?`<div class="t2-section-title-r" style="border-bottom-color:${accent};color:${accent};">Profile</div><div class="t2-profile-text editable-field" style="cursor:pointer;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
     <div class="t2-section-title-r" style="border-bottom-color:${accent};color:${accent};">Experience</div>
@@ -3941,7 +4187,7 @@ function buildTemplate4Template({ resumeData: d, edu, skills, projects, experien
     const summary= d.profileSummary || '';
     const photoHTML = d.profilePhotoData
         ? `<img src="${d.profilePhotoData}" style="width:100%;height:100%;object-fit:cover;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t4-photo-placeholder" style="background:${accent};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:3rem;" ${editBtn('profilePhoto','Profile Photo','')}>&#128100;</div>`;
+        : `<div class="t4-photo-placeholder" style="background:${accent};cursor:pointer;display:flex;align-items:center;justify-content:center;" ${editBtn('profilePhoto','Profile Photo','')}><svg width="64" height="64" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4v-1z"/></svg></div>`;
     const expHTML = experience.length
         ? experience.map(e=>`<div class="t4-job"><div class="t4-job-head"><span class="t4-job-title">${e.jobTitle||e.role||e.title||''}</span><span class="t4-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</span></div><div style="font-size:10px;color:#777;">${e.company||''}</div><div class="t4-job-desc">${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')
         : `<div style="font-size:10px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
@@ -3972,7 +4218,7 @@ function buildTemplate4Template({ resumeData: d, edu, skills, projects, experien
   <div class="t4-right">
     <div class="t4-name editable-field" style="cursor:pointer;" ${editBtn('fullName','Full Name',name)}>${name} <span class="edit-pen">✏</span></div>
     <div class="t4-role editable-field" style="cursor:pointer;" ${editBtn('jobTitle','Job Title',title)}>${title} <span class="edit-pen">✏</span></div>
-    ${summary?`<div style="font-size:11px;color:#555;line-height:1.6;margin-bottom:12px;" class="editable-field" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
+    ${summary?`<div class="t4-section-title" style="border-bottom-color:${accent};">Profile</div><div style="font-size:11px;color:#555;line-height:1.6;margin-bottom:12px;" class="editable-field" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
     <div class="t4-section-title" style="border-bottom-color:${accent};">Employment</div>
     <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
     <div class="t4-section-title" style="border-bottom-color:${accent};margin-top:14px;">Skill Levels</div>
@@ -4069,7 +4315,7 @@ function buildTemplate6Template({ resumeData: d, edu, skills, projects, experien
       <div class="editable-field" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>${skillBarsHTML} <span class="edit-pen" style="font-size:10px;color:rgba(255,255,255,0.5);">✏</span></div>
       ${d.languages?`<div class="t6-left-title">Languages</div><div class="editable-field" ${editBtn('languages','Languages',d.languages||'')}>${d.languages.split(',').map(l=>`<div class="t6-lang">${l.trim()}</div>`).join('')} <span class="edit-pen" style="font-size:10px;color:rgba(255,255,255,0.5);">✏</span></div>`:''}
     </div>
-    <div class="t6-left-geo" style="background:linear-gradient(135deg,${accent} 0%,${accent}aa 100%);"></div>
+    <div class="t6-left-geo"></div>
   </div>
   <div class="t6-right">
     <div class="t6-right-header">
@@ -4086,7 +4332,7 @@ function buildTemplate6Template({ resumeData: d, edu, skills, projects, experien
       ${summary?`<div class="t6-section-title">About Me</div><div class="t6-about editable-field" style="cursor:pointer;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
       <div class="t6-section-title">Professional Experience</div>
       <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
-      ${projects.length?`<div class="t6-section-title">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t6-job"><div class="t6-job-head"><span class="t6-job-title">${p.title||p.name||''}</span><span class="t6-job-loc" style="color:${accent};">${p.tools||''}</span></div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
+      ${projects.length?`<div class="t6-section-title">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t6-job"><div class="t6-job-head"><span class="t6-job-title">${p.title||p.name||''}</span><span class="t6-job-loc" style="color:${accent};">${p.tools||''}</span></div>${(p.description||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t6-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
       ${buildExtraSections(accent)}
     </div>
   </div>
@@ -4145,7 +4391,7 @@ function buildTemplate7Template({ resumeData: d, edu, skills, projects, experien
       ${summary?`<div class="t7-section-title" style="border-bottom-color:${accent};color:#0d2d2d;">About Me</div><div class="t7-about editable-field" style="cursor:pointer;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
       <div class="t7-section-title" style="border-bottom-color:${accent};color:#0d2d2d;">Professional Experience</div>
       <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
-      ${projects.length?`<div class="t7-section-title" style="border-bottom-color:${accent};color:#0d2d2d;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t7-job"><div class="t7-job-head"><span class="t7-job-title">${p.title||p.name||''}</span></div><div class="t7-job-company">${p.tools||''}</div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
+      ${projects.length?`<div class="t7-section-title" style="border-bottom-color:${accent};color:#0d2d2d;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t7-job"><div class="t7-job-head"><span class="t7-job-title">${p.title||p.name||''}</span></div><div class="t7-job-company">${p.tools||''}</div>${(p.description||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t7-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
       ${buildExtraSections(accent)}
     </div>
   </div>
@@ -4171,8 +4417,16 @@ function buildTemplate8Template({ resumeData: d, edu, skills, projects, experien
         ? experience.map(e=>`<div class="t8-job" style="border-left-color:${accent};"><div class="t8-job-head"><span class="t8-job-title">${e.jobTitle||e.role||e.title||''}</span><span class="t8-job-loc" style="color:${accent};">${e.company||''}</span></div><div class="t8-job-company">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div>${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t8-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
     return `<div class="resume-t8" style="position:relative;">
-  <div class="t8-top-geo" style="background:${accent};"></div>
-  <div class="t8-bottom-geo"></div>
+  <div class="t8-top-geo">
+    <svg class="t8-top-geo-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <polygon points="0,0 100,0 100,100" fill="${accent}"/>
+    </svg>
+  </div>
+  <div class="t8-bottom-geo">
+    <svg class="t8-bottom-geo-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <polygon points="0,100 100,100 0,0" fill="#888"/>
+    </svg>
+  </div>
   <div class="t8-header">
     <div class="t8-avatar">${photoHTML}</div>
     <div>
@@ -4198,7 +4452,7 @@ function buildTemplate8Template({ resumeData: d, edu, skills, projects, experien
       ${summary?`<div class="t8-section-title">About Me</div><div class="t8-about editable-field" style="cursor:pointer;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
       <div class="t8-section-title">Experience</div>
       <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
-      ${projects.length?`<div class="t8-section-title">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t8-job" style="border-left-color:${accent};"><div class="t8-job-head"><span class="t8-job-title">${p.title||p.name||''}</span></div><div class="t8-job-company">${p.tools||''}</div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
+      ${projects.length?`<div class="t8-section-title">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t8-job" style="border-left-color:${accent};"><div class="t8-job-head"><span class="t8-job-title">${p.title||p.name||''}</span></div><div class="t8-job-company">${p.tools||''}</div>${(p.description||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t8-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
     </div>
     <div class="t8-right-sidebar">
       <div class="t8-rs-title" style="color:${accent};">Skills</div>
@@ -4268,7 +4522,7 @@ function buildTemplate9Template({ resumeData: d, edu, skills, projects, experien
       ${summary?`<div class="t9-section-title" style="color:${accent};border-bottom-color:${accent}44;">About Me</div><div class="t9-about editable-field" style="cursor:pointer;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
       <div class="t9-section-title" style="color:${accent};border-bottom-color:${accent}44;">Professional Experience</div>
       <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML} <span class="edit-pen" style="font-size:10px;">✏</span></div>
-      ${projects.length?`<div class="t9-section-title" style="color:${accent};border-bottom-color:${accent}44;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t9-job"><div class="t9-job-head"><span class="t9-job-title">${p.title||p.name||''}</span></div><div class="t9-job-company">${p.tools||''}</div></div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
+      ${projects.length?`<div class="t9-section-title" style="color:${accent};border-bottom-color:${accent}44;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t9-job"><div class="t9-job-head"><span class="t9-job-title">${p.title||p.name||''}</span></div><div class="t9-job-company">${p.tools||''}</div>${(p.description||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t9-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
       ${buildExtraSections(accent)}
     </div>
   </div>
@@ -4580,7 +4834,7 @@ function buildTemplate32Template({ resumeData: d, edu, skills, projects, experie
         ? `<img src="${d.profilePhotoData}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid ${accent};display:block;margin:0 auto;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
         : `<div class="t32-photo-wrap" style="background:${accent};cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'?').charAt(0).toUpperCase()}</div>`;
     const skillsHTML = skills.length ? skills.map(s=>{const sn=typeof s==='string'?s:(s.name||s.skill||'');return `<div class="t32-skill-bullet">${sn}</div>`;}).join('') : '<div style="font-size:10px;color:rgba(255,255,255,0.5);">Add skills</div>';
-    const expHTML = experience.length ? experience.map(e=>`<div style="margin-bottom:10px;"><div class="t32-exp-yr">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div><div class="t32-exp-co">${e.company||''}</div><div class="t32-exp-role">${e.jobTitle||e.role||''}</div></div>`).join('') : '';
+    const expHTML = experience.length ? experience.map(e=>`<div style="margin-bottom:10px;"><div class="t32-exp-yr">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div><div class="t32-exp-co">${e.company||''}</div><div class="t32-exp-role">${e.jobTitle||e.role||''}</div>${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t32-contact-item" style="align-items:flex-start;">• ${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('') : '';
     const eduHTML2 = edu.length ? edu.map(e=>`<div class="t32-edu-item"><div class="t32-edu-deg">${e.degree||''}</div><div class="t32-edu-uni">${e.school||e.university||''}</div><div class="t32-edu-yr">${e.year||''}</div></div>`).join('') : '';
     return `<div class="resume-t32">
   <div class="t32-left">
@@ -4594,13 +4848,14 @@ function buildTemplate32Template({ resumeData: d, edu, skills, projects, experie
     ${linkedin?`<div class="t32-contact-item editable-field" ${editBtn('linkedin','LinkedIn',linkedin)}>🔗 ${linkedin}</div>`:''}
     ${website?`<div class="t32-contact-item editable-field" ${editBtn('website','Website',website)}>🌐 ${website}</div>`:''}
     ${edu.length?`<div class="t32-sec-title-l">Education</div>${eduHTML2}`:''}
+    ${experience.length?`<div class="t32-sec-title-l">Experience</div><div class="section-block editable-field" ${editBtn('experienceJson','Experience','')}>${expHTML}</div>`:''}
   </div>
   <div class="t32-right">
+    <div class="t32-deco-tr"></div><div class="t32-deco-br"></div><div class="t32-deco-bl"></div>
     <div style="text-align:center;margin-bottom:10px;">${photoHTML}</div>
     <div class="t32-r-sec-title" style="color:${accent};">Profile</div>
     <div class="t32-about editable-field section-block" ${editBtn('profileSummary','Profile Summary',summary)}>${summary||'Add your profile summary.'} <span class="edit-pen">✏</span></div>
     ${skills.length?`<div class="t32-skill-group-title">Skills</div><div class="editable-field" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>${skillsHTML}</div>`:''}
-    ${experience.length?`<div class="t32-r-sec-title" style="color:${accent};">Experience</div><div class="section-block editable-field" ${editBtn('experienceJson','Experience','')}>${expHTML}</div>`:''}
     ${projects.length?`<div class="t32-r-sec-title" style="color:${accent};">Projects</div><div class="section-block editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div style="margin-bottom:10px;"><div style="font-weight:700;color:${accent};font-size:11px;">${p.title||p.name||''}</div>${p.tools?`<div style="font-size:10px;color:rgba(255,255,255,0.7);">Tools: ${p.tools}</div>`:''}<div style="font-size:10px;color:rgba(255,255,255,0.8);">${(p.description||'').split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div></div>`).join('')}</div>`:''}
     ${buildExtraSections(accent)}
   </div>
@@ -4842,6 +5097,7 @@ function buildTemplate39Template({ resumeData: d, edu, skills, projects, experie
   <div class="t39-left">
     <div class="t39-name editable-field" ${editBtn('fullName','Full Name',name)}>${name} <span class="edit-pen">✏</span></div>
     <div class="t39-role editable-field" style="color:${accent};" ${editBtn('jobTitle','Job Title',title)}>${title} <span class="edit-pen">✏</span></div>
+    ${experience.length?`<div class="t39-sec-title-l" style="color:#1a1a1a;border-color:#e5e7eb;">Experience</div><div class="section-block editable-field" ${editBtn('experienceJson','Experience','')}>${expHTML}</div>`:''}
     ${eduHTML2?`<div class="t39-sec-title-l" style="color:#1a1a1a;border-color:#e5e7eb;">Education</div>${eduHTML2}`:''}
     ${d.languages?`<div class="t39-sec-title-l" style="color:#1a1a1a;border-color:#e5e7eb;">Languages</div>${d.languages.split(',').map(l=>`<div style="font-size:10px;color:#555;margin-bottom:3px;">${l.trim()}</div>`).join('')}`:''}
   </div>
@@ -4854,8 +5110,7 @@ function buildTemplate39Template({ resumeData: d, edu, skills, projects, experie
     </div>
     ${summary?`<div class="t39-sec-title-r">Profile</div><div class="t39-about-text editable-field section-block" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
     ${skillsHTML?`<div class="t39-sec-title-r">Skills</div><div class="editable-field" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>${skillsHTML}</div>`:''}
-    ${experience.length?`<div class="t39-sec-title-r">Experience</div><div class="section-block editable-field" ${editBtn('experienceJson','Experience','')}>${expHTML}</div>`:''}
-    ${projects.length?`<div class="t39-sec-title-r">Projects</div><div class="section-block editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t39-exp-item"><div class="t39-exp-right"><div class="t39-exp-title">${p.title||p.name||''}</div><div class="t39-exp-desc">${p.tools||''}</div></div></div>`).join('')}</div>`:''}
+    ${projects.length?`<div class="t39-sec-title-r">Projects</div><div class="section-block editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t39-exp-item"><div class="t39-exp-right"><div class="t39-exp-title">${p.title||p.name||''}</div>${p.tools?`<div class="t39-exp-desc">Tools: ${p.tools}</div>`:''}${(p.description||p.details||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t39-exp-desc">• ${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div></div>`).join('')}</div>`:''}
     ${buildExtraSections(accent)}
   </div>
 </div>`;
@@ -4905,8 +5160,12 @@ function buildTemplate41Template({ resumeData: d, edu, skills, projects, experie
     const skillsHTML = skills.length ? skills.map(s=>`<div class="t41-skill-item"><div class="t41-skill-bullet" style="background:${accent};"></div>${typeof s==='string'?s:(s.name||s.skill||'')}</div>`).join('') : '';
     return `<div class="resume-t41">
   <div class="t41-top">
-    <div class="t41-top-bg" style="background:${accent};"></div>
-    <div class="t41-top-accent" style="background:#00bcd4;"></div>
+    <div class="t41-top-bg">
+      <svg class="t41-top-bg-svg" viewBox="0 0 240 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <polygon points="72,0 240,0 240,100 0,100" fill="${accent}"/>
+        <rect x="180" y="0" width="60" height="60" fill="#00bcd4"/>
+      </svg>
+    </div>
     <div style="margin:14px 0 0 16px;position:relative;z-index:2;">${photoHTML}</div>
     <div class="t41-header-info">
       <div class="t41-name editable-field" ${editBtn('fullName','Full Name',name)}>${name} <span class="edit-pen">✏</span></div>
@@ -4926,7 +5185,7 @@ function buildTemplate41Template({ resumeData: d, edu, skills, projects, experie
     <div class="t41-right">
       ${summary?`<div class="t41-sec-title" style="color:${accent};border-color:${accent};">Profile</div><div class="t41-profile-text editable-field section-block" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
       ${experience.length?`<div class="t41-sec-title" style="color:${accent};border-color:${accent};">Experience</div><div class="section-block editable-field" ${editBtn('experienceJson','Experience','')}>${expHTML}</div>`:''}
-      ${projects.length?`<div class="t41-sec-title" style="color:${accent};border-color:${accent};margin-top:14px;">Projects</div><div class="section-block editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t41-job"><div class="t41-exp-co" style="color:${accent};">${p.title||p.name||''}</div><div class="t41-exp-role">${p.tools||''}</div></div>`).join('')}</div>`:''}
+      ${projects.length?`<div class="t41-sec-title" style="color:${accent};border-color:${accent};margin-top:14px;">Projects</div><div class="section-block editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t41-job"><div class="t41-exp-co" style="color:${accent};">${p.title||p.name||''}</div>${p.tools?`<div class="t41-exp-role">Tools: ${p.tools}</div>`:''}${(p.description||p.details||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t41-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')}</div>`:''}
       ${buildExtraSections(accent)}
     </div>
   </div>
@@ -4939,7 +5198,7 @@ function buildTemplate41Template({ resumeData: d, edu, skills, projects, experie
 function buildTemplate42Template({ resumeData: d, edu, skills, projects, experience, color }) {
     const accent = color || '#1d3557';
     const name=d.fullName||''; const title=d.jobTitle||''; const email=d.email||''; const phone=d.phone||''; const addr=d.address||d.location||''; const linkedin=d.linkedin||''; const summary=d.profileSummary||'';
-    const photoHTML = d.profilePhotoData ? `<img src="${d.profilePhotoData}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.4);display:block;margin:0 auto 10px;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>` : `<div class="t42-photo" style="background:${accent}88;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'?').charAt(0).toUpperCase()}</div>`;
+    const photoHTML = d.profilePhotoData ? `<img src="${d.profilePhotoData}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.4);display:block;margin:0 auto 10px;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>` : `<div class="t42-photo" style="cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'?').charAt(0).toUpperCase()}</div>`;
     const expHTML = experience.length ? experience.map(e=>`<div class="t42-tl-item"><div class="t42-tl-dot filled" style="border-color:${accent};background:${accent};"></div><div class="t42-exp-head"><span class="t42-exp-co" style="color:${accent};">${e.company||''}</span><span class="t42-exp-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</span></div><div class="t42-exp-role">${e.jobTitle||e.role||''}</div>${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t42-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('') : '';
     const eduHTML2 = edu.length ? edu.map(e=>`<div style="margin-bottom:9px;"><div style="font-size:10.5px;font-weight:700;color:${accent};">${e.degree||''}</div><div style="font-size:10px;color:#555;">${e.school||e.university||''}</div><div style="font-size:9.5px;color:#888;">${e.year||''}</div></div>`).join('') : '';
     const skillsHTML = skills.length ? skills.map(s=>`<div class="t42-skill-item"><div class="t42-skill-bullet" style="background:${accent};"></div>${typeof s==='string'?s:(s.name||s.skill||'')}</div>`).join('') : '';
@@ -4963,7 +5222,7 @@ function buildTemplate42Template({ resumeData: d, edu, skills, projects, experie
   <div class="t42-right">
     ${summary?`<div class="t42-sec-title-r" style="color:${accent};">Profile</div><div class="t42-profile-text editable-field section-block" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>`:''}
     ${experience.length?`<div class="t42-sec-title-r" style="color:${accent};">Experience</div><div class="t42-tl-wrap section-block editable-field" ${editBtn('experienceJson','Experience','')}><div class="t42-tl-line"></div>${expHTML}</div>`:''}
-    ${projects.length?`<div class="t42-sec-title-r" style="color:${accent};">Projects</div><div class="section-block editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t42-tl-item"><div class="t42-tl-dot" style="border-color:${accent};"></div><div class="t42-exp-co" style="color:${accent};">${p.title||p.name||''}</div><div class="t42-exp-role">${p.tools||''}</div></div>`).join('')}</div>`:''}
+    ${projects.length?`<div class="t42-sec-title-r" style="color:${accent};">Projects</div><div class="section-block editable-field" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t42-tl-item"><div class="t42-tl-dot" style="border-color:${accent};"></div><div class="t42-exp-co" style="color:${accent};">${p.title||p.name||''}</div>${p.tools?`<div class="t42-exp-role">Tools: ${p.tools}</div>`:''}${(p.description||p.details||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t42-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')}</div>`:''}
     ${buildExtraSections(accent)}
   </div>
 </div>`;
@@ -4975,7 +5234,7 @@ function buildTemplate42Template({ resumeData: d, edu, skills, projects, experie
 function buildTemplate43Template({ resumeData: d, edu, skills, projects, experience, color }) {
     const accent = color || '#f5c842';
     const name=d.fullName||''; const title=d.jobTitle||''; const email=d.email||''; const phone=d.phone||''; const addr=d.address||d.location||''; const linkedin=d.linkedin||''; const summary=d.profileSummary||'';
-    const photoHTML = d.profilePhotoData ? `<img src="${d.profilePhotoData}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid ${accent};display:block;margin:90px auto 14px;position:relative;z-index:2;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>` : `<div class="t43-photo-wrap" style="background:#6b8a9a;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'?').charAt(0).toUpperCase()}</div>`;
+    const photoHTML = d.profilePhotoData ? `<img src="${d.profilePhotoData}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid ${accent};display:block;margin:90px auto 14px;position:relative;z-index:2;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>` : `<div class="t43-photo-wrap" style="background:${accent};border-color:${accent};color:#2d2d2d;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'?').charAt(0).toUpperCase()}</div>`;
     const expHTML = experience.length ? experience.map(e=>`<div class="t43-tl-item"><div class="t43-tl-dot"></div><div class="t43-exp-head"><span class="t43-exp-co">${e.company||''}</span><span class="t43-exp-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</span></div><div class="t43-exp-role">${e.jobTitle||e.role||''}</div>${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t43-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('') : '';
     const skillsHTML = skills.length ? skills.map(s=>`<div class="t43-skill-item"><div class="t43-skill-bullet" style="background:${accent};"></div>${typeof s==='string'?s:(s.name||s.skill||'')}</div>`).join('') : '';
     const eduHTML2 = edu.length ? edu.map(e=>`<div style="margin-bottom:9px;"><div style="font-weight:700;font-size:10px;color:${accent};">${e.degree||''}</div><div style="font-size:9.5px;color:rgba(255,255,255,0.65);">${e.school||e.university||''}</div><div style="font-size:9px;color:rgba(255,255,255,0.5);">${e.year||''}</div></div>`).join('') : '';
@@ -4997,7 +5256,7 @@ function buildTemplate43Template({ resumeData: d, edu, skills, projects, experie
   </div>
   <div class="t43-right">
     <div class="t43-right-deco-gy"></div>
-    <div class="t43-right-deco-y" style="background:${accent};opacity:0.5;"></div>
+    <div class="t43-right-deco-y" style="background:${accent};opacity:1;"></div>
     <div class="t43-header-info">
       <div class="t43-name editable-field" ${editBtn('fullName','Full Name',name)}>${name} <span class="edit-pen">✏</span></div>
       <div class="t43-title editable-field" ${editBtn('jobTitle','Job Title',title)}>${title} <span class="edit-pen">✏</span></div>
@@ -5433,6 +5692,9 @@ function buildTemplate49Template({ resumeData: d, edu, skills, projects, experie
     const expHTML = experience.length
         ? experience.map(e=>`<div class="t49-job"><div class="t49-job-title">${e.jobTitle||e.role||e.title||''}</div><div class="t49-job-co" style="color:${accent};">${e.company||''}</div><div class="t49-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div>${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t49-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
+    const projectHTML = projects.length
+        ? projects.map(p=>`<div class="t49-job"><div class="t49-job-title">${p.title||p.name||''}</div>${p.tools?`<div class="t49-job-co" style="color:${accent};">Tools: ${p.tools}</div>`:''}${(p.year||p.date)?`<div class="t49-job-date">${p.year||p.date}</div>`:''}${(p.description||p.details||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t49-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')
+        : '';
 
     return `<div class="resume-t49">
   <div class="t49-header">
@@ -5456,6 +5718,10 @@ function buildTemplate49Template({ resumeData: d, edu, skills, projects, experie
       <div class="section-block" id="rv-experience-section">
         <div class="editable-field" ${editBtn('experienceJson','Work Experience','')}>${expHTML} <span class="edit-pen">✏</span></div>
       </div>
+      ${projects.length?`<div class="t49-sec-title">Projects</div>
+      <div class="section-block" id="rv-projects-section">
+        <div class="editable-field" ${editBtn('projectsJson','Projects','')}>${projectHTML} <span class="edit-pen">✏</span></div>
+      </div>`:''}
     </div>
     <div class="t49-right">
       <div class="t49-sec-title">Education</div>
@@ -6418,7 +6684,7 @@ function buildTanyaTemplate({ resumeData: d, edu, skills, projects, experience, 
             <div class="editable-field" ${editBtn('educationJson','Education','')}>${eduHTML} <span class="edit-pen">✏</span></div>
         </div>
         <div style="flex:1;background:#fff;padding:28px 24px;position:relative;overflow:hidden;">
-            <div style="position:absolute;top:0;right:0;width:60px;height:90px;background:${accent};clip-path:polygon(0 0,100% 0,100% 100%);"></div>
+            <div style="position:absolute;top:0;right:0;width:0;height:0;border-style:solid;border-width:90px 0 0 60px;border-color:${accent} transparent transparent transparent;"></div>
             ${rSecTitle('Profile')}
             <div class="editable-field section-block" ${editBtn('profileSummary','Profile Summary',d.profileSummary||'')}><p style="font-size:13px;color:#374151;line-height:1.65;margin:0;cursor:pointer;" class="editable-field" ${editBtn('profileSummary','Summary',d.profileSummary||'')}>${summary} <span class="edit-pen">✏</span <span class="edit-pen">✏</span></p></div>
             ${rSecTitle('Career')}
@@ -6698,6 +6964,11 @@ function buildExtraSections(color, titleStyle = '', includeSavedOptionals = fals
     ];
     const sections = new Map();
 
+    // Track which underlying data fields (e.g. 'certifications') already have a
+    // section queued, so aliases like 'certificates' / 'certifications' that both
+    // point at the same field never produce two identical blocks.
+    const usedFields = new Set();
+
     Object.entries(activeSections).forEach(([name, show]) => {
         if (!show) return;
         const key = (name || '').toLowerCase().trim();
@@ -6706,6 +6977,9 @@ function buildExtraSections(color, titleStyle = '', includeSavedOptionals = fals
         const optionalField = optionalMatch && (resumeData[optionalMatch[2]] || '').toString().trim()
             ? optionalMatch[2]
             : null;
+        const dedupeKey = optionalMatch ? optionalMatch[2] : key;
+        if (usedFields.has(dedupeKey)) return; // already added via an alias
+        usedFields.add(dedupeKey);
         sections.set(key, {
             key,
             name: optionalMatch ? optionalMatch[1] : name,
@@ -6716,15 +6990,18 @@ function buildExtraSections(color, titleStyle = '', includeSavedOptionals = fals
     if (includeSavedOptionals) {
         optionalFields.forEach(([key, label, field]) => {
             if (builtIn.includes(key)) return;
-            if (sections.has(key)) return;
+            if (usedFields.has(field)) return;
             if (!(resumeData[field] || '').toString().trim()) return;
+            usedFields.add(field);
             sections.set(key, { key, name: label, contentKey: field });
         });
 
         Object.keys(resumeData || {}).forEach(field => {
             if (!/^extra_/i.test(field) || !(resumeData[field] || '').toString().trim()) return;
+            if (usedFields.has(field)) return;
             const key = field.replace(/^extra_/i, '').replace(/_/g, ' ').trim().toLowerCase();
             if (!key || sections.has(key)) return;
+            usedFields.add(field);
             const label = key.replace(/\b\w/g, ch => ch.toUpperCase());
             sections.set(key, { key, name: label, contentKey: field });
         });
@@ -6755,6 +7032,10 @@ function buildExtraSections(color, titleStyle = '', includeSavedOptionals = fals
 function ensureExtraSectionsRendered(doc, color) {
     if (!doc) return;
 
+    // Guard against double-invocation within the same render pass (e.g. a
+    // re-render race) leaving stale extra-section blocks — always start clean.
+    doc.querySelectorAll('.rv-extra-sections-host').forEach(el => el.remove());
+
     const extraHtml = buildExtraSections(color || currentColor || '#7c3aed', '', true);
     if (!extraHtml.trim()) return;
 
@@ -6781,27 +7062,79 @@ function ensureExtraSectionsRendered(doc, color) {
         return;
     }
 
-    const mainColumn = doc.querySelector([
-        '.t11-right',
-        '.t12-br',
-        '.t13-right',
-        '.t14-right',
-        '.t15-right',
-        '.t16-left',
-        '.t18-col-left',
-        '.t20-main',
-        '.right-col',
-        '.right-column',
-        '.main-col',
-        '.main-column',
-        '.resume-main',
-        '.content',
-        '[class*="-right"]',
-        '[class*="-main"]',
-        '[class*="-body"]'
-    ].join(', '));
+    (findExtraSectionsAnchorColumn(doc) || doc).appendChild(wrapper);
+}
 
-    (mainColumn || doc).appendChild(wrapper);
+// Finds the real content column to append extra (Certifications/Awards/etc.)
+// sections into. Precise, known-good selectors are tried one at a time, in
+// priority order — NOT as a single combined querySelector(). A combined
+// selector list returns whichever match appears *earliest in the DOM*, which
+// previously meant a decorative header/photo box (e.g. ".t12-top-right", a
+// 160px-wide photo panel) could win over the real content column
+// (".t12-br") just because it happens to sit higher up in the markup and its
+// class name also happens to contain "-right". That bug squeezed whole
+// sections into a tiny decorative box, breaking the layout.
+function findExtraSectionsAnchorColumn(doc) {
+    const precise = [
+        '.t11-right', '.t12-br', '.t13-right', '.t14-right', '.t15-right',
+        '.t16-left', '.t18-col-left', '.t20-main',
+        // These templates render their real content (Experience/Projects) in
+        // the column named below — the *other* column is a narrow fixed-width
+        // sidebar (Contact/Skills/Languages). Getting this backwards, or
+        // falling through to the generic fallback below, causes the extra
+        // sections (Certifications/Awards) to be appended as a THIRD sibling
+        // inside the template's flex row (".txx-body"), stealing width from
+        // the real content column and crushing its text to one word per line.
+        '.t27-left',   // t27: main content is LEFT, right is the 180px sidebar
+        '.t31-right', '.t33-right', '.t34-right', '.t35-right',
+        '.t37-right', '.t40-right', '.t41-right',
+        // t10's sidebar (Education) is an unclassed inline-styled div sitting
+        // next to ".t10-exp-col" inside ".t10-main-cols", which itself sits
+        // inside ".t10-body" — both ".t10-body" and ".t10-main-cols" match the
+        // generic "-body"/"-main" fallback patterns below and would otherwise
+        // be picked (as the outer wrapper) over the real content column,
+        // squeezing it and pushing the appended block flush to the page edge.
+        '.t10-exp-col',
+        // t32/t39 already resolve correctly through the generic fallback, but
+        // are pinned here for robustness since both alternate columns match
+        // the generic "-left"/"-right" patterns too.
+        '.t32-right', '.t39-right',
+        '.right-col', '.right-column', '.main-col', '.main-column',
+        '.resume-main', '.content'
+    ];
+    for (const sel of precise) {
+        const el = doc.querySelector(sel);
+        if (el) return el;
+    }
+
+    // Generic fallback for any other template: among elements whose class
+    // merely *contains* -right/-main/-body/-left, exclude obviously
+    // decorative header/photo/banner pieces, then pick the one with the most
+    // existing text content — a real content column always has far more
+    // text than a small photo/banner box.
+    //
+    // Also drop any candidate that *contains another candidate* as a
+    // descendant (e.g. a ".txx-body" flex row wrapping both ".txx-left" and
+    // ".txx-right"). That outer wrapper's textContent is always the largest
+    // since it includes both columns' text, so without this guard the sort
+    // below would pick the wrapper over the real column — and appending the
+    // extra-sections block as a third flex child of that row squeezes both
+    // real columns instead of extending the actual content column.
+    const decorativeHint = /-(top|header|photo|avatar|hero|banner|bg|accent|geo|blob)(?:[-\s]|$)/i;
+    let candidates = Array.from(doc.querySelectorAll(
+        '[class*="-right"], [class*="-main"], [class*="-body"], [class*="-left"]'
+    )).filter(el => !decorativeHint.test(el.className));
+
+    if (candidates.length > 1) {
+        candidates = candidates.filter(el => !candidates.some(other => other !== el && el.contains(other)));
+    }
+
+    if (candidates.length) {
+        candidates.sort((a, b) => (b.textContent || '').length - (a.textContent || '').length);
+        return candidates[0];
+    }
+
+    return null;
 }
 
 function hasRenderedSectionTitle(doc, rawKey) {
@@ -6823,14 +7156,33 @@ function hasRenderedSectionTitle(doc, rawKey) {
         '.section-block > div:first-child',
         '[class*="-sec-title"]',
         '[class*="section-title"]',
+        '[class*="sec-title"]',
+        '[class*="section-head"]',
         'h1',
         'h2',
         'h3',
         'h4'
     ].join(','));
-    return Array.from(titleNodes).some(node => {
+    const matchesAlias = node => {
         const text = normalizeSectionKey((node.textContent || '').replace(/[^\w\s/&-]/g, ' '));
         return accepted.some(alias => text === normalizeSectionKey(alias));
+    };
+    if (Array.from(titleNodes).some(matchesAlias)) return true;
+
+    // Fallback for "exact gallery" templates whose real markup doesn't use any
+    // of the class patterns above: scan any short, heading-like leaf element for
+    // an exact alias match, so we don't append a second copy of a section that's
+    // already baked into the design. Many templates only look ALL-CAPS via CSS
+    // text-transform (e.g. "Certifications" in the DOM, styled uppercase) —
+    // matchesAlias() already compares case-insensitively, so we don't require
+    // the raw text itself to be uppercase here; that used to cause false
+    // negatives that led to duplicated/misplaced sections.
+    const candidates = doc.querySelectorAll('div, span, p');
+    return Array.from(candidates).some(node => {
+        if (node.children.length > 0) return false; // only leaf text nodes
+        const raw = (node.textContent || '').trim();
+        if (!raw || raw.length > 40) return false;
+        return matchesAlias(node);
     });
 }
 
@@ -6965,22 +7317,6 @@ function buildPhotoTab(d) {
         </label>
         ${hasPhoto ? `<br><button class="ep-remove-btn" onclick="removeReviewPhoto()">🗑 Remove Photo</button>` : ''}
         <p style="font-size:11px;color:#9ca3af;margin-top:10px;">JPG, PNG supported · Max 5MB</p>
-      </div>
-      <h4 class="ep-section-title">Photo Shape & Size</h4>
-      <div class="ep-row">
-        <div class="ep-field">
-          <label class="ep-label">Shape</label>
-          <select class="ep-select" id="ep_photoShape" onchange="livePreviewPhoto()">
-            <option value="circle" ${(d.photoShape||'circle')==='circle'?'selected':''}>⬤ Circle</option>
-            <option value="square" ${d.photoShape==='square'?'selected':''}>▶  Square</option>
-          </select>
-        </div>
-        <div class="ep-field">
-          <label class="ep-label">Size: <span id="ep_photoSizeVal">${d.photoSize||88}px</span></label>
-          <input type="range" min="50" max="150" value="${d.photoSize||88}" id="ep_photoSize"
-                 oninput="document.getElementById('ep_photoSizeVal').textContent=this.value+'px'"
-                 style="width:100%;">
-        </div>
       </div>
       <button class="ep-save-btn" onclick="savePhotoTab()">💾 Save Changes</button>
     </div>`;
@@ -7424,12 +7760,7 @@ function saveProjectsTab() {
 
 // ── Single-field save helpers ──
 function savePhotoTab() {
-    const shape = document.getElementById('ep_photoShape')?.value || 'circle';
-    const size  = +(document.getElementById('ep_photoSize')?.value || 88);
-    resumeData.photoShape = shape;
-    resumeData.photoSize  = size;
-    persistFields({ photoShape: shape, photoSize: size });
-    renderResume(); closeEditModal(); showToast('✓ Photo settings saved!');
+    renderResume(); closeEditModal(); showToast('✓ Photo saved!');
 }
 function savePersonalTab() {
     const fields = ['fullName','jobTitle','dob','gender','nationality','location'];
@@ -7464,158 +7795,14 @@ function saveExtraTab() {
 }
 
 // ── Persist helpers ──
-// D_RES07 FIX: previously these were no-ops whenever resumeId was still null
-// (i.e. before the resume had ever been saved to the server), which meant any
-// edits made on the Review/Preview page before a resume record existed were
-// held only in memory and silently discarded if the tab crashed or closed.
-// Now we lazily create the resume record on first edit so nothing is lost.
-async function ensureResumeId() {
-    if (resumeId) return resumeId;
-    try {
-        const res = await fetch(`${API_BASE}/create`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...resumeData, status: resumeData.status || 'DRAFT' })
-        });
-        const data = await res.json();
-        if (data && data.id) {
-            resumeId = data.id;
-            sessionStorage.setItem('pendingResumeId', resumeId);
-        }
-    } catch (e) { /* stay offline-safe; local backup still covers us */ }
-    return resumeId;
-}
-
 function persistField(key, val) {
-    hasUnsavedChanges = true;
-    backupResumeDataLocally();
-    ensureResumeId().then(id => {
-        if (!id) return;
-        fetch(`${API_BASE}/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({[key]:val}) })
-            .then(() => { hasUnsavedChanges = false; backupResumeDataLocally(); })
-            .catch(()=>{});
-    });
+    if (!resumeId) return;
+    fetch(`${API_BASE}/${resumeId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({[key]:val}) }).catch(()=>{});
 }
 function persistFields(obj) {
-    hasUnsavedChanges = true;
-    backupResumeDataLocally();
-    ensureResumeId().then(id => {
-        if (!id) return;
-        fetch(`${API_BASE}/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj) })
-            .then(() => { hasUnsavedChanges = false; backupResumeDataLocally(); })
-            .catch(()=>{});
-    });
+    if (!resumeId) return;
+    fetch(`${API_BASE}/${resumeId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj) }).catch(()=>{});
 }
-
-// ============================================================
-// AUTO-SAVE & CRASH RECOVERY (D_RES07 FIX)
-// Resolves: "Resume Preview page closes unexpectedly (crash/abrupt
-// closure) → edits are not saved and unsaved changes are lost."
-// Strategy:
-//   1. Every edit is immediately mirrored to localStorage (survives
-//      browser/app crashes, unlike sessionStorage which is tied to
-//      the tab session and can be wiped on abrupt closure).
-//   2. A periodic autosave pushes the current draft to the backend
-//      even if the user never clicks an explicit Save button.
-//   3. On page load, if a local backup newer than the loaded resume
-//      is found, it is automatically restored and the user is told.
-//   4. beforeunload warns about any not-yet-confirmed-saved changes.
-// ============================================================
-const AUTOSAVE_LOCAL_KEY_PREFIX = 'vsc_review_autosave_';
-let autosaveTimer = null;
-let lastAutosaveSentAt = 0;
-let hasUnsavedChanges = false;
-
-function autosaveLocalKey() {
-    // Group the local backup by resumeId when known, otherwise by a
-    // per-browser draft slot so pre-save edits can still be recovered.
-    return AUTOSAVE_LOCAL_KEY_PREFIX + (resumeId || 'draft');
-}
-
-function backupResumeDataLocally() {
-    try {
-        const snapshot = {
-            resumeId: resumeId || null,
-            templateName: currentTemplate,
-            savedAt: Date.now(),
-            data: resumeData
-        };
-        localStorage.setItem(autosaveLocalKey(), JSON.stringify(snapshot));
-        // Keep sessionStorage in sync too for same-tab flows that read it.
-        sessionStorage.setItem('resumeData', JSON.stringify(resumeData));
-    } catch (e) { /* storage full or unavailable — non-fatal */ }
-}
-
-function markUnsavedChanges() {
-    hasUnsavedChanges = true;
-    backupResumeDataLocally();
-}
-
-async function autosaveToServer() {
-    if (!hasUnsavedChanges) return;
-    const id = await ensureResumeId();
-    if (!id) return;
-    try {
-        await fetch(`${API_BASE}/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(resumeData)
-        });
-        hasUnsavedChanges = false;
-        lastAutosaveSentAt = Date.now();
-        backupResumeDataLocally();
-    } catch (e) { /* keep hasUnsavedChanges true; local backup still holds the data */ }
-}
-
-function startAutosaveLoop() {
-    if (autosaveTimer) clearInterval(autosaveTimer);
-    autosaveTimer = setInterval(autosaveToServer, 15000); // every 15s
-}
-
-function findRecoverableLocalBackup() {
-    try {
-        const raw = localStorage.getItem(autosaveLocalKey());
-        if (!raw) return null;
-        const snapshot = JSON.parse(raw);
-        if (!snapshot || !snapshot.data) return null;
-        return snapshot;
-    } catch (e) { return null; }
-}
-
-// Called once after the initial resume data has been loaded/rendered.
-function checkForUnsavedChangesRecovery() {
-    const backup = findRecoverableLocalBackup();
-    if (!backup) return;
-    const backupDataStr = JSON.stringify(backup.data);
-    const currentDataStr = JSON.stringify(resumeData);
-    if (backupDataStr === currentDataStr) return; // nothing to recover
-
-    // Only auto-restore recent backups (within 24h) to avoid resurrecting stale drafts.
-    const isRecent = backup.savedAt && (Date.now() - backup.savedAt) < 24 * 60 * 60 * 1000;
-    if (!isRecent) return;
-
-    resumeData = backup.data;
-    if (backup.templateName) currentTemplate = backup.templateName;
-    hasUnsavedChanges = true;
-    renderResume();
-    showToast('↺ Recovered unsaved changes from your last session.');
-    // Push the recovered draft to the server right away so it's safe again.
-    autosaveToServer();
-}
-
-window.addEventListener('beforeunload', function (e) {
-    if (!hasUnsavedChanges) return;
-    // Best-effort final save (may not always complete before unload).
-    autosaveToServer();
-    e.preventDefault();
-    e.returnValue = '';
-});
-
-document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'hidden' && hasUnsavedChanges) {
-        autosaveToServer();
-    }
-});
 
 // saveCurrentTabData — called before switching tabs so data isn't lost
 function saveCurrentTabData() {
@@ -8190,24 +8377,9 @@ function closeEditModal() {
 // AUTO SAVE DESIGN
 // ============================================================
 async function autosaveDesign() {
-    resumeData.templateName = currentTemplate;
-    resumeData.selectedColor = currentColor;
-    resumeData.fontFamily = currentFont;
-    resumeData.fontStyle = currentFontSize;
-    resumeData.sectionSpacing = currentSectionSpacing;
-    resumeData.letterSpacing = currentLetterSpacing;
-    resumeData.lineSpacing = currentLineSpacing;
-    resumeData.headerAlignment = currentHeaderAlignment;
-    resumeData.sectionOrder = JSON.stringify(currentSectionOrder);
-    resumeData.sectionLayoutJson = JSON.stringify(currentSectionSides);
-    resumeData.jobTitlePositionJson = JSON.stringify(currentJobTitlePosition);
-    hasUnsavedChanges = true;
-    backupResumeDataLocally();
-
-    const id = await ensureResumeId();
-    if (!id) return;
+    if (!resumeId) return;
     try {
-        await fetch(`${API_BASE}/${id}`, {
+        await fetch(`${API_BASE}/${resumeId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -8218,14 +8390,12 @@ async function autosaveDesign() {
                 sectionSpacing: currentSectionSpacing,
                 letterSpacing: currentLetterSpacing,
                 lineSpacing: currentLineSpacing,
-                headerAlignment: currentHeaderAlignment,
-                sectionOrder: JSON.stringify(currentSectionOrder),
-                sectionLayoutJson: JSON.stringify(currentSectionSides),
-                jobTitlePositionJson: JSON.stringify(currentJobTitlePosition)
+                headerAlignment: hasCustomHeaderAlignment ? currentHeaderAlignment : '',
+                sectionOrder: hasCustomSectionOrder ? JSON.stringify(normalizeSectionOrder(currentSectionOrder)) : '',
+                sectionLayoutJson: JSON.stringify(normalizeSectionSides(currentSectionSides)),
+                jobTitlePositionJson: JSON.stringify(normalizeJobTitlePosition(currentJobTitlePosition))
             })
         });
-        hasUnsavedChanges = false;
-        backupResumeDataLocally();
     } catch (e) {}
 }
 
@@ -8260,30 +8430,33 @@ async function confirmDownload() {
         showUpgradePlanPopup('DOWNLOAD_LIMIT');
         return;
     }
-    try {
-        const res = await fetch(`${API_BASE}/${resumeId}/download`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ format, fileName })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || data.success === false) {
-            closeDownloadModal();
-            if (data.requireLogin) {
-                redirectToLoginForDownload();
+    const numericResumeId = String(resumeId || '').trim();
+    if (/^\d+$/.test(numericResumeId)) {
+        try {
+            const res = await fetch(`${API_BASE}/${numericResumeId}/download`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ format, fileName })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.success === false) {
+                closeDownloadModal();
+                if (data.requireLogin) {
+                    redirectToLoginForDownload();
+                    return;
+                }
+                if (data.upgradeRequired) {
+                    showUpgradePlanPopup(data.reason || 'DOWNLOAD_LIMIT');
+                    return;
+                }
+                showToast(data.message || 'Download failed. Please try again.', 'error');
                 return;
             }
-            if (data.upgradeRequired) {
-                showUpgradePlanPopup(data.reason || 'DOWNLOAD_LIMIT');
-                return;
-            }
-            showToast(data.message || 'Download failed. Please try again.', 'error');
+            resumeDownloads += 1;
+        } catch (e) {
+            showToast('Download failed. Check your connection.', 'error');
             return;
         }
-        resumeDownloads += 1;
-    } catch (e) {
-        showToast('Download failed. Check your connection.', 'error');
-        return;
     }
     closeDownloadModal();
     if (format === 'pdf') {
@@ -8364,6 +8537,14 @@ function buildResumePrintWindow(title, onReadyToast, closeAfterPrint) {
             break-inside: avoid;
             page-break-inside: avoid;
           }
+          .resume-doc h1, .resume-doc h2, .resume-doc h3, .resume-doc h4,
+          .resume-doc [class*="-sec-title"],
+          .resume-doc [class*="section-title"] {
+            break-after: avoid;
+            page-break-after: avoid;
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
           @media print {
             html, body { margin:0 !important; padding:0 !important; background:#fff !important; }
           }
@@ -8415,7 +8596,6 @@ function createResumePdfExportClone(resumeDoc) {
     const height = Math.ceil(resumeDoc.scrollHeight || rect.height || width * 1.4142);
 
     clone.querySelectorAll('.rv-stb, .rv-line-actions, .edit-pen, .photo-controls, .template-edit-btn, .extra-section-actions, .no-print-export, [data-rv-toolbar]').forEach(node => node.remove());
-    stripDragPreviewStyles(clone);
     clone.removeAttribute('contenteditable');
     clone.style.setProperty('width', width + 'px', 'important');
     clone.style.setProperty('max-width', width + 'px', 'important');
@@ -8447,20 +8627,6 @@ function createResumePdfExportClone(resumeDoc) {
     document.body.appendChild(wrapper);
 
     return { wrapper, clone, width, height };
-}
-
-function stripDragPreviewStyles(root) {
-    if (!root) return;
-    const dragSelector = '.rv-job-title-draggable, .rv-job-title-selected, .rv-job-title-dragging';
-    const nodes = root.matches?.(dragSelector) ? [root] : [];
-    nodes.push(...root.querySelectorAll(dragSelector));
-    nodes.forEach(node => {
-        node.classList.remove('rv-job-title-selected', 'rv-job-title-dragging');
-        node.style.setProperty('box-shadow', 'none', 'important');
-        node.style.setProperty('outline', 'none', 'important');
-        node.style.setProperty('outline-offset', '0', 'important');
-        node.style.setProperty('background', 'transparent', 'important');
-    });
 }
 
 function refreshPdfExportNodeSize(exportNode) {
@@ -8519,6 +8685,8 @@ function markPdfNoBreakElements(clone) {
         node.classList.add('no-break-heading');
         node.style.setProperty('break-after', 'avoid', 'important');
         node.style.setProperty('page-break-after', 'avoid', 'important');
+        node.style.setProperty('break-inside', 'avoid', 'important');
+        node.style.setProperty('page-break-inside', 'avoid', 'important');
     });
 }
 
@@ -8554,6 +8722,42 @@ function normalizePdfAvatarPlaceholders(clone) {
         avatar.style.setProperty('font-weight', '800', 'important');
         avatar.style.setProperty('line-height', '1', 'important');
     });
+}
+
+function getPdfHeadingKeepBlocks(clone, rootRect, headingSelector, repeatedPageHeightCss) {
+    const meaningfulSibling = node => {
+        let sibling = node ? node.nextElementSibling : null;
+        while (sibling) {
+            if (!sibling.matches || !sibling.matches('.rv-stb,.rv-line-actions,.edit-pen,.photo-controls,.template-edit-btn,.extra-section-actions,.no-print-export,[data-rv-toolbar]')) {
+                const text = (sibling.textContent || '').trim();
+                if (text || sibling.querySelector('img,svg,canvas')) return sibling;
+            }
+            sibling = sibling.nextElementSibling;
+        }
+        return null;
+    };
+
+    return Array.from(clone.querySelectorAll(headingSelector))
+        .map(node => {
+            const headingRect = node.getBoundingClientRect();
+            const sibling = meaningfulSibling(node);
+            const contentRect = sibling ? sibling.getBoundingClientRect() : null;
+            const top = Math.round(headingRect.top - rootRect.top);
+            const headingBottom = Math.round(headingRect.bottom - rootRect.top);
+            const contentBottom = contentRect ? Math.round(contentRect.bottom - rootRect.top) : headingBottom;
+            return {
+                top,
+                headingBottom,
+                keepBottom: Math.max(headingBottom, Math.min(contentBottom, headingBottom + 170))
+            };
+        })
+        .filter(block =>
+            block.headingBottom > block.top &&
+            block.top > 80 &&
+            block.keepBottom > block.headingBottom &&
+            block.keepBottom - block.top <= repeatedPageHeightCss * 0.45
+        )
+        .sort((a, b) => a.top - b.top);
 }
 
 function getPdfSafeBreaks(exportNode, pageHeightPx, scale, repeatedPageTopPaddingPx = 0) {
@@ -8596,6 +8800,7 @@ function getPdfSafeBreaks(exportNode, pageHeightPx, scale, repeatedPageTopPaddin
         .sort((a, b) => a.top - b.top);
     const candidates = protectedBlocks.map(block => block.top)
         .sort((a, b) => a - b);
+    const headingKeepBlocks = getPdfHeadingKeepBlocks(exportNode.clone, rootRect, headingSelector, repeatedPageHeightCss);
     const avoidBlocks = Array.from(exportNode.clone.querySelectorAll(avoidSelector))
         .map(node => {
             const rect = node.getBoundingClientRect();
@@ -8632,6 +8837,15 @@ function getPdfSafeBreaks(exportNode, pageHeightPx, scale, repeatedPageTopPaddin
         );
         if (!crossingBlock && tinyNextBlock) {
             safeCss = tinyNextBlock.top;
+        }
+        const orphanHeading = headingKeepBlocks.find(block =>
+            block.top >= minUsefulBreak &&
+            block.top < safeCss &&
+            block.keepBottom > safeCss &&
+            safeCss - block.top < 140
+        );
+        if (orphanHeading) {
+            safeCss = Math.max(minUsefulBreak, orphanHeading.top - 8);
         }
         safeBreaks.push(Math.round(safeCss * scale));
         currentStart = safeCss;
@@ -8739,6 +8953,41 @@ async function downloadAsPDF(fileName) {
         showToast('PDF download failed. Please try again.', 'error');
     }
 }
+
+function applyReviewDesignOverrides(doc) {
+    if (!doc) return;
+    const scaleMap = { small: 0.92, medium: 1, large: 1.12 };
+    const scale = scaleMap[currentFontSize] || 1;
+    const nodes = [doc, ...Array.from(doc.querySelectorAll('*'))];
+    nodes.forEach(node => {
+        if (!(node instanceof HTMLElement)) return;
+        if (node.closest('.rv-stb,.rv-line-actions,.photo-controls,.template-edit-btn,.extra-section-actions')) return;
+        node.style.setProperty('font-family', `${currentFont}, sans-serif`, 'important');
+        node.style.setProperty('letter-spacing', `${currentLetterSpacing}px`, 'important');
+        const computed = window.getComputedStyle(node);
+        const size = parseFloat(computed.fontSize);
+        if (Number.isFinite(size) && size > 0) {
+            node.style.setProperty('font-size', Math.max(7, size * scale).toFixed(2) + 'px', 'important');
+        }
+        node.style.setProperty('line-height', currentLineSpacing, 'important');
+    });
+    doc.querySelectorAll('.section-block, [id^="rv-section-"]').forEach(node => {
+        node.style.setProperty('margin-bottom', `${currentSectionSpacing}px`, 'important');
+    });
+}
+
+async function downloadPreviewAsPdf(fileName, successMessage) {
+    const safeName = sanitizeDownloadName(fileName) + '.pdf';
+    const pdf = await buildResumePdfDocument();
+    if (!pdf) return;
+    try {
+        pdf.save(safeName);
+        showToast(successMessage || '✓ Resume downloaded!');
+    } catch (err) {
+        console.error('Resume download failed:', err);
+        showToast('Download failed. Please try again.', 'error');
+    }
+}
 // Compatibility shim: some pages/buttons call downloadResumePdfNow() directly
 // (bypassing the format-selection modal) — wire it to the same working logic.
 function downloadResumePdfNow() {
@@ -8747,23 +8996,126 @@ function downloadResumePdfNow() {
 }
 window.downloadResumePdfNow = downloadResumePdfNow;
 // ── WORD (.docx) DOWNLOAD ────────────────────────────────────
-function downloadAsWord(fileName) {
+async function downloadAsWord(fileName) {
     const resumeDoc = document.getElementById('resumeDoc');
-    if (!resumeDoc) { showToast('Resume preview is not ready.', 'error'); return; }
+    if (!resumeDoc) {
+        showToast('Resume preview is not ready.', 'error');
+        return;
+    }
+    try {
+        showToast('Preparing exact Word file...');
+        const zip = await buildPreviewImageDocxPackage(resumeDoc);
+        const blob = new Blob([zip], {
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+        downloadBlobAsFile(blob, sanitizeDownloadName(fileName) + '.docx');
+        showToast('✓ Word file downloaded!');
+    } catch (err) {
+        console.error('Word download failed:', err);
+        showToast('Word download failed. Please try again.', 'error');
+    }
+}
 
-    const docxBytes = buildDocxPackageFromHtml(buildResumeWordHtml(resumeDoc));
-    const blob = new Blob([docxBytes], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    });
-    const url = URL.createObjectURL(blob);
-    const a   = document.createElement('a');
-    a.href     = url;
-    a.download = sanitizeDownloadName(fileName) + '.docx';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast('✓ Word document downloaded!');
+async function renderResumeForWordImages(resumeDoc) {
+    const exportNode = createResumePdfExportClone(resumeDoc);
+    try {
+        let rendered = await renderResumePdfCanvas(exportNode);
+        const tinyTailCss = rendered.lastPageContentPx / rendered.scale;
+        if (rendered.sliceStarts.length > 1 && tinyTailCss > 0 && tinyTailCss < 180) {
+            applyPdfCompactMode(exportNode);
+            const compactRendered = await renderResumePdfCanvas(exportNode);
+            if (compactRendered.sliceStarts.length < rendered.sliceStarts.length || compactRendered.lastPageContentPx >= rendered.lastPageContentPx) {
+                rendered = compactRendered;
+            }
+        }
+        return rendered;
+    } finally {
+        exportNode.wrapper.remove();
+    }
+}
+
+function dataUrlToBytes(dataUrl) {
+    const base64 = String(dataUrl || '').split(',')[1] || '';
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+}
+
+function buildWordPageImagesFromRenderedCanvas(rendered) {
+    const { canvas, pageWidth, pageHeight, repeatedPageTopPadding, sliceStarts } = rendered;
+    const pageCanvas = document.createElement('canvas');
+    const pageCtx = pageCanvas.getContext('2d');
+    pageCanvas.width = pageWidth;
+    pageCanvas.height = pageHeight;
+    const pages = [];
+
+    for (let pageIndex = 0; pageIndex < sliceStarts.length - 1; pageIndex++) {
+        const renderedHeight = sliceStarts[pageIndex];
+        const pageTopPadding = pageIndex === 0 ? 0 : repeatedPageTopPadding;
+        const availablePageHeight = pageHeight - pageTopPadding;
+        const sliceHeight = Math.min(availablePageHeight, sliceStarts[pageIndex + 1] - renderedHeight);
+        if (sliceHeight <= 0) continue;
+        pageCtx.fillStyle = '#ffffff';
+        pageCtx.fillRect(0, 0, pageWidth, pageHeight);
+        pageCtx.drawImage(canvas, 0, renderedHeight, pageWidth, sliceHeight, 0, pageTopPadding, pageWidth, sliceHeight);
+        pages.push(dataUrlToBytes(pageCanvas.toDataURL('image/jpeg', 0.98)));
+    }
+    return pages;
+}
+
+async function buildPreviewImageDocxPackage(resumeDoc) {
+    const rendered = await renderResumeForWordImages(resumeDoc);
+    const images = buildWordPageImagesFromRenderedCanvas(rendered);
+    if (!images.length) throw new Error('No rendered Word pages');
+    return buildDocxPackageFromImages(images);
+}
+
+function buildDocxPackageFromImages(images) {
+    const pageWidthTwips = 11906;
+    const pageHeightTwips = 16838;
+    const pageWidthEmu = 7560310;
+    const pageHeightEmu = 10692130;
+    const rels = images.map((_, index) =>
+        `<Relationship Id="rId${index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/page${index + 1}.jpg"/>`
+    ).join('');
+    const paragraphs = images.map((_, index) => {
+        const relId = `rId${index + 1}`;
+        const pageBreak = index < images.length - 1 ? '<w:r><w:br w:type="page"/></w:r>' : '';
+        return `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${pageWidthEmu}" cy="${pageHeightEmu}"/><wp:docPr id="${index + 1}" name="Resume page ${index + 1}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${index + 1}" name="Resume page ${index + 1}.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${pageWidthEmu}" cy="${pageHeightEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>${pageBreak}</w:p>`;
+    }).join('');
+    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+            xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+            xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+            xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+  <w:body>
+    ${paragraphs}
+    <w:sectPr>
+      <w:pgSz w:w="${pageWidthTwips}" w:h="${pageHeightTwips}"/>
+      <w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0" w:header="0" w:footer="0" w:gutter="0"/>
+    </w:sectPr>
+  </w:body>
+</w:document>`;
+    const files = [
+        ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="jpg" ContentType="image/jpeg"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`],
+        ['_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`],
+        ['word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`],
+        ['word/document.xml', documentXml],
+        ...images.map((bytes, index) => [`word/media/page${index + 1}.jpg`, bytes])
+    ];
+    return createZip(files);
 }
 
 function cloneResumeWithInlineStyles(resumeDoc) {
@@ -8773,24 +9125,56 @@ function cloneResumeWithInlineStyles(resumeDoc) {
     const removeSelector = '.rv-stb, .rv-line-actions, .edit-pen, .photo-controls, .template-edit-btn, .extra-section-actions, .no-print-export, [data-rv-toolbar]';
 
     clone.querySelectorAll(removeSelector).forEach(node => node.remove());
-    stripDragPreviewStyles(clone);
     clone.classList.add('resume-doc-word-export');
 
+    // Word's .docx HTML importer (altChunk) has no concept of CSS flexbox,
+    // grid, position:absolute or clip-path. Left untouched, every
+    // multi-column template collapses into one plain stacked column and
+    // decorative shapes disappear or float in the wrong place — this is
+    // why the downloaded Word file looked so different from the on-screen
+    // preview. We translate flex rows into display:table / table-cell,
+    // which Word DOES understand and lays out side-by-side like a table.
     sourceNodes.forEach((sourceNode, index) => {
         const cloneNode = cloneNodes[index];
         if (!cloneNode || cloneNode.nodeType !== 1) return;
         if (sourceNode.matches && sourceNode.matches(removeSelector)) return;
         const computed = window.getComputedStyle(sourceNode);
+        const display = computed.getPropertyValue('display');
+        const position = computed.getPropertyValue('position');
         let inline = '';
         for (let i = 0; i < computed.length; i++) {
             const property = computed[i];
-            inline += `${property}:${computed.getPropertyValue(property)};`;
+            let value = computed.getPropertyValue(property);
+            if (property === 'display' && value === 'flex') value = 'table';
+            if (property === 'display' && value === 'inline-flex') value = 'table';
+            inline += `${property}:${value};`;
         }
         cloneNode.setAttribute('style', inline);
         cloneNode.removeAttribute('contenteditable');
         cloneNode.removeAttribute('onclick');
         cloneNode.removeAttribute('oninput');
         cloneNode.removeAttribute('onchange');
+
+        if (display === 'flex' || display === 'inline-flex') {
+            Array.from(sourceNode.children).forEach((childSource, childIdx) => {
+                const childClone = cloneNode.children[childIdx];
+                if (!childClone) return;
+                const childComputed = window.getComputedStyle(childSource);
+                const w = childComputed.getPropertyValue('width');
+                childClone.style.display = 'table-cell';
+                childClone.style.verticalAlign = childComputed.getPropertyValue('align-items') === 'center' ? 'middle' : 'top';
+                if (w && w !== 'auto') childClone.style.width = w;
+            });
+        }
+
+        // Decorative, empty, absolutely-positioned shapes (corner
+        // triangles, background blobs) have no text content and Word has
+        // no way to render clip-path or absolute positioning, so they
+        // just show up as a stray solid box in the wrong place. Drop them
+        // from the Word export rather than ship a visual artifact.
+        if (position === 'absolute' && !sourceNode.textContent.trim() && sourceNode.children.length === 0) {
+            cloneNode.remove();
+        }
     });
 
     clone.querySelectorAll('img').forEach(img => {
@@ -8853,6 +9237,17 @@ function sanitizeDownloadName(fileName) {
         .replace(/[\\/:*?"<>|]/g, '')
         .replace(/\.(pdf|docx|txt)$/i, '')
         .trim() || 'My_Resume';
+}
+
+function downloadBlobAsFile(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 function wordXmlEscape(value) {
@@ -9024,7 +9419,7 @@ function createZip(files) {
 
     files.forEach(([name, content]) => {
         const nameBytes = encoder.encode(name);
-        const data = encoder.encode(content);
+        const data = content instanceof Uint8Array ? content : encoder.encode(content);
         const crc = crc32(data);
         const localHeader = [
             ...u32(0x04034b50), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
@@ -9061,6 +9456,13 @@ function createZip(files) {
 
 // ── PLAIN TEXT (.txt) DOWNLOAD ──────────────────────────────
 function downloadAsPlainText(fileName) {
+    const text = buildPlainTextFromPreview() || buildPlainTextFromResumeData();
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    downloadBlobAsFile(blob, sanitizeDownloadName(fileName) + '.txt');
+    showToast('✓ Text file downloaded!');
+}
+
+function buildPlainTextFromResumeData() {
     const d = resumeData;
     const line  = (char, len) => char.repeat(len || 60);
     const head  = (title)     => `\n${line('─')}\n  ${title.toUpperCase()}\n${line('─')}\n`;
@@ -9171,18 +9573,164 @@ function downloadAsPlainText(fileName) {
         text += d.interests.trim() + '\n';
     }
 
-    text += `\n${line('═')}\n`;
+    // Any other sections shown on the live resume (Tools, Qualities,
+    // References, and any custom sections added via "Add Section") that
+    // aren't already covered above — keeps the .txt file in sync with
+    // what's actually on the resume instead of a fixed hard-coded list.
+    const alreadyHandled = new Set(['profilesummary','skillsjson','experiencejson','educationjson',
+        'projectsjson','certifications','awards','languages','interests']);
+    const extraLabels = {
+        tools: 'Tools', qualities: 'Qualities', references: 'References',
+        honors: 'Honors & Awards', publications: 'Publications', training: 'Training',
+        achievements: 'Achievements'
+    };
+    Object.keys(d || {}).forEach(field => {
+        const value = (d[field] || '').toString().trim();
+        if (!value) return;
+        const key = field.toLowerCase();
+        if (alreadyHandled.has(key)) return;
+        let label = null;
+        if (/^extra_/i.test(field)) {
+            label = field.replace(/^extra_/i, '').replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+        } else if (extraLabels[key]) {
+            label = extraLabels[key];
+        }
+        if (!label) return;
+        alreadyHandled.add(key);
+        text += head(label);
+        text += value.split('\n').map(l => `  • ${l.trim()}`).filter(l => l.trim() !== '•').join('\n') + '\n';
+    });
 
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = fileName + '.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast('✓ Text file downloaded!');
+    text += `\n${line('═')}\n`;
+    return text;
+}
+
+function buildPlainTextFromPreview() {
+    const resumeDoc = document.getElementById('resumeDoc');
+    if (!resumeDoc) return '';
+    const controls = '.rv-stb,.rv-line-actions,.edit-pen,.photo-controls,.template-edit-btn,.extra-section-actions,.no-print-export,[data-rv-toolbar]';
+    const lines = [];
+    const seen = new Set();
+    const sectionAliases = /^(profile|profile summary|summary|about me|skills|experience|work experience|education|projects|certifications|certificates|awards|languages|interests|contact|tools|qualities)$/i;
+
+    const normalize = value => String(value || '')
+        .replace(/\s+/g, ' ')
+        .replace(/\s+✏\s*$/g, '')
+        .trim();
+    const addLine = (value, opts = {}) => {
+        let text = normalize(value);
+        if (!text || text === '✏') return;
+        if (/^(edit|delete|save|download|print resume|share via email)$/i.test(text)) return;
+        if (opts.bullet && !/^[•\-]/.test(text)) text = '- ' + text;
+        if (opts.heading) text = text.toUpperCase();
+        const key = `${opts.heading ? 'h' : opts.bullet ? 'b' : 'p'}:${text}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        if (opts.heading && lines.length) lines.push('');
+        lines.push(opts.indent ? '  ' + text : text);
+    };
+
+    Array.from(resumeDoc.querySelectorAll('*')).forEach(node => {
+        if (!(node instanceof HTMLElement) || node.closest(controls)) return;
+        const style = window.getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return;
+        const directText = Array.from(node.childNodes)
+            .filter(child => child.nodeType === Node.TEXT_NODE)
+            .map(child => child.textContent)
+            .join(' ');
+        const text = normalize(directText);
+        if (!text) return;
+        const tag = node.tagName.toLowerCase();
+        const cls = (node.className || '').toString();
+        const isHeading = /^h[1-4]$/.test(tag)
+            || /section-title|sec-title|sidebar-title|rv-normalized-core-title/i.test(cls)
+            || sectionAliases.test(text);
+        const isBullet = /^li$/.test(tag) || /bullet|item/i.test(cls);
+        addLine(text, { heading: isHeading, bullet: isBullet, indent: isBullet });
+    });
+
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function buildAlignedPlainTextFromPreview() {
+    const resumeDoc = document.getElementById('resumeDoc');
+    if (!resumeDoc) return '';
+    const controls = '.rv-stb,.rv-line-actions,.edit-pen,.photo-controls,.template-edit-btn,.extra-section-actions,.no-print-export,[data-rv-toolbar]';
+    const docRect = resumeDoc.getBoundingClientRect();
+    if (!docRect.width || !docRect.height) return '';
+
+    const normalize = value => String(value || '')
+        .replace(/\s+/g, ' ')
+        .replace(/\s+✏\s*$/g, '')
+        .trim();
+    const isVisible = node => {
+        const style = window.getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        return style.display !== 'none'
+            && style.visibility !== 'hidden'
+            && Number(style.opacity) !== 0
+            && rect.width > 0
+            && rect.height > 0;
+    };
+    const hasTextChild = node => Array.from(node.children || []).some(child => {
+        if (!(child instanceof HTMLElement) || child.closest(controls) || !isVisible(child)) return false;
+        return normalize(child.textContent).length > 0;
+    });
+
+    const tokens = Array.from(resumeDoc.querySelectorAll('*'))
+        .filter(node => node instanceof HTMLElement && !node.closest(controls) && isVisible(node))
+        .map(node => {
+            const directText = Array.from(node.childNodes)
+                .filter(child => child.nodeType === Node.TEXT_NODE)
+                .map(child => child.textContent)
+                .join(' ');
+            const text = normalize(directText);
+            if (!text || text === '✏') return null;
+            if (/^(edit|delete|save|download|print resume|share via email)$/i.test(text)) return null;
+            if (hasTextChild(node) && text.length > 60) return null;
+            const rect = node.getBoundingClientRect();
+            return {
+                text,
+                x: Math.max(0, rect.left - docRect.left),
+                y: Math.max(0, rect.top - docRect.top),
+                w: rect.width,
+                h: rect.height
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => (a.y - b.y) || (a.x - b.x));
+
+    if (!tokens.length) return '';
+
+    const rowTolerance = Math.max(7, Math.min(14, docRect.height / 120));
+    const rows = [];
+    tokens.forEach(token => {
+        let row = rows.find(item => Math.abs(item.y - token.y) <= rowTolerance);
+        if (!row) {
+            row = { y: token.y, items: [] };
+            rows.push(row);
+        }
+        row.items.push(token);
+        row.y = (row.y * (row.items.length - 1) + token.y) / row.items.length;
+    });
+
+    const targetCols = 96;
+    const charWidth = Math.max(5, docRect.width / targetCols);
+    return rows
+        .sort((a, b) => a.y - b.y)
+        .map(row => {
+            let line = '';
+            row.items.sort((a, b) => a.x - b.x).forEach(item => {
+                const col = Math.max(0, Math.round(item.x / charWidth));
+                const gap = Math.max(1, col - line.length);
+                line += ' '.repeat(gap) + item.text;
+            });
+            return line.trimEnd();
+        })
+        .filter(line => line.trim())
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
 }
 
 // ============================================================
@@ -9205,20 +9753,29 @@ async function printResume() {
     printWindow.location.href = url;
     setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
-async function shareEmail() {
-    if (!isLoggedIn) {
-        const lm = document.getElementById('loginRequiredModal');
-        if (lm) lm.style.display = 'flex';
-        return;
+function parseEmailRecipientsForShare(raw) {
+    const parts = String(raw || '')
+        .split(/[,;\n\r]+/)
+        .map(email => email.trim().toLowerCase())
+        .filter(Boolean);
+    if (!parts.length || parts.some(email => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+        return [];
     }
+    return parts.filter((email, index, list) => list.indexOf(email) === index);
+}
 
+async function shareEmail() {
     const defaultEmail = (resumeData.email || '').trim();
     const to = prompt('Enter recipient email address(es). Use comma, semicolon, or new line for multiple emails:', defaultEmail);
     if (to === null) return;
-    const recipient = to.trim();
-    const recipients = parseEmailRecipients(recipient);
+    const recipients = parseEmailRecipientsForShare(to);
     if (!recipients.length) {
         showToast('Please enter valid recipient email address(es).', 'error');
+        return;
+    }
+
+    if (!resumeId) {
+        showToast('Please save the resume before sharing.', 'error');
         return;
     }
 
@@ -9230,12 +9787,6 @@ async function shareEmail() {
     }
 
     try {
-        const id = await ensureResumeId();
-        if (!id) {
-            showToast('Please save the resume before sharing.', 'error');
-            return;
-        }
-
         showToast('Generating resume PDF...');
         const pdf = await buildResumePdfDocument();
         if (!pdf) return;
@@ -9245,14 +9796,21 @@ async function shareEmail() {
         formData.append('email', recipients.join(','));
         formData.append('pdf', pdf.output('blob'), fileName);
 
-        const res = await fetch(`${API_BASE}/${id}/share-email`, {
+        const res = await fetch(`${API_BASE}/${resumeId}/share-email`, {
             method: 'POST',
             body: formData
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.success === false) {
             if (res.status === 503 || /not configured/i.test(data.message || '')) {
-                await fallbackShareResumePdf(pdf.output('blob'), fileName, recipients.join(', '));
+                // Email isn't configured on the server — fall back to attaching manually.
+                pdf.save(fileName);
+                showToast('Email server is not configured. PDF downloaded — please attach it manually and send to: ' + recipients.join(', '), 'error');
+                return;
+            }
+            if (res.status === 401 || data.requireLogin) {
+                const lm = document.getElementById('loginRequiredModal');
+                if (lm) lm.style.display = 'flex';
                 return;
             }
             throw new Error(data.message || 'Could not send resume PDF.');
@@ -9267,62 +9825,6 @@ async function shareEmail() {
             shareBtn.innerHTML = oldText;
         }
     }
-}
-
-function parseEmailRecipients(raw) {
-    const parts = String(raw || '')
-        .split(/[,;\n\r]+/)
-        .map(email => email.trim().toLowerCase())
-        .filter(Boolean);
-    if (!parts.length || parts.some(email => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
-        return [];
-    }
-    return parts.filter((email, index, list) => list.indexOf(email) === index);
-}
-
-async function fallbackShareResumePdf(pdfBlob, fileName, recipient) {
-    const safeName = sanitizeDownloadName(fileName || 'My_Resume') + '.pdf';
-    const file = new File([pdfBlob], safeName, { type: 'application/pdf' });
-    if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
-        try {
-            await navigator.share({
-                files: [file],
-                title: 'Resume PDF',
-                text: `Please find my resume attached. Recipient: ${recipient}`
-            });
-            showToast('Resume PDF opened in your share options.');
-            return;
-        } catch (err) {
-            if (err && err.name === 'AbortError') return;
-        }
-    }
-
-    downloadBlobAsFile(pdfBlob, safeName);
-    showToast('Email server is not configured. PDF downloaded; attach it manually before sending.', 'error');
-    showManualPdfAttachNotice(recipient, safeName);
-}
-
-function downloadBlobAsFile(blob, fileName) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
-
-function showManualPdfAttachNotice(recipient, fileName) {
-    const message = [
-        'Email server is not configured, so VetriSmartCV cannot attach the PDF automatically.',
-        '',
-        `The PDF was downloaded as: ${fileName}`,
-        `Please attach that downloaded PDF manually before emailing ${recipient}.`,
-        '',
-        'For automatic PDF email delivery, configure Resend or SMTP mail settings on the server.'
-    ].join('\n');
-    alert(message);
 }
 async function saveResume() {
     if (!isLoggedIn) {
@@ -9340,10 +9842,10 @@ async function saveResume() {
             sectionSpacing: currentSectionSpacing,
             letterSpacing: currentLetterSpacing,
             lineSpacing: currentLineSpacing,
-            headerAlignment: currentHeaderAlignment,
-            sectionOrder: JSON.stringify(currentSectionOrder),
-            sectionLayoutJson: JSON.stringify(currentSectionSides),
-            jobTitlePositionJson: JSON.stringify(currentJobTitlePosition),
+            headerAlignment: hasCustomHeaderAlignment ? currentHeaderAlignment : '',
+            sectionOrder: hasCustomSectionOrder ? JSON.stringify(normalizeSectionOrder(currentSectionOrder)) : '',
+            sectionLayoutJson: JSON.stringify(normalizeSectionSides(currentSectionSides)),
+            jobTitlePositionJson: JSON.stringify(normalizeJobTitlePosition(currentJobTitlePosition)),
             status: 'COMPLETE',
             updatedAt: new Date().toISOString()
         };
@@ -9418,17 +9920,35 @@ document.addEventListener('click', (e) => {
 function updatePhotoSize(val) {
     resumeData.photoSize = parseInt(val);
     renderResume();
-    persistField('photoSize', resumeData.photoSize);
+    if (resumeId) {
+        fetch(`${API_BASE}/${resumeId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photoSize: resumeData.photoSize })
+        }).catch(() => {});
+    }
 }
 function updatePhotoShape(val) {
     resumeData.photoShape = val;
     renderResume();
-    persistField('photoShape', val);
+    if (resumeId) {
+        fetch(`${API_BASE}/${resumeId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photoShape: val })
+        }).catch(() => {});
+    }
 }
 function updatePhotoPosition(val) {
     resumeData.photoPosition = val;
     renderResume();
-    persistField('photoPosition', val);
+    if (resumeId) {
+        fetch(`${API_BASE}/${resumeId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photoPosition: val })
+        }).catch(() => {});
+    }
 }
 
 // ============================================================
@@ -9440,7 +9960,13 @@ function handleReviewPhotoUpload(event) {
     const reader = new FileReader();
     reader.onload = (e) => {
         resumeData.profilePhotoData = e.target.result;
-        persistField('profilePhotoData', e.target.result);
+        if (resumeId) {
+            fetch(`${API_BASE}/${resumeId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ profilePhotoData: e.target.result })
+            }).catch(err => console.error('Photo save error:', err));
+        }
         closeEditModal();
         renderResume();
         showToast('✓ Photo updated!');
@@ -9450,7 +9976,13 @@ function handleReviewPhotoUpload(event) {
 
 function removeReviewPhoto() {
     resumeData.profilePhotoData = '';
-    persistField('profilePhotoData', '');
+    if (resumeId) {
+        fetch(`${API_BASE}/${resumeId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profilePhotoData: '' })
+        }).catch(err => console.error('Photo remove error:', err));
+    }
     closeEditModal();
     renderResume();
     showToast('Photo removed.');
@@ -11646,8 +12178,8 @@ function buildTemplate17ProperTemplate({ resumeData: d, edu, skills, projects, e
     const summary = d.profileSummary || '';
 
     const photoHTML = d.profilePhotoData
-        ? `<img src="${d.profilePhotoData}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.15);cursor:pointer;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t17-photo-wrap" style="background:linear-gradient(135deg,${accent},#fbc2eb);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
+        ? `<img src="${d.profilePhotoData}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.15);cursor:pointer;display:block;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
+        : `<div class="t17-photo-wrap" style="background:#7c5cbf;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:900;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
 
     const skillDotsHTML = skills.length
         ? skills.map(s => {
@@ -11732,7 +12264,7 @@ function buildTemplate19ProperTemplate({ resumeData: d, edu, skills, projects, e
 
     const photoHTML = d.profilePhotoData
         ? `<img src="${d.profilePhotoData}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #fff;cursor:pointer;position:absolute;top:16px;left:20px;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t19-photo" style="background:linear-gradient(135deg,${accent},#8a9bc0);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
+        : `<div class="t19-photo" style="background:#6b7fa8;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
 
     const skillsHTML = skills.length
         ? skills.map(s => {
@@ -11817,7 +12349,7 @@ function buildTemplate22ProperTemplate({ resumeData: d, edu, skills, projects, e
 
     const photoHTML = d.profilePhotoData
         ? `<img src="${d.profilePhotoData}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin-bottom:10px;display:block;cursor:pointer;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t22-photo" style="background:linear-gradient(135deg,${accent},#81c784);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
+        : `<div class="t22-photo" style="background:linear-gradient(135deg,${accent},#81c784);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:900;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
 
     const skillsHTML = skills.length
         ? `<div class="t22-skill-list editable-field" ${editBtn('skillsJson','Skills',d.skillsJson||'[]')}>${skills.map(s=>`<div class="t22-skill">${typeof s==='string'?s:(s.name||s.skill||'')}</div>`).join('')}<span class="edit-pen" style="font-size:10px;">✏</span></div>`
@@ -11853,9 +12385,8 @@ function buildTemplate22ProperTemplate({ resumeData: d, edu, skills, projects, e
     <div class="t22-left-top">
       ${photoHTML}
       <div class="t22-name-left editable-field" style="cursor:pointer;" ${editBtn('fullName','Full Name',name)}>${name} <span class="edit-pen">✏</span></div>
+      <div class="t22-pos-desired editable-field" style="cursor:pointer;padding:0;margin-top:2px;" ${editBtn('jobTitle','Job Title',title)}>${title} <span class="edit-pen">✏</span></div>
     </div>
-    <div class="t22-green-btn" style="background:${accent};">Position</div>
-    <div class="t22-pos-desired editable-field" style="cursor:pointer;" ${editBtn('jobTitle','Job Title',title)}>${title} <span class="edit-pen">✏</span></div>
     <div class="t22-contact-section" style="margin-top:10px;">
       <div class="t22-green-btn" style="background:${accent};">Contact</div>
       ${phone ? `<div class="t22-contact-item editable-field" style="cursor:pointer;" ${editBtn('phone','Phone',phone)}>📞 ${phone} <span class="edit-pen">✏</span></div>` : ''}
@@ -11899,7 +12430,7 @@ function buildTemplate23ProperTemplate({ resumeData: d, edu, skills, projects, e
 
     const photoHTML = d.profilePhotoData
         ? `<img src="${d.profilePhotoData}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #fff;cursor:pointer;margin:0 auto 8px;display:block;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t23-photo" style="background:linear-gradient(135deg,${accent},#ffb74d);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
+        : `<div class="t23-photo" style="cursor:pointer;display:flex;align-items:center;justify-content:center;color:${accent};font-size:28px;font-weight:900;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
 
     const skillsHTML = skills.length
         ? skills.map(s => `<div class="t23-skill-item">${typeof s==='string'?s:(s.name||s.skill||'')}</div>`).join('')
@@ -11948,13 +12479,12 @@ function buildTemplate23ProperTemplate({ resumeData: d, edu, skills, projects, e
     </div>
   </div>
   <div class="t23-right">
-    <div class="t23-name editable-field" style="font-size:20px;font-weight:900;color:#1a1a2e;margin-bottom:4px;cursor:pointer;" ${editBtn('fullName','Full Name',name)}>${name} <span class="edit-pen">✏</span></div>
     ${summary ? `<div class="t23-orange-title" style="background:${accent};">About Me</div><div class="editable-field section-block" style="font-size:10px;color:#555;line-height:1.6;cursor:pointer;" ${editBtn('profileSummary','Profile Summary',summary)}>${summary} <span class="edit-pen">✏</span></div>` : ''}
     <div class="t23-orange-title" style="background:${accent};margin-top:12px;">Education</div>
     <div class="section-block editable-field" ${editBtn('educationJson','Education','')}>${eduHTML}<span class="edit-pen" style="font-size:10px;">✏</span></div>
     <div class="t23-orange-title" style="background:${accent};margin-top:12px;">Experience</div>
     <div class="section-block editable-field" id="rv-experience-section" ${editBtn('experienceJson','Experience','')}>${expHTML}<span class="edit-pen" style="font-size:10px;">✏</span></div>
-    ${projects.length ? `<div class="t23-orange-title" style="background:${accent};margin-top:12px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t23-job"><div class="t23-job-title">${p.title||p.name||''}</div><div class="t23-job-co">${p.tools||''}</div></div>`).join('')}<span class="edit-pen">✏</span></div>` : ''}
+    ${projects.length ? `<div class="t23-orange-title" style="background:${accent};margin-top:12px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t23-job"><div class="t23-job-title">${p.title||p.name||''}</div><div class="t23-job-co">${p.tools||''}</div>${(p.description||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t23-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')}<span class="edit-pen">✏</span></div>` : ''}
     ${buildExtraSections(accent)}
   </div>
 </div>`;
@@ -11973,8 +12503,8 @@ function buildTemplate28ProperTemplate({ resumeData: d, edu, skills, projects, e
     const summary = d.profileSummary || '';
 
     const photoHTML = d.profilePhotoData
-        ? `<img src="${d.profilePhotoData}" style="width:65px;height:65px;border-radius:50%;object-fit:cover;border:2px solid ${accent};cursor:pointer;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t28-photo" style="background:linear-gradient(135deg,#f48fb1,#ce93d8);cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
+        ? `<img src="${d.profilePhotoData}" style="width:65px;height:65px;border-radius:50%;object-fit:cover;border:2px solid ${accent};cursor:pointer;display:block;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
+        : `<div class="t28-photo" style="background:linear-gradient(135deg,#f48fb1,#ce93d8);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:900;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
 
     const skillsHTML = skills.length
         ? skills.map((s, i) => {
@@ -12031,7 +12561,7 @@ function buildTemplate28ProperTemplate({ resumeData: d, edu, skills, projects, e
       <div class="t28-col">
         <div class="t28-sec-title" style="color:${accent};">Education</div>
         <div class="section-block editable-field" ${editBtn('educationJson','Education','')}>${eduHTML}<span class="edit-pen" style="font-size:10px;">✏</span></div>
-        ${projects.length ? `<div class="t28-sec-title" style="color:${accent};margin-top:12px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t28-edu-item"><div><div class="t28-edu-title" style="font-style:italic;">${p.title||p.name||''}</div><div class="t28-edu-sub">${p.tools||''}</div></div></div>`).join('')}<span class="edit-pen">✏</span></div>` : ''}
+        ${projects.length ? `<div class="t28-sec-title" style="color:${accent};margin-top:12px;">Projects</div><div class="section-block editable-field" id="rv-projects-section" ${editBtn('projectsJson','Projects','')}>${projects.map(p=>`<div class="t28-edu-item"><div><div class="t28-edu-title" style="font-style:italic;">${p.title||p.name||''}</div><div class="t28-edu-sub">${p.tools||''}</div>${(p.description||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t28-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div></div>`).join('')}<span class="edit-pen">✏</span></div>` : ''}
         ${buildExtraSections(accent)}
       </div>
     </div>
@@ -12329,8 +12859,15 @@ function _injectIntoSection(el, field, label, canDelete) {
 
     const tb = _makeToolbar(field, label, canDelete, el);
 
-    // Show/hide toolbar on hover
+    // Show/hide toolbar on hover. Instead of letting the toolbar float on
+    // top of the heading text (which caused it to visually merge with
+    // headings like "CERTIFICATIONS"), we reserve real padding-top space
+    // sized to the toolbar's own height so it always sits cleanly above
+    // the heading with no overlap.
     el.addEventListener('mouseenter', () => {
+        const h = tb.offsetHeight || 34;
+        el.style.setProperty('--rv-tb-h', (h + 6) + 'px');
+        el.classList.add('rv-tb-active');
         tb.style.opacity = '1';
         tb.style.pointerEvents = 'auto';
         el.style.outline = '2px dashed rgba(124,58,237,0.3)';
@@ -12340,6 +12877,7 @@ function _injectIntoSection(el, field, label, canDelete) {
         tb.style.opacity = '0';
         tb.style.pointerEvents = 'none';
         el.style.outline = 'none';
+        el.classList.remove('rv-tb-active');
     });
 
     // Start hidden
@@ -12590,7 +13128,7 @@ function ensureExactTemplateStylesInjected() {
         /* Fix t1 (Vivid Pro) avatar overlap with header */
         .t1-header { overflow: visible !important; }
         .t1-identity { padding-top: 66px !important; position: relative !important; z-index: 1 !important; }
-        .t1-name { line-height: 1.15 !important; overflow-wrap: anywhere !important; }
+        .t1-name { line-height: 1.15 !important; overflow-wrap: break-word !important; }
         /* Ensure photo containers show images correctly */
         .t1-avatar-placeholder img,
         .t6-avatar-placeholder img,
@@ -12626,14 +13164,8 @@ function ensureExactTemplateStylesInjected() {
         #resumeDoc [class^="resume-t"],
         #resumeDoc [class*=" resume-t"] {
             box-sizing: border-box !important;
-            width: 100% !important;
-            max-width: 100% !important;
             overflow: visible !important;
             min-height: 860px !important;
-        }
-        #resumeDoc .t1-header,
-        #resumeDoc .t1-header-bg {
-            width: 100% !important;
         }
         #resumeDoc [class^="resume-t"] *,
         #resumeDoc [class*=" resume-t"] * {
@@ -12652,9 +13184,58 @@ function ensureExactTemplateStylesInjected() {
         #resumeDoc [class*="job"] {
             white-space: normal !important;
             overflow: visible !important;
-            overflow-wrap: anywhere !important;
+            overflow-wrap: break-word !important;
             word-break: normal !important;
             line-height: 1.55 !important;
+        }
+        #resumeDoc .resume-t27 .t27-body,
+        #resumeDoc .resume-t31 .t31-body,
+        #resumeDoc .resume-t33 .t33-body,
+        #resumeDoc .resume-t34 .t34-body,
+        #resumeDoc .resume-t35 .t35-body,
+        #resumeDoc .resume-t37 .t37-body,
+        #resumeDoc .resume-t40 .t40-body,
+        #resumeDoc .resume-t41 .t41-body {
+            display: flex !important;
+            align-items: stretch !important;
+            gap: 0 !important;
+        }
+        #resumeDoc .resume-t27 .t27-left { flex: 1 1 auto !important; width: auto !important; min-width: 0 !important; }
+        #resumeDoc .resume-t27 .t27-right { flex: 0 0 180px !important; width: 180px !important; min-width: 180px !important; }
+        #resumeDoc .resume-t31 .t31-left,
+        #resumeDoc .resume-t33 .t33-left,
+        #resumeDoc .resume-t34 .t34-left,
+        #resumeDoc .resume-t41 .t41-left {
+            flex: 0 0 200px !important;
+            width: 200px !important;
+            min-width: 200px !important;
+        }
+        #resumeDoc .resume-t35 .t35-left {
+            flex: 0 0 190px !important;
+            width: 190px !important;
+            min-width: 190px !important;
+        }
+        #resumeDoc .resume-t37 .t37-left {
+            flex: 0 0 240px !important;
+            width: 240px !important;
+            min-width: 240px !important;
+        }
+        #resumeDoc .resume-t40 .t40-left {
+            flex: 0 0 195px !important;
+            width: 195px !important;
+            min-width: 195px !important;
+        }
+        #resumeDoc .resume-t31 .t31-right,
+        #resumeDoc .resume-t33 .t33-right,
+        #resumeDoc .resume-t34 .t34-right,
+        #resumeDoc .resume-t35 .t35-right,
+        #resumeDoc .resume-t37 .t37-right,
+        #resumeDoc .resume-t40 .t40-right,
+        #resumeDoc .resume-t41 .t41-right {
+            flex: 1 1 auto !important;
+            width: auto !important;
+            min-width: 0 !important;
+            max-width: none !important;
         }
         #resumeDoc .t17-profile-strip-title,
         #resumeDoc .t12-profile-strip-title,
@@ -12737,6 +13318,24 @@ function ensureExactTemplateStylesInjected() {
         #resumeDoc .t32-right [class*="skill"] {
             text-align: left !important;
         }
+        #resumeDoc .t32-right .t32-r-sec-title,
+        #resumeDoc .t32-right .t32-skill-group-title,
+        #resumeDoc .t32-right .extra-user-section > div:first-child,
+        #resumeDoc .t32-right .extra-user-section > div:first-child span:first-child {
+            color: #c9a84c !important;
+            border-bottom-color: #c9a84c !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        #resumeDoc .t32-right .extra-user-section > div:first-child {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1.5px !important;
+        }
         #resumeDoc .t34-left {
             padding: 20px 18px !important;
         }
@@ -12755,6 +13354,51 @@ function ensureExactTemplateStylesInjected() {
             line-height: 1.2 !important;
         }
         #resumeDoc .photo-controls { display: none !important; }
+        /* buildExtraSections() (Certifications/Awards/Languages/etc content
+           added via the "Add Section" panel or auto-restored from saved
+           data) hardcodes its body text to color:#444 — a dark gray meant
+           for a light/white column background. Several templates' main
+           content column is actually a DARK panel, so that hardcoded dark
+           gray renders as near-invisible dark-on-dark text. Force a light,
+           readable color specifically inside those dark columns; every
+           other (light-background) template is untouched. */
+        #resumeDoc .t32-right .extra-section-content,
+        #resumeDoc .t32-right .extra-section-content *,
+        #resumeDoc .t39-right .extra-section-content,
+        #resumeDoc .t39-right .extra-section-content *,
+        #resumeDoc .t26-right .extra-section-content,
+        #resumeDoc .t26-right .extra-section-content *,
+        #resumeDoc .t14-right .extra-section-content,
+        #resumeDoc .t14-right .extra-section-content *,
+        #resumeDoc .t16-left .extra-section-content,
+        #resumeDoc .t16-left .extra-section-content *,
+        #resumeDoc .t30-left .extra-section-content,
+        #resumeDoc .t30-left .extra-section-content *,
+        #resumeDoc .t38-left .extra-section-content,
+        #resumeDoc .t38-left .extra-section-content *,
+        #resumeDoc .t43-left .extra-section-content,
+        #resumeDoc .t43-left .extra-section-content *,
+        #resumeDoc .t50-left .extra-section-content,
+        #resumeDoc .t50-left .extra-section-content *,
+        #resumeDoc .t7-left .extra-section-content,
+        #resumeDoc .t7-left .extra-section-content *,
+        #resumeDoc .t8-left .extra-section-content,
+        #resumeDoc .t8-left .extra-section-content * {
+            color: rgba(255,255,255,0.85) !important;
+        }
+        #resumeDoc .t32-right .extra-user-section em,
+        #resumeDoc .t39-right .extra-user-section em,
+        #resumeDoc .t26-right .extra-user-section em,
+        #resumeDoc .t14-right .extra-user-section em,
+        #resumeDoc .t16-left .extra-user-section em,
+        #resumeDoc .t30-left .extra-user-section em,
+        #resumeDoc .t38-left .extra-user-section em,
+        #resumeDoc .t43-left .extra-user-section em,
+        #resumeDoc .t50-left .extra-user-section em,
+        #resumeDoc .t7-left .extra-user-section em,
+        #resumeDoc .t8-left .extra-user-section em {
+            color: rgba(255,255,255,0.6) !important;
+        }
     `;
     document.head.appendChild(fixStyle);
 }
@@ -13242,8 +13886,6 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
     const website = d.website || '';
     const linkedin = d.linkedin || '';
     const summary = d.profileSummary || '';
-    const languageEntries = cleanLanguageEntries(d.languages);
-    const cleanLanguages = languageEntries.join(', ');
 
     const photoSize = d.photoSize || 88;
     const photoBR = d.photoShape === 'square' ? '10px' : '50%';
@@ -13307,8 +13949,8 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
         </div>`).join('')
         : '';
 
-    const languagesHTML = languageEntries.length
-        ? languageEntries.map(l => `<div style="font-size:10px;margin-bottom:3px;">• ${l}</div>`).join('')
+    const languagesHTML = d.languages
+        ? d.languages.split(',').map(l => `<div style="font-size:10px;margin-bottom:3px;">• ${l.trim()}</div>`).join('')
         : `<div style="font-size:10px;color:${theme.dark ? sidebarMuted : '#94a3b8'};">Add languages</div>`;
 
     const summaryBlock = summary
@@ -13347,7 +13989,8 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
                     <div class="editable-field section-block" style="cursor:pointer;font-size:11px;color:#374151;" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="font-size:10px;color:#9ca3af;">Add education</div>`}<span class="edit-pen">✏</span></div>
                     ${secHead('Skills')}
                     <div class="editable-field section-block" style="cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson || '[]')}>${skillTags}<span class="edit-pen">✏</span></div>
-                    ${languageEntries.length ? `${secHead('Languages')}<div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',cleanLanguages)}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
+                    ${secHead('Languages')}
+                    <div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>
                 </div>
                 <div style="flex:1;min-width:0;">
                     ${secHead('Experience')}
@@ -13382,7 +14025,8 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
                     <div class="editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson || '[]')}>${skillTags}<span class="edit-pen">✏</span></div>
                     ${sideHead('Education')}
                     <div class="editable-field section-block" style="cursor:pointer;font-size:11px;color:#334155;" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="font-size:10px;color:#94a3b8;">Add education</div>`}<span class="edit-pen">✏</span></div>
-                    ${languageEntries.length ? `${sideHead('Languages')}<div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',cleanLanguages)}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
+                    ${sideHead('Languages')}
+                    <div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>
                 </div>
                 <div style="flex:1;min-width:0;padding:22px 20px;">
                     ${secHead('Experience')}
@@ -13421,7 +14065,7 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
                     ${secHead('Experience')}
                     ${experienceBlock}
                     ${projectsBlock ? `${secHead('Projects')}${projectsBlock}` : ''}
-                    ${languageEntries.length ? `${secHead('Languages')}<div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',cleanLanguages)}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
+                    ${d.languages ? `${secHead('Languages')}<div class="editable-field section-block" style="cursor:pointer;font-size:10px;color:#475569;line-height:1.8;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
                     ${certBlock ? `${secHead('Certifications')}${certBlock}` : ''}
                     ${awardsBlock ? `${secHead('Awards')}${awardsBlock}` : ''}
                     ${buildExtraSections(accent)}
@@ -13441,7 +14085,8 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
             <div class="editable-field" style="width:100%;cursor:pointer;" ${editBtn('skillsJson','Skills',d.skillsJson || '[]')}>${skillBars}<span class="edit-pen" style="font-size:10px;color:${sidebarMuted};">✏</span></div>
             ${sideHead('Education')}
             <div class="section-block editable-field" style="width:100%;cursor:pointer;font-size:10px;color:${sidebarText};" ${editBtn('educationJson','Education','')}>${eduHTML || `<div style="color:${sidebarMuted};">Add education ✏</div>`}<span class="edit-pen">✏</span></div>
-            ${languageEntries.length ? `${sideHead('Languages')}<div class="editable-field" style="width:100%;font-size:10px;color:${sidebarText};cursor:pointer;line-height:1.9;" ${editBtn('languages','Languages',cleanLanguages)}>${languagesHTML}<span class="edit-pen">✏</span></div>` : ''}
+            ${sideHead('Languages')}
+            <div class="editable-field" style="width:100%;font-size:10px;color:${sidebarText};cursor:pointer;line-height:1.9;" ${editBtn('languages','Languages',d.languages || '')}>${languagesHTML}<span class="edit-pen">✏</span></div>
         </div>
         <div style="flex:1;padding:20px 18px;background:#fff;min-width:0;">
             ${summaryBlock ? `${secHead('Profile Summary')}${summaryBlock}` : ''}
@@ -13459,6 +14104,10 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
 // ============================================================
 function buildTemplate10Template({ resumeData: d, edu, skills, projects, experience, color }) {
     const accent = color || '#f59e0b';
+    // Unique id per render so this never collides with a duplicate element
+    // (e.g. the hidden clone used for PDF export), which was causing
+    // html2canvas to lose the gradient fill in the downloaded PDF.
+    const t10GradId = 't10WaveGradient-' + Math.random().toString(36).slice(2, 9);
     const name    = d.fullName || '';
     const title   = d.jobTitle || '';
     const email   = d.email || '';
@@ -13469,8 +14118,8 @@ function buildTemplate10Template({ resumeData: d, edu, skills, projects, experie
     const summary = d.profileSummary || '';
 
     const photoHTML = d.profilePhotoData
-        ? `<img src="${d.profilePhotoData}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.2);cursor:pointer;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
-        : `<div class="t10-avatar-ph" style="background:linear-gradient(135deg,${accent},#d97706);" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
+        ? `<img src="${d.profilePhotoData}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.2);cursor:pointer;display:block;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
+        : `<div class="t10-avatar-ph" style="width:90px;height:90px;border-radius:50%;background:#d97706;border:4px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;font-weight:900;line-height:1;" ${editBtn('profilePhoto','Profile Photo','')}>${(name||'U').charAt(0).toUpperCase()}</div>`;
 
     const skillBars = skills.length
         ? skills.map(s => {
@@ -13505,8 +14154,23 @@ function buildTemplate10Template({ resumeData: d, edu, skills, projects, experie
     const contactItems = [phone,email,addr,linkedin,website].filter(Boolean).join(' &nbsp;·&nbsp; ');
 
     return `<div class="resume-t10">
-      <div class="t10-top-wave"></div>
-      <div class="t10-top-dark"></div>
+      <div class="t10-top-wave">
+        <svg class="t10-top-wave-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="${t10GradId}" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="${accent}"/>
+              <stop offset="50%" stop-color="#fbbf24"/>
+              <stop offset="100%" stop-color="${accent}"/>
+            </linearGradient>
+          </defs>
+          <polygon points="0,0 100,0 100,60 92,70 65,86 0,74" fill="url(#${t10GradId})"/>
+        </svg>
+      </div>
+      <div class="t10-top-dark">
+        <svg class="t10-top-dark-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <polygon points="30,0 100,0 100,100 0,100" fill="#1f2937"/>
+        </svg>
+      </div>
       <div class="t10-header">
         <div class="t10-avatar">${photoHTML}</div>
         <div class="t10-header-text">
@@ -13560,6 +14224,10 @@ function buildTemplate11Template({ resumeData: d, edu, skills, projects, experie
     const phone   = d.phone || '';
     const addr    = d.address || d.location || '';
     const summary = d.profileSummary || '';
+    const initial = (name || 'U').charAt(0).toUpperCase();
+    const photoHTML = d.profilePhotoData
+        ? `<img src="${d.profilePhotoData}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid #fff;cursor:pointer;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
+        : `<div class="t12-photo-ph" ${editBtn('profilePhoto','Profile Photo','')}>${initial}</div>`;
 
     const skillItems = skills.map(s => {
         const sn = typeof s === 'string' ? s : (s.name || s.skill || '');
@@ -13623,6 +14291,10 @@ function buildTemplate12Template({ resumeData: d, edu, skills, projects, experie
     const phone   = d.phone || '';
     const addr    = d.address || d.location || '';
     const summary = d.profileSummary || '';
+    const initial = (name || 'U').charAt(0).toUpperCase();
+    const photoHTML = d.profilePhotoData
+        ? `<img src="${d.profilePhotoData}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #fff;cursor:pointer;display:block;margin:0 auto;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
+        : `<div class="t12-photo-ph" style="cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${initial}</div>`;
 
     const expItems = experience.map(e => `<div class="t12-item">
         <div class="t12-item-title">${e.jobTitle||e.role||e.title||''}</div>
@@ -13651,7 +14323,7 @@ function buildTemplate12Template({ resumeData: d, edu, skills, projects, experie
           <div class="t12-contact-mini">${[phone,email,addr].filter(Boolean).join(' · ')}</div>
         </div>
         <div class="t12-top-right" style="background:linear-gradient(135deg,${accent} 0%,#f48fb1 100%);">
-          <div class="t12-photo-ph">${(name||'U').charAt(0).toUpperCase()}</div>
+          ${photoHTML}
         </div>
       </div>
       ${summary?`<div class="t12-profile-strip" style="background:${accent};">
@@ -13672,6 +14344,7 @@ function buildTemplate12Template({ resumeData: d, edu, skills, projects, experie
           <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div>`:''}
           ${projItems?`<div class="t12-sec-title" style="color:${accent};border-color:${accent};">Projects</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
+          ${buildExtraSections(accent)}
         </div>
       </div>
     </div>`;
@@ -13780,6 +14453,7 @@ function buildTemplate14Template({ resumeData: d, edu, skills, projects, experie
         <div class="t14-tl-content">
           <div class="t14-tl-title">${p.title||p.name||''}</div>
           ${p.tools?`<div class="t14-tl-co" style="color:${gold};">Tools: ${p.tools}</div>`:''}
+          <div class="t14-tl-desc">${(p.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
         </div>
     </div>`).join('');
 
@@ -13803,6 +14477,13 @@ function buildTemplate14Template({ resumeData: d, edu, skills, projects, experie
         <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div></div>`:''}
         ${projItems?`<div class="t14-sec-r"><div class="t14-sec-title-r" style="color:${gold};">Projects</div>
         <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div></div>`:''}
+        ${d.certifications?`<div class="t14-sec-r"><div class="t14-sec-title-r" style="color:${gold};">Certifications</div>
+        <div class="editable-field" style="cursor:pointer;color:#aab;font-size:10px;line-height:1.6;" ${editBtn('certifications','Certifications',d.certifications||'')}>${d.certifications} <span class="edit-pen">✏</span></div></div>`:''}
+        ${d.awards?`<div class="t14-sec-r"><div class="t14-sec-title-r" style="color:${gold};">Awards</div>
+        <div class="editable-field" style="cursor:pointer;color:#aab;font-size:10px;line-height:1.6;" ${editBtn('awards','Awards',d.awards||'')}>${d.awards} <span class="edit-pen">✏</span></div></div>`:''}
+        ${d.languages?`<div class="t14-sec-r"><div class="t14-sec-title-r" style="color:${gold};">Languages</div>
+        <div class="editable-field" style="cursor:pointer;color:#dbeafe;font-size:10px;line-height:1.7;" ${editBtn('languages','Languages',d.languages||'')}>${d.languages.split(',').map(l=>`<div>${l.trim()}</div>`).join('')} <span class="edit-pen">✏</span></div></div>`:''}
+        ${buildExtraSections(gold)}
       </div>
     </div>`;
 }
@@ -13902,6 +14583,7 @@ function buildTemplate16Template({ resumeData: d, edu, skills, projects, experie
     const projItems = projects.map(p=>`<div class="t16-exp-item">
         <div class="t16-exp-co">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t16-exp-role">Tools: ${p.tools}</div>`:''}
+        <div class="t16-exp-desc">${(p.description||'').toString().split('\n').filter(Boolean).map(b=>`• ${b.replace(/^[•\-]\s*/,'')}`).join('<br>')}</div>
     </div>`).join('');
 
     const eduHTML = edu.map(e=>`<div style="margin-bottom:8px;">
@@ -13913,7 +14595,7 @@ function buildTemplate16Template({ resumeData: d, edu, skills, projects, experie
     return `<div class="resume-t16">
       <div class="t16-left" style="background:#2d3a2e;">
         <div class="t16-left-top">
-          <div class="t16-photo" style="background:linear-gradient(135deg,#6d8b74,#a0b89a);">${(name||'U').charAt(0).toUpperCase()}</div>
+          <div class="t16-photo" style="background:linear-gradient(135deg,#6d8b74,#a0b89a);display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:900;">${(name||'U').charAt(0).toUpperCase()}</div>
           <div class="t16-name editable-field" style="cursor:pointer;color:#fff;" ${editBtn('fullName','Full Name',d.fullName||'')}>${name}</div>
           <div class="t16-role" style="color:${gold};">${title}</div>
           ${summary?`<div class="t16-bio">${summary}</div>`:''}
@@ -13924,16 +14606,23 @@ function buildTemplate16Template({ resumeData: d, edu, skills, projects, experie
           ${email?`<div class="t16-contact">✉ ${email}</div>`:''}
           ${addr?`<div class="t16-contact">📍 ${addr}</div>`:''}
         </div>
-        ${skills.length?`<div class="t16-sec-title" style="background:#3d5246;color:${gold};">Skills</div>
-        <div class="t16-left-content editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills','')}>${skillBars}</div>`:''}
         ${expItems?`<div class="t16-sec-title" style="background:#3d5246;color:${gold};">Experience</div>
         <div class="t16-left-content editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div>`:''}
       </div>
       <div class="t16-right">
         ${edu.length?`<div class="t16-right-sec" style="background:#e8e0d0;">Education</div>
         <div class="t16-right-body">${eduHTML}</div>`:''}
+        ${skills.length?`<div class="t16-right-sec" style="background:#e8e0d0;">Skills</div>
+        <div class="t16-right-body t16-skills-light editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills','')}>${skillBars}</div>`:''}
         ${projItems?`<div class="t16-right-sec" style="background:#e8e0d0;">Projects</div>
         <div class="t16-right-body editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
+        ${d.certifications?`<div class="t16-right-sec" style="background:#e8e0d0;">Certifications</div>
+        <div class="t16-right-body editable-field" style="cursor:pointer;" ${editBtn('certifications','Certifications',d.certifications||'')}>${d.certifications} <span class="edit-pen">✏</span></div>`:''}
+        ${d.awards?`<div class="t16-right-sec" style="background:#e8e0d0;">Awards</div>
+        <div class="t16-right-body editable-field" style="cursor:pointer;" ${editBtn('awards','Awards',d.awards||'')}>${d.awards} <span class="edit-pen">✏</span></div>`:''}
+        ${d.languages?`<div class="t16-right-sec" style="background:#e8e0d0;color:#2d3a2e;">Languages</div>
+        <div class="t16-right-body editable-field" style="cursor:pointer;color:#334155;line-height:1.7;" ${editBtn('languages','Languages',d.languages||'')}>${d.languages.split(',').map(l=>`<div>${l.trim()}</div>`).join('')} <span class="edit-pen">✏</span></div>`:''}
+        <div class="t16-right-body">${buildExtraSections(accent)}</div>
       </div>
     </div>`;
 }
@@ -13999,6 +14688,11 @@ function buildTemplate18Template({ resumeData: d, edu, skills, projects, experie
             <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${empItems}</div>`:''}
             ${projItems?`<div class="t18-sec-title" style="border-color:${accent};">Projects</div>
             <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projItems}</div>`:''}
+            ${d.certifications?`<div class="t18-sec-title" style="border-color:${accent};">Certifications</div>
+            <div class="editable-field" style="cursor:pointer;font-size:10px;color:#555;line-height:1.7;" ${editBtn('certifications','Certifications',d.certifications||'')}>${d.certifications} <span class="edit-pen">✏</span></div>`:''}
+            ${d.awards?`<div class="t18-sec-title" style="border-color:${accent};">Awards</div>
+            <div class="editable-field" style="cursor:pointer;font-size:10px;color:#555;line-height:1.7;" ${editBtn('awards','Awards',d.awards||'')}>${d.awards} <span class="edit-pen">✏</span></div>`:''}
+            ${buildExtraSections(accent)}
           </div>
           <div class="t18-col-right">
             ${eduItems?`<div class="t18-sec-title" style="border-color:${accent};">Education</div>${eduItems}`:''}
@@ -14151,18 +14845,22 @@ function buildTemplate24Template({ resumeData: d, edu, skills, projects, experie
     const addr    = d.address || d.location || '';
     const linkedin= d.linkedin || '';
     const summary = d.profileSummary || '';
+    const initial = (name || 'U').charAt(0).toUpperCase();
+    const photoHTML = d.profilePhotoData
+        ? `<img src="${d.profilePhotoData}" style="width:76px;height:76px;border-radius:8px;object-fit:cover;cursor:pointer;display:block;" class="editable-field" ${editBtn('profilePhoto','Profile Photo','')}>`
+        : `<div class="t24-photo" style="color:${accent};display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;cursor:pointer;" ${editBtn('profilePhoto','Profile Photo','')}>${initial}</div>`;
 
     const expItems = experience.map(e=>`<div class="t24-job">
         <div class="t24-job-date">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div>
         <div class="t24-job-title">${e.jobTitle||e.role||e.title||''}</div>
         <div class="t24-job-co">${e.company||''}</div>
-        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>-</span><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
+        ${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>${b.replace(/^[•\-]\s*/,'')}</span></div>`).join('')}
     </div>`).join('');
 
     const projItems = projects.map(p=>`<div class="t24-job">
         <div class="t24-job-title">${p.title||p.name||''}</div>
         ${p.tools?`<div class="t24-job-co">Tools: ${p.tools}</div>`:''}
-        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>-</span><span>${b}</span></div>`).join('')}
+        ${(p.description||'').split('\n').filter(Boolean).map(b=>`<div class="t24-bullet"><span>${b}</span></div>`).join('')}
     </div>`).join('');
 
     const skillItems = skills.map(s=>{
@@ -14186,7 +14884,7 @@ function buildTemplate24Template({ resumeData: d, edu, skills, projects, experie
             ${phone?`<span>📞 ${phone}</span>`:''}${email?`<span>✉ ${email}</span>`:''}${addr?`<span>📍 ${addr}</span>`:''}
           </div>
         </div>
-        <div class="t24-photo" style="color:${accent};">${(name||'U').charAt(0).toUpperCase()}</div>
+        ${photoHTML}
       </div>
       <div class="t24-body">
         <div class="t24-left">
@@ -14201,6 +14899,7 @@ function buildTemplate24Template({ resumeData: d, edu, skills, projects, experie
           ${eduItems?`<div class="t24-sec-title" style="color:${accent};">Education</div>${eduItems}`:''}
           ${d.languages?`<div class="t24-sec-title" style="color:${accent};">Languages</div>
           ${d.languages.split(',').map(l=>`<div class="t24-lang">${l.trim()}</div>`).join('')}`:''}
+          ${buildExtraSections(accent)}
         </div>
       </div>
     </div>`;
@@ -14271,6 +14970,7 @@ function buildTemplate26Template({ resumeData: d, edu, skills, projects, experie
           ${projRows?`<div class="t26-sec-title"><div class="t26-amber-sq" style="background:${accent};"></div>Projects</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('projectsJson','Projects','')}>${projRows}</div>`:''}
           ${eduRows?`<div class="t26-sec-title"><div class="t26-amber-sq" style="background:${accent};"></div>Education</div>${eduRows}`:''}
+          ${buildExtraSections(accent)}
         </div>
       </div>
       <div class="t26-right" style="background:#212121;">
@@ -14526,14 +15226,14 @@ function buildTemplate31Template({ resumeData: d, edu, skills, projects, experie
         <div class="t31-left">
           ${summary?`<div class="t31-sec-title" style="color:${accent};">About</div>
           <div class="t31-about">${summary}</div>`:''}
+          ${skills.length?`<div class="t31-sec-title" style="color:${accent};">Skills</div>
+          <div class="editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills','')}>${skillRows}</div>`:''}
           ${edu.length?`<div class="t31-sec-title" style="color:${accent};">Education</div>
           ${edu.map(e=>`<div class="t31-edu-item"><div class="t31-edu-deg">${e.degree||''}</div><div class="t31-edu-uni" style="color:${accent};">${e.school||e.university||''}</div><div class="t31-edu-loc">${e.year||''}</div></div>`).join('')}`:''}
           ${d.languages?`<div class="t31-sec-title" style="color:${accent};">Languages</div>
           ${d.languages.split(',').map(l=>`<div class="t31-lang-item">${l.trim()}</div>`).join('')}`:''}
         </div>
         <div class="t31-right">
-          ${skills.length?`<div class="t31-sec-title" style="color:${accent};">Skills</div>
-          <div class="editable-field" style="cursor:pointer;" ${editBtn('skillsJson','Skills','')}>${skillRows}</div>`:''}
           ${expItems?`<div class="t31-sec-title" style="color:${accent};">Experience</div>
           <div class="editable-field" style="cursor:pointer;" ${editBtn('experienceJson','Experience','')}>${expItems}</div>`:''}
           ${projItems?`<div class="t31-sec-title" style="color:${accent};">Projects</div>
@@ -14541,4 +15241,101 @@ function buildTemplate31Template({ resumeData: d, edu, skills, projects, experie
         </div>
       </div>
     </div>`;
+}
+
+function normalizeReviewSections(doc) {
+    if (!doc) return;
+    dedupeReviewSectionsByTitle(doc, [
+        ['certification', 'certifications', 'certificate', 'certificates'],
+        ['award', 'awards', 'awards honors'],
+        ['language', 'languages'],
+        ['interest', 'interests', 'hobbies'],
+        ['project', 'projects'],
+        ['education'],
+        ['skill', 'skills'],
+        ['experience', 'work experience', 'job experience']
+    ]);
+    removePositionOnlySections(doc);
+}
+
+function getReviewSectionTitleText(node) {
+    if (!node) return '';
+    const raw = (node.textContent || '')
+        .replace(/\b(Edit|Delete|Click to add|Add)\b/gi, ' ')
+        .replace(/[^\w\s&/-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    return raw;
+}
+
+function compactReviewSectionTitle(text) {
+    return (text || '').replace(/[\s_-]+/g, '').toLowerCase();
+}
+
+function isReviewSectionHeading(node) {
+    if (!node || node.closest('.rv-stb,.rv-line-actions,.no-print-export')) return false;
+    const cls = (node.className || '').toString();
+    if (/(btn|button|edit|delete|badge|tag|modal|toast|action)/i.test(cls)) return false;
+    if (/section-title|sec-title|green-btn|role-badge|sidebar-title/i.test(cls)) return true;
+    return /^(H1|H2|H3|H4)$/i.test(node.tagName || '');
+}
+
+function getReviewSectionContainer(heading) {
+    const container = heading.closest('.section-block,[id^="rv-section-"],[class*="section"],[class*="-sec"],[class*="-block"]') || heading;
+    if (!container || container === heading) return heading;
+    const cls = (container.className || '').toString();
+    if (container.classList.contains('resume-doc') || /^resume-t\d+\b/.test(cls) || container.id === 'resumeDoc') return heading;
+    return container;
+}
+
+function collectReviewSectionRange(heading) {
+    const container = getReviewSectionContainer(heading);
+    if (!container || !container.isConnected) return [];
+    if (container !== heading) return [container];
+
+    const nodes = [heading];
+    let sibling = heading.nextElementSibling;
+    while (sibling && !isReviewSectionHeading(sibling)) {
+        const cls = (sibling.className || '').toString();
+        if (/^resume-t\d+\b/.test(cls) || sibling.id === 'resumeDoc') break;
+        nodes.push(sibling);
+        sibling = sibling.nextElementSibling;
+    }
+    return nodes;
+}
+
+function dedupeReviewSectionsByTitle(doc, aliasGroups) {
+    const seen = new Map();
+    const headings = Array.from(doc.querySelectorAll('div,h1,h2,h3,h4')).filter(isReviewSectionHeading);
+    headings.forEach(heading => {
+        const title = getReviewSectionTitleText(heading);
+        if (!title) return;
+        const compactTitle = compactReviewSectionTitle(title);
+        const group = aliasGroups.find(aliases => aliases.some(alias => {
+            const compactAlias = compactReviewSectionTitle(alias);
+            return title === alias || compactTitle === compactAlias;
+        }));
+        if (!group) return;
+        const key = group[0];
+        const range = collectReviewSectionRange(heading).filter(node => node && node.isConnected);
+        if (!range.length) return;
+        if (seen.has(key)) {
+            range.forEach(node => {
+                if (node && node.isConnected) node.remove();
+            });
+            return;
+        }
+        seen.set(key, range[0]);
+    });
+}
+
+function removePositionOnlySections(doc) {
+    Array.from(doc.querySelectorAll('div,h1,h2,h3,h4')).filter(isReviewSectionHeading).forEach(heading => {
+        const title = getReviewSectionTitleText(heading);
+        if (!/^positions?$/.test(compactReviewSectionTitle(title))) return;
+        collectReviewSectionRange(heading).forEach(node => {
+            if (node && node.isConnected) node.remove();
+        });
+    });
 }

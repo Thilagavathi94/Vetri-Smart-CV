@@ -736,8 +736,8 @@
     /* === TEMPLATE 41: Richard Sanchez - Blue Geo (Light Sidebar) === */
     .resume-t41 { width:660px;background:#fff;font-family:'DM Sans',sans-serif;font-size:11.5px;color:#333; }
     .t41-top { display:flex;align-items:flex-end;gap:16px;padding:0;position:relative;overflow:hidden; }
-    .t41-top-bg { position:absolute;top:0;right:0;width:240px;height:100px;background:#1d3557;clip-path:polygon(30% 0,100% 0,100% 100%,0 100%); }
-    .t41-top-accent { position:absolute;top:0;right:0;width:60px;height:60px;background:#00bcd4;clip-path:polygon(100% 0,100% 100%,0 0); }
+    .t41-top-bg { position:absolute;top:0;right:0;width:240px;height:100px;background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cG9seWdvbiBwb2ludHM9IjMwLDAgMTAwLDAgMTAwLDEwMCAwLDEwMCIgZmlsbD0iIzFkMzU1NyIvPjwvc3ZnPg==");background-size:100% 100%;background-repeat:no-repeat; }
+    .t41-top-accent { position:absolute;top:0;right:0;width:0;height:0;border-style:solid;border-width:60px 0 0 60px;border-color:#00bcd4 transparent transparent transparent;background:transparent; }
     .t41-photo-wrap { width:120px;height:120px;border-radius:50%;overflow:hidden;border:4px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,0.15);margin:14px 0 0 16px;flex-shrink:0;background:#6b8a9a;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;position:relative;z-index:2; }
     .t41-header-info { flex:1;padding:14px 20px 10px 10px;position:relative;z-index:2; }
     .t41-name { font-size:22px;font-weight:900;color:#1a1a1a;margin-bottom:2px; }
@@ -1361,8 +1361,9 @@
     }
     .t6-left-geo {
       position: absolute; bottom: 0; left: 0; right: 0; height: 120px;
-      background: linear-gradient(135deg, #4c2b8a 0%, #7c3aed 100%);
-      clip-path: polygon(0 60%, 100% 0%, 100% 100%, 0% 100%);
+      background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEwMCIgeTI9IjEwMCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM0YzJiOGEiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM3YzNhZWQiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cG9seWdvbiBwb2ludHM9IjAsNjAgMTAwLDAgMTAwLDEwMCAwLDEwMCIgZmlsbD0idXJsKCNnKSIvPjwvc3ZnPg==");
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
     }
     .t6-avatar { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #7c3aed; overflow: hidden; margin: 24px auto 0; position: relative; z-index:2; }
     .t6-avatar-placeholder { width:100%; height:100%; background: linear-gradient(135deg,#7c3aed,#4c1d95); display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff; }
@@ -1458,15 +1459,17 @@
     }
     .t8-top-geo {
       position: absolute; top: 0; right: 0;
-      width: 200px; height: 200px;
-      background: #e8600a;
-      clip-path: polygon(100% 0, 0 0, 100% 100%);
+      width: 0; height: 0;
+      background: transparent;
+      border-top: 150px solid #e8600a;
+      border-left: 160px solid transparent;
     }
     .t8-bottom-geo {
       position: absolute; bottom: 0; left: 0;
-      width: 120px; height: 120px;
-      background: #888;
-      clip-path: polygon(0 100%, 0 0, 100% 100%);
+      width: 0; height: 0;
+      background: transparent;
+      border-bottom: 120px solid #888;
+      border-right: 120px solid transparent;
     }
     .t8-header { display: flex; align-items: flex-start; gap: 16px; padding: 20px 20px 14px; position: relative; z-index: 2; }
     .t8-avatar { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
@@ -2120,14 +2123,24 @@
     .t10-top-wave::before {
       content: '';
       position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%);
-      clip-path: polygon(0 0, 50% 0, 100% 0, 100% 60%, 65% 100%, 0 60%);
+      background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEwMCIgeTI9IjEwMCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmNTllMGIiLz48c3RvcCBvZmZzZXQ9IjUwJSIgc3RvcC1jb2xvcj0iI2ZiYmYyNCIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2Y1OWUwYiIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxwb2x5Z29uIHBvaW50cz0iMCwwIDEwMCwwIDEwMCw2MCA2NSwxMDAgMCw2MCIgZmlsbD0idXJsKCNnKSIvPjwvc3ZnPg==");
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
     }
     .t10-top-dark {
       position: absolute; top: 0; right: 0;
-      width: 180px; height: 80px;
+      width: 150px; height: 80px;
       background: #1f2937;
-      clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
+    }
+    .t10-top-dark::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -70px;
+      width: 0;
+      height: 0;
+      border-top: 80px solid #1f2937;
+      border-left: 70px solid transparent;
     }
     .t10-header { position: relative; z-index: 2; display: flex; align-items: flex-start; gap: 16px; padding: 20px 20px 0; }
     .t10-avatar { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; border: 4px solid #fff; box-shadow: 0 4px 16px rgba(0,0,0,.2); flex-shrink: 0; }
@@ -2157,8 +2170,9 @@
     .t10-bottom-dark::before {
       content: '';
       position: absolute; top: -30px; left: 0; right: 0; height: 30px;
-      background: #1f2937;
-      clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 100%);
+      background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cG9seWdvbiBwb2ludHM9IjAsMTAwIDEwMCwxMDAgMTAwLDAiIGZpbGw9IiMxZjI5MzciLz48L3N2Zz4=");
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
     }
     .t10-skills-title { font-size: 11px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
     .t10-skill-bar { margin-bottom: 7px; }

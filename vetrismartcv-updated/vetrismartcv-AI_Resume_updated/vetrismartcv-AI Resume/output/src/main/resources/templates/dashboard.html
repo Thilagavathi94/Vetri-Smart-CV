@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VetriSmartCV - Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <style>
         body { background: #f4f5f7; margin: 0; font-family: 'Segoe UI', sans-serif; }
 
@@ -152,6 +150,51 @@
         .empty-state { text-align: center; padding: 50px 20px; color: #9ca3af; }
         .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
         .empty-state p { font-size: 14px; }
+
+        /* BILLING & INVOICES */
+        .invoice-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 18px 20px;
+            border: 1px solid #ece9fb;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #faf9ff 0%, #f5f3ff 100%);
+        }
+        .invoice-row + .invoice-row { margin-top: 12px; }
+        .invoice-id { font-size: 14px; font-weight: 800; color: #1a1a2e; letter-spacing: 0.2px; }
+        .invoice-meta { font-size: 12.5px; color: #6b7280; margin-top: 3px; }
+        .invoice-meta .dot { margin: 0 6px; color: #c4b5fd; }
+        .invoice-meta .amount { color: #7c3aed; font-weight: 700; }
+        .btn-download-invoice {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 12px 22px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            font-family: inherit;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 55%, #6d28d9 100%);
+            box-shadow: 0 4px 14px rgba(124,58,237,0.32), inset 0 1px 0 rgba(255,255,255,0.25);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+            white-space: nowrap;
+        }
+        .btn-download-invoice:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(124,58,237,0.42), inset 0 1px 0 rgba(255,255,255,0.3);
+            filter: brightness(1.05);
+        }
+        .btn-download-invoice:active { transform: translateY(0); box-shadow: 0 3px 10px rgba(124,58,237,0.35); }
+        .btn-download-invoice:disabled { opacity: 0.65; cursor: default; transform: none; }
+        .btn-download-invoice svg { flex-shrink: 0; transition: transform 0.18s ease; }
+        .btn-download-invoice:hover svg { transform: translateY(2px); }
+        .invoice-empty { text-align: center; padding: 30px 20px; color: #9ca3af; font-size: 13.5px; }
 
         /* USER DETAILS */
         .user-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -364,6 +407,14 @@
         </div>
     </div>
 
+    <!-- BILLING & INVOICES -->
+    <div class="dash-section" id="billingSection" style="display:none;">
+        <div class="dash-section-header">
+            <h3>🧾 Billing &amp; Invoices</h3>
+        </div>
+        <div id="invoiceList"></div>
+    </div>
+
     <!-- USER DETAILS -->
     <div class="dash-section">
         <div class="dash-section-header">
@@ -426,40 +477,11 @@
         <div class="footer-col">
             <h3>Product</h3>
             <ul>
-                <li>
-                    <a href="/builder">
-                        <i class="fa-solid fa-file-pen link-icon"></i>
-                        Resume Builder
-                    </a>
-                </li>
-
-                <li>
-                    <a href="/template">
-                        <i class="fa-solid fa-file-lines link-icon"></i>
-                        Templates
-                    </a>
-                </li>
-
-                <li>
-                    <a href="/pricing">
-                        <i class="fa-solid fa-credit-card link-icon"></i>
-                        Pricing
-                    </a>
-                </li>
-
-                <li>
-                    <a href="/builder">
-                        <i class="fa-solid fa-wand-magic-sparkles link-icon"></i>
-                        AI Suggestions
-                    </a>
-                </li>
-
-                <li>
-                    <a href="/builder">
-                        <i class="fa-solid fa-file-arrow-down link-icon"></i>
-                        PDF Download
-                    </a>
-                </li>
+                <li><a href="/builder"><span class="link-icon">✏️</span> Resume Builder</a></li>
+                <li><a href="/template"><span class="link-icon">📄</span> Templates</a></li>
+                <li><a href="/pricing"><span class="link-icon">💎</span> Pricing</a></li>
+                <li><a href="/builder"><span class="link-icon">🤖</span> AI Suggestions</a></li>
+                <li><a href="/builder"><span class="link-icon">⬇️</span> PDF Download</a></li>
             </ul>
         </div>
 
@@ -467,40 +489,11 @@
         <div class="footer-col">
             <h3>Support</h3>
             <ul>
-                <li>
-                    <a href="javascript:void(0)" onclick="openFooterModal('help')">
-                        <i class="fa-solid fa-circle-question link-icon"></i>
-                        Help Center
-                    </a>
-                </li>
-
-                <li>
-                    <a href="javascript:void(0)" onclick="openFooterModal('privacy')">
-                        <i class="fa-solid fa-shield-halved link-icon"></i>
-                        Privacy Policy
-                    </a>
-                </li>
-
-                <li>
-                    <a href="javascript:void(0)" onclick="openFooterModal('terms')">
-                        <i class="fa-solid fa-file-contract link-icon"></i>
-                        Terms of Service
-                    </a>
-                </li>
-
-                <li>
-                    <a href="javascript:void(0)" onclick="openFooterModal('cookies')">
-                        <i class="fa-solid fa-cookie-bite link-icon"></i>
-                        Cookie Policy
-                    </a>
-                </li>
-
-                <li>
-                    <a href="javascript:void(0)" onclick="openFooterModal('contact')">
-                        <i class="fa-solid fa-envelope link-icon"></i>
-                        Contact Us
-                    </a>
-                </li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('help')"><span class="link-icon">❓</span> Help Center</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('privacy')"><span class="link-icon">🔒</span> Privacy Policy</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('terms')"><span class="link-icon">📋</span> Terms of Service</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('cookies')"><span class="link-icon">🍪</span> Cookie Policy</a></li>
+                <li><a href="javascript:void(0)" onclick="openFooterModal('contact')"><span class="link-icon">💬</span> Contact Us</a></li>
             </ul>
         </div>
 
@@ -508,27 +501,19 @@
         <div class="footer-col">
             <h3>Contact</h3>
             <div class="footer-contact-item">
-                <div class="contact-icon">
-                    <i class="fa-solid fa-phone"></i>
-                </div>
+                <div class="contact-icon">📞</div>
                 <span style="color:rgba(255,255,255,0.85);">8438164827 / 8438781327</span>
             </div>
             <div class="footer-contact-item">
-                <div class="contact-icon">
-                    <i class="fa-solid fa-envelope"></i>
-                </div>
+                <div class="contact-icon">✉️</div>
                 <a href="mailto:vetritechnologysolutions@gmail.com" style="color:rgba(255,255,255,0.85);text-decoration:none;">vetritechnologysolutions@gmail.com</a>
             </div>
             <div class="footer-contact-item">
-                <div class="contact-icon">
-                    <i class="fa-solid fa-location-dot"></i>
-                </div>
+                <div class="contact-icon">📍</div>
                 <span><a href="https://maps.google.com/?q=Surandai,Tamil+Nadu+627859" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.85);text-decoration:underline;">Surandai – April's Complex</a><br>Bus Stand Backside, Surandai – 627859</span>
             </div>
             <div class="footer-contact-item">
-                <div class="contact-icon">
-                    <i class="fa-solid fa-location-dot"></i>
-                </div>
+                <div class="contact-icon">📍</div>
                 <span><a href="https://maps.google.com/?q=Surandai+Old+Market,Tamil+Nadu+627859" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.85);text-decoration:underline;">Surandai – Shanthi's Complex</a><br>Shanthi's Complex, Surandai Old Market, Near Bus Stand, Surandai – 627859</span>
             </div>
         </div>
@@ -538,22 +523,12 @@
     <!-- BADGE ROW -->
     <div class="footer-badge-row">
         <span class="footer-badge"><span class="badge-dot"></span> Service Active</span>
-        <span class="footer-badge">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> AI-Powered
-        </span>
-
-        <span class="footer-badge">
-            <i class="fa-solid fa-circle-check"></i> ATS-Friendly
-        </span>
-
-        <span class="footer-badge">
-            <i class="fa-solid fa-file-arrow-down"></i> Instant PDF
-        </span>
-
-        <span class="footer-badge">
-            <i class="fa-solid fa-shield-halved"></i> Secure &amp; Private
-        </span>
+        <span class="footer-badge">🤖 AI-Powered</span>
+        <span class="footer-badge">✅ ATS-Friendly</span>
+        <span class="footer-badge">⬇️ Instant PDF</span>
+        <span class="footer-badge">🔒 Secure &amp; Private</span>
     </div>
+
     <div class="footer-bottom">
         <span>© 2026 VetriSmartCV. All rights reserved.</span>
         <div class="footer-bottom-links">
@@ -777,8 +752,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '/login?redirect=/dashboard';
         return;
     }
-    await loadResumes();
-    renderRecoveredDrafts();
+    loadResumes();
 });
 
 async function checkSession() {
@@ -825,12 +799,96 @@ function populateUserInfo(user) {
         if (ub) ub.style.display = 'none';
     }
 
+    renderBilling(user, plan);
+
     // Show plan-specific welcome banner if just upgraded
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('upgraded') === '1') {
         showUpgradedBanner(plan);
         history.replaceState({}, '', '/dashboard');
     }
+}
+
+const DOWNLOAD_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+
+async function renderBilling(user, plan) {
+    const section = document.getElementById('billingSection');
+    const list = document.getElementById('invoiceList');
+    if (!section || !list) return;
+
+    if (plan === 'FREE') { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    list.innerHTML = '<p style="color:#9ca3af;font-size:13px;">Loading…</p>';
+
+    let payments = [];
+    try {
+        const res = await fetch('/api/payment/my');
+        if (res.ok) payments = await res.json();
+    } catch (e) { /* fall through to empty state below */ }
+
+    if (!payments || !payments.length) {
+        list.innerHTML = `<div class="invoice-empty">No paid invoices yet. Once you upgrade via Razorpay, receipts will show up here.</div>`;
+        return;
+    }
+
+    list.innerHTML = payments.map(p => {
+        const dateLabel = p.paidAt
+            ? new Date(p.paidAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })
+            : new Date(p.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+        const invoiceId = `VSCV-${p.id}`;
+        return `
+        <div class="invoice-row">
+            <div>
+                <div class="invoice-id">${invoiceId}</div>
+                <div class="invoice-meta">${p.plan} Plan<span class="dot">·</span><span class="amount">₹${p.amount}.00 INR</span><span class="dot">·</span>${dateLabel}</div>
+            </div>
+            <button class="btn-download-invoice" onclick='downloadInvoicePDF(${JSON.stringify(invoiceId)}, ${JSON.stringify(p.plan)}, ${p.amount}, ${JSON.stringify(dateLabel)}, ${JSON.stringify(p.razorpayPaymentId || "")})'>
+                ${DOWNLOAD_ICON} Download PDF
+            </button>
+        </div>`;
+    }).join('');
+}
+
+function downloadInvoicePDF(invoiceId, plan, price, dateLabel, razorpayPaymentId) {
+    const name = (userData && userData.name) || 'Customer';
+    const email = (userData && userData.email) || '';
+    const w = window.open('', '_blank', 'width=800,height=900');
+    if (!w) { showToast('Please allow pop-ups to download your invoice.', 'error'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${invoiceId}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 48px; color: #1a1a2e; }
+        .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #7c3aed; padding-bottom: 20px; margin-bottom: 28px; }
+        .brand { font-size: 22px; font-weight: 800; color: #7c3aed; }
+        .head h1 { font-size: 26px; margin: 6px 0 0; }
+        .meta { text-align: right; font-size: 13px; color: #6b7280; line-height: 1.7; }
+        .bill-to { margin-bottom: 28px; font-size: 14px; color: #374151; line-height: 1.7; }
+        .bill-to b { display: block; color: #1a1a2e; font-size: 15px; margin-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        th { text-align: left; background: #f5f3ff; color: #7c3aed; font-size: 12.5px; text-transform: uppercase; letter-spacing: .4px; padding: 12px 14px; }
+        td { padding: 14px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .total-row td { border: none; font-weight: 800; font-size: 16px; }
+        .paid { display: inline-block; background: #dcfce7; color: #16a34a; font-weight: 700; font-size: 12px; padding: 4px 12px; border-radius: 999px; }
+        .foot { margin-top: 40px; font-size: 12px; color: #9ca3af; text-align: center; }
+        .ref { margin-top: 6px; font-size: 11px; color: #9ca3af; }
+    </style></head><body>
+        <div class="head">
+            <div><div class="brand">VetriSmartCV</div><h1>Invoice</h1></div>
+            <div class="meta">${invoiceId}<br>${dateLabel}<br><span class="paid">PAID</span></div>
+        </div>
+        <div class="bill-to"><b>${name}</b>${email}</div>
+        <table>
+            <tr><th>Description</th><th style="text-align:right;">Amount</th></tr>
+            <tr><td>${plan} Plan Subscription (1 month)</td><td style="text-align:right;">₹${price}.00</td></tr>
+            <tr class="total-row"><td>Total Paid</td><td style="text-align:right;">₹${price}.00 INR</td></tr>
+        </table>
+        <div class="foot">Thank you for using VetriSmartCV. This is a system-generated invoice.
+        ${razorpayPaymentId ? `<div class="ref">Razorpay Payment ID: ${razorpayPaymentId}</div>` : ''}</div>
+    </body></html>`);
+    w.document.close();
+    w.onload = () => { w.focus(); w.print(); };
+    // Fallback in case onload already fired before we attached the handler
+    setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 400);
 }
 
 function showUpgradedBanner(plan) {
@@ -852,110 +910,6 @@ function showUpgradedBanner(plan) {
         <button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.25);border:none;color:#fff;font-size:18px;cursor:pointer;padding:4px 10px;border-radius:8px;margin-left:8px;">✕</button>`;
     document.body.appendChild(banner);
     setTimeout(() => { if (banner.parentElement) banner.remove(); }, 8000);
-}
-
-function getRecoveredDrafts() {
-    const drafts = [];
-    try {
-        const builderRaw = localStorage.getItem('vetrismartcv.builder.recovery');
-        if (builderRaw) {
-            const draft = JSON.parse(builderRaw);
-            if (draft?.data) {
-                drafts.push({
-                    type: 'builder',
-                    key: 'vetrismartcv.builder.recovery',
-                    resumeId: draft.resumeId || draft.data.id || null,
-                    updatedAt: draft.updatedAt || draft.savedAt || null,
-                    data: draft.data
-                });
-            }
-        }
-    } catch {}
-
-    try {
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (!key || !key.startsWith('vsc_review_autosave_')) continue;
-            const draft = JSON.parse(localStorage.getItem(key) || '{}');
-            if (draft?.data) {
-                drafts.push({
-                    type: 'review',
-                    key,
-                    resumeId: draft.resumeId || draft.data.id || null,
-                    updatedAt: draft.savedAt || draft.updatedAt || null,
-                    data: draft.data
-                });
-            }
-        }
-    } catch {}
-
-    const byKey = new Map();
-    drafts.forEach(draft => {
-        const data = draft.data || {};
-        if (!(data.fullName || data.jobTitle || data.profileSummary || data.skillsJson || data.experienceJson)) return;
-        byKey.set(draft.key, draft);
-    });
-    return Array.from(byKey.values()).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
-}
-
-function renderRecoveredDrafts() {
-    const drafts = getRecoveredDrafts();
-    if (!drafts.length) return;
-    const container = document.getElementById('resumeCards');
-    if (!container) return;
-
-    const empty = container.querySelector('.empty-state');
-    if (empty) container.innerHTML = '';
-
-    drafts.forEach(draft => {
-        const data = draft.data || {};
-        const updated = draft.updatedAt
-            ? new Date(draft.updatedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-            : 'recently';
-        const card = document.createElement('div');
-        card.className = 'resume-card recovered-draft-card';
-        card.innerHTML = `
-            <div class="resume-card-header">
-                <div>
-                    <div class="resume-card-title">Recovered unsaved changes</div>
-                    <div class="resume-card-sub">${data.fullName || 'Untitled Resume'}${data.jobTitle ? ' - ' + data.jobTitle : ''}</div>
-                </div>
-                <span class="status-badge status-draft">Recovery</span>
-            </div>
-            <div class="template-tag">Local backup from ${updated}</div>
-            <div class="resume-meta">Continue from the latest browser autosave before it is overwritten.</div>
-            <div class="resume-card-actions">
-                <button class="rc-btn primary" onclick="continueRecoveredDraft('${draft.key.replace(/'/g, "\\'")}')">Continue</button>
-                <button class="rc-btn danger" onclick="discardRecoveredDraft('${draft.key.replace(/'/g, "\\'")}', this)">Discard</button>
-            </div>`;
-        container.prepend(card);
-    });
-}
-
-function continueRecoveredDraft(key) {
-    try {
-        const raw = localStorage.getItem(key);
-        if (!raw) return;
-        const draft = JSON.parse(raw);
-        const data = draft.data || {};
-        sessionStorage.setItem('resumeData', JSON.stringify(data));
-        sessionStorage.setItem('selectedTemplate', data.templateName || 'template1');
-        if (key === 'vetrismartcv.builder.recovery') {
-            window.location.href = data.id || draft.resumeId ? `/builder?id=${data.id || draft.resumeId}` : '/builder';
-            return;
-        }
-        const id = draft.resumeId || data.id;
-        window.location.href = id ? `/review/${id}?recovered=1` : '/review?recovered=1';
-    } catch {
-        showToast('Could not open recovered draft.', 'error');
-    }
-}
-
-function discardRecoveredDraft(key, btn) {
-    localStorage.removeItem(key);
-    const card = btn?.closest('.resume-card');
-    if (card) card.remove();
-    showToast('Recovered draft discarded.');
 }
 
 async function loadResumes() {

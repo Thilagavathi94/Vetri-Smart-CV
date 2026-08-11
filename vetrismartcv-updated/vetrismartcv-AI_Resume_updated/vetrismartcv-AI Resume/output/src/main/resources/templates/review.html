@@ -6,7 +6,7 @@
     <title>VetriSmartCV - Review & Edit Resume</title>
     <link rel="stylesheet" href="/css/style.css?v=20260513-5">
     <link rel="stylesheet" href="/css/builder.css?v=20260513-5">
-    <link rel="stylesheet" href="/css/review.css?v=20260730-18">
+    <link rel="stylesheet" href="/css/review.css?v=20260811-7">
     <script>
     async function doLogout() {
         try { await fetch("/api/auth/logout", { method: "POST" }); } catch(e) {}
@@ -35,7 +35,7 @@
         if (userWrap && !userWrap.contains(e.target)) userWrap.classList.remove("open");
     });
     </script>
-    <link rel="stylesheet" href="/css/review-templates.css?v=20260730-2">
+    <link rel="stylesheet" href="/css/review-templates.css?v=20260811-template32-headings-1">
     <style>
         .nav-user-menu { position: relative; }
         .nav-user-trigger {
@@ -220,24 +220,43 @@
             <input type="range" id="lineSpacing" min="1" max="2.5" value="1.5" step="0.1" oninput="applyLineSpacing(this.value)">
             <div class="premium-lock-overlay" onclick="showPremiumUpgradeAlert('Line Spacing')"></div>
         </div>
-        <!-- PREMIUM ONLY: Photo Size -->
-        <div class="design-section premium-feature" id="ds-photo">
-            <h4>Photo Size <span class="range-val" id="photoSizeVal">90px</span> <span class="premium-tag">Premium</span></h4>
-            <input type="range" id="photoSizeRange" min="50" max="160" value="90" step="5" oninput="applyPhotoSize(this.value)">
-            <div class="premium-lock-overlay" onclick="showPremiumUpgradeAlert('Photo Size')"></div>
+        <div class="design-section" id="ds-header-position">
+            <h4>Header Position</h4>
+            <div class="header-align-btns" role="group" aria-label="Header alignment">
+                <button type="button" class="hdr-align-btn" data-align="left" onclick="applyHeaderAlignment('left')">Left</button>
+                <button type="button" class="hdr-align-btn active" data-align="center" onclick="applyHeaderAlignment('center')">Center</button>
+                <button type="button" class="hdr-align-btn" data-align="right" onclick="applyHeaderAlignment('right')">Right</button>
+            </div>
+            <div class="job-title-position-control">
+                <label>Job Role X <span class="range-val" id="jobTitleXVal">0px</span></label>
+                <input type="range" id="jobTitleXRange" min="-220" max="220" value="0" step="1" oninput="applyJobTitlePosition('x', this.value)">
+                <label>Job Role Y <span class="range-val" id="jobTitleYVal">0px</span></label>
+                <input type="range" id="jobTitleYRange" min="-120" max="120" value="0" step="1" oninput="applyJobTitlePosition('y', this.value)">
+                <div class="job-title-nudge-grid" aria-label="Nudge job role position">
+                    <button type="button" onclick="nudgeJobTitlePosition(0, -4)">Up</button>
+                    <button type="button" onclick="nudgeJobTitlePosition(-4, 0)">Left</button>
+                    <button type="button" onclick="resetJobTitlePosition()">Reset</button>
+                    <button type="button" onclick="nudgeJobTitlePosition(4, 0)">Right</button>
+                    <button type="button" onclick="nudgeJobTitlePosition(0, 4)">Down</button>
+                </div>
+            </div>
+            <p class="section-position-hint">Drag the job role in the preview or adjust it here.</p>
         </div>
         <div class="design-section" id="ds-section-position">
             <h4>Section Position</h4>
+            <p class="section-position-hint">Section moves apply only to the selected template. Other templates keep their own default layout.</p>
+            <p class="section-position-lock-note">This template uses a fixed layout, so section moving is disabled.</p>
             <div class="section-position-list">
-                <div class="section-position-row" data-field="profileSummary"><span>Profile</span><button type="button" onclick="moveResumeSection('profileSummary','up')">↑</button><button type="button" onclick="moveResumeSection('profileSummary','down')">↓</button><button type="button" onclick="moveResumeSection('profileSummary','left')">←</button><button type="button" onclick="moveResumeSection('profileSummary','right')">→</button></div>
-                <div class="section-position-row" data-field="experienceJson"><span>Experience</span><button type="button" onclick="moveResumeSection('experienceJson','up')">↑</button><button type="button" onclick="moveResumeSection('experienceJson','down')">↓</button><button type="button" onclick="moveResumeSection('experienceJson','left')">←</button><button type="button" onclick="moveResumeSection('experienceJson','right')">→</button></div>
-                <div class="section-position-row" data-field="projectsJson"><span>Projects</span><button type="button" onclick="moveResumeSection('projectsJson','up')">↑</button><button type="button" onclick="moveResumeSection('projectsJson','down')">↓</button><button type="button" onclick="moveResumeSection('projectsJson','left')">←</button><button type="button" onclick="moveResumeSection('projectsJson','right')">→</button></div>
-                <div class="section-position-row" data-field="certifications"><span>Certificates</span><button type="button" onclick="moveResumeSection('certifications','up')">↑</button><button type="button" onclick="moveResumeSection('certifications','down')">↓</button><button type="button" onclick="moveResumeSection('certifications','left')">←</button><button type="button" onclick="moveResumeSection('certifications','right')">→</button></div>
-                <div class="section-position-row" data-field="educationJson"><span>Education</span><button type="button" onclick="moveResumeSection('educationJson','up')">↑</button><button type="button" onclick="moveResumeSection('educationJson','down')">↓</button><button type="button" onclick="moveResumeSection('educationJson','left')">←</button><button type="button" onclick="moveResumeSection('educationJson','right')">→</button></div>
-                <div class="section-position-row" data-field="skillsJson"><span>Skills</span><button type="button" onclick="moveResumeSection('skillsJson','up')">↑</button><button type="button" onclick="moveResumeSection('skillsJson','down')">↓</button><button type="button" onclick="moveResumeSection('skillsJson','left')">←</button><button type="button" onclick="moveResumeSection('skillsJson','right')">→</button></div>
-                <div class="section-position-row" data-field="languages"><span>Languages</span><button type="button" onclick="moveResumeSection('languages','up')">↑</button><button type="button" onclick="moveResumeSection('languages','down')">↓</button><button type="button" onclick="moveResumeSection('languages','left')">←</button><button type="button" onclick="moveResumeSection('languages','right')">→</button></div>
+                <div class="section-position-row" data-field="profileSummary"><span>Profile</span><button type="button" onclick="moveResumeSection('profileSummary','up')">Up</button><button type="button" onclick="moveResumeSection('profileSummary','down')">Down</button><button type="button" onclick="moveResumeSection('profileSummary','left')">Left</button><button type="button" onclick="moveResumeSection('profileSummary','right')">Right</button></div>
+                <div class="section-position-row" data-field="experienceJson"><span>Experience</span><button type="button" onclick="moveResumeSection('experienceJson','up')">Up</button><button type="button" onclick="moveResumeSection('experienceJson','down')">Down</button><button type="button" onclick="moveResumeSection('experienceJson','left')">Left</button><button type="button" onclick="moveResumeSection('experienceJson','right')">Right</button></div>
+                <div class="section-position-row" data-field="projectsJson"><span>Projects</span><button type="button" onclick="moveResumeSection('projectsJson','up')">Up</button><button type="button" onclick="moveResumeSection('projectsJson','down')">Down</button><button type="button" onclick="moveResumeSection('projectsJson','left')">Left</button><button type="button" onclick="moveResumeSection('projectsJson','right')">Right</button></div>
+                <div class="section-position-row" data-field="certifications"><span>Certificates</span><button type="button" onclick="moveResumeSection('certifications','up')">Up</button><button type="button" onclick="moveResumeSection('certifications','down')">Down</button><button type="button" onclick="moveResumeSection('certifications','left')">Left</button><button type="button" onclick="moveResumeSection('certifications','right')">Right</button></div>
+                <div class="section-position-row" data-field="awards"><span>Awards</span><button type="button" onclick="moveResumeSection('awards','up')">Up</button><button type="button" onclick="moveResumeSection('awards','down')">Down</button><button type="button" onclick="moveResumeSection('awards','left')">Left</button><button type="button" onclick="moveResumeSection('awards','right')">Right</button></div>
+                <div class="section-position-row" data-field="educationJson"><span>Education</span><button type="button" onclick="moveResumeSection('educationJson','up')">Up</button><button type="button" onclick="moveResumeSection('educationJson','down')">Down</button><button type="button" onclick="moveResumeSection('educationJson','left')">Left</button><button type="button" onclick="moveResumeSection('educationJson','right')">Right</button></div>
+                <div class="section-position-row" data-field="skillsJson"><span>Skills</span><button type="button" onclick="moveResumeSection('skillsJson','up')">Up</button><button type="button" onclick="moveResumeSection('skillsJson','down')">Down</button><button type="button" onclick="moveResumeSection('skillsJson','left')">Left</button><button type="button" onclick="moveResumeSection('skillsJson','right')">Right</button></div>
+                <div class="section-position-row" data-field="languages"><span>Languages</span><button type="button" onclick="moveResumeSection('languages','up')">Up</button><button type="button" onclick="moveResumeSection('languages','down')">Down</button><button type="button" onclick="moveResumeSection('languages','left')">Left</button><button type="button" onclick="moveResumeSection('languages','right')">Right</button></div>
             </div>
-            <p class="section-position-hint">Drag the job title directly in the resume preview.</p>
+            <button type="button" class="section-position-reset" onclick="resetResumeSectionPositions()">Reset This Template</button>
         </div>
     </div>
 </div>
@@ -672,6 +691,6 @@ document.addEventListener('keydown', (e) => {
 <script src="/js/navbar.js?v=20260513-5"></script>
 <script src="/js/vendor/html2canvas.min.js?v=20260730-2"></script>
 <script src="/js/vendor/jspdf.umd.min.js?v=20260730-2"></script>
-<script src="/js/review.js?v=20260807-1"></script>
+<script src="/js/review.js?v=20260811-template32-headings-1"></script>
 </body>
 </html>

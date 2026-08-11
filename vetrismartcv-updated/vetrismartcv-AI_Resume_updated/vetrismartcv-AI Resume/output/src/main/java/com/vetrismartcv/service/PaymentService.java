@@ -3,6 +3,7 @@ package com.vetrismartcv.service;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.Utils;
+import com.vetrismartcv.model.Invoice;
 import com.vetrismartcv.model.Payment;
 import com.vetrismartcv.model.User;
 import com.vetrismartcv.repository.PaymentRepository;
@@ -17,8 +18,11 @@ import java.util.Locale;
 @Service
 public class PaymentService {
 
+    public record PaymentVerificationResult(User user, Invoice invoice) {}
+
     private final PaymentRepository paymentRepository;
     private final UserService userService;
+    private final InvoiceService invoiceService;
 
     @Value("${razorpay.key-id}")
     private String keyId;
@@ -28,16 +32,19 @@ public class PaymentService {
 
     public PaymentService(
             PaymentRepository paymentRepository,
-            UserService userService) {
+            UserService userService,
+            InvoiceService invoiceService) {
 
         this.paymentRepository = paymentRepository;
         this.userService = userService;
+        this.invoiceService = invoiceService;
     }
 
     public Payment createOrder(Long userId, String requestedPlan) throws Exception {
 
         if (keyId == null || keyId.isBlank() || keySecret == null || keySecret.isBlank()) {
-            throw new IllegalStateException("Razorpay credentials are not configured.");
+            throw new IllegalStateException(
+                    "Razorpay credentials are not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET, then restart the app.");
         }
 
         String plan = requestedPlan == null
@@ -80,7 +87,7 @@ public class PaymentService {
         return paymentRepository.save(payment);
     }
 
-    public User verifyPayment(
+    public PaymentVerificationResult verifyPayment(
             Long userId,
             String orderId,
             String paymentId,
@@ -96,9 +103,11 @@ public class PaymentService {
         }
 
         if ("PAID".equalsIgnoreCase(payment.getStatus())) {
-            return userService.getById(userId)
+            User user = userService.getById(userId)
                     .orElseThrow(() ->
                             new IllegalArgumentException("User not found."));
+            Invoice invoice = ensureInvoice(payment, user);
+            return new PaymentVerificationResult(user, invoice);
         }
 
         JSONObject options = new JSONObject();
@@ -122,16 +131,28 @@ public class PaymentService {
         payment.setRazorpayPaymentId(paymentId);
         payment.setStatus("PAID");
         payment.setPaidAt(LocalDateTime.now());
+        payment = paymentRepository.save(payment);
 
-        paymentRepository.save(payment);
-
-        return userService.upgradePlan(
+        User updatedUser = userService.upgradePlan(
                 userId,
                 payment.getPlan()
         );
+
+        Invoice invoice = ensureInvoice(payment, updatedUser);
+
+        return new PaymentVerificationResult(updatedUser, invoice);
     }
 
     public String getKeyId() {
         return keyId;
+    }
+
+    private Invoice ensureInvoice(Payment payment, User user) {
+        Invoice invoice = invoiceService.generateForPayment(payment, user);
+        if (invoice.getId() != null && !invoice.getId().equals(payment.getInvoiceId())) {
+            payment.setInvoiceId(invoice.getId());
+            paymentRepository.save(payment);
+        }
+        return invoice;
     }
 }
