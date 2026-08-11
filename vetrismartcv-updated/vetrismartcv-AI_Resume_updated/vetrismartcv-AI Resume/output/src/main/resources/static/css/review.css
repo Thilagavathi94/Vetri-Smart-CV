@@ -1827,6 +1827,52 @@ li {
         cursor: default !important;
         outline: none !important;
     }
+
+    .resume-doc,
+    .resume-doc * {
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+    }
+
+    .resume-doc [class*="sec-title"],
+    .resume-doc [class*="section-title"],
+    .resume-doc [class*="-sec-title"],
+    .resume-doc [class*="-right-sec"],
+    .resume-doc [class*="-sec-badge"],
+    .resume-doc .t10-exp-title {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+    }
+
+    .resume-doc [class*="job"],
+    .resume-doc [class*="edu-item"],
+    .resume-doc [class*="project"],
+    .resume-doc .section-block {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    .resume-doc [class*="left"],
+    .resume-doc [class*="right"],
+    .resume-doc [class*="body"],
+    .resume-doc [class*="col"] {
+        overflow: visible !important;
+    }
+
+    .resume-doc .t16-left,
+    .resume-doc .t26-right,
+    .resume-doc .t35-left,
+    .resume-doc .t36-left,
+    .resume-doc .t38-left,
+    .resume-doc .t41-left,
+    .resume-doc .t43-left,
+    .resume-doc .t48-left,
+    .resume-doc .t50-left,
+    .resume-doc .t51-left,
+    .resume-doc .t52-left {
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+    }
 }
 @media print {
   @page {

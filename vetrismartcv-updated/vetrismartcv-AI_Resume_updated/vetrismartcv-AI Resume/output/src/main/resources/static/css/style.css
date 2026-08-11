@@ -1017,6 +1017,28 @@ body {
     text-align: center;
 }
 
+.footer-svg-icon,
+.footer-badge-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    display: inline-block;
+    color: rgba(255,255,255,0.86);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vertical-align: middle;
+}
+
+.footer-col ul li a .footer-svg-icon.link-icon {
+    opacity: 0.86;
+    width: 18px;
+    height: 18px;
+    text-align: initial;
+}
+
 /* CONTACT ITEMS */
 .footer-contact-item {
     display: flex;
@@ -1044,6 +1066,12 @@ body {
     font-weight: 700;
     flex-shrink: 0;
     border: 1px solid rgba(255,255,255,0.2);
+}
+
+.footer-contact-item .contact-icon .footer-svg-icon {
+    width: 17px;
+    height: 17px;
+    color: #fff;
 }
 
 .footer-contact-item a {
