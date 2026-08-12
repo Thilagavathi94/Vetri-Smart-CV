@@ -5,7 +5,7 @@
 body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
 
 /* REVIEW HEADER */
-.review-header { text-align: center; padding: 30px 20px 20px; }
+.review-header { text-align: center; padding: 12px 20px 18px; }
 .review-header h1 { font-size: 1.8rem; font-weight: 800; color: #1a1a2e; margin: 0 0 6px; }
 .review-header h1 span { color: #7c3aed; }
 .review-header p { color: #6b7280; font-size: 14px; margin: 0; }
@@ -802,13 +802,22 @@ body { background: #f0f0f4; margin: 0; font-family: 'Segoe UI', sans-serif; }
     /* Don't block the visuals — just make it clickable */
 }
 
-/* Dim the controls inside a locked section */
+/* Dim + disable the controls inside a locked section (Free & Pro only) */
 body[data-plan="FREE"]    .premium-feature .font-size-btns,
 body[data-plan="FREE"]    .premium-feature select,
 body[data-plan="FREE"]    .premium-feature input[type=range],
 body[data-plan="PRO"]     .premium-feature .font-size-btns,
 body[data-plan="PRO"]     .premium-feature select,
 body[data-plan="PRO"]     .premium-feature input[type=range] {
+    opacity: 0.45;
+    pointer-events: none;
+    filter: grayscale(0.3);
+}
+
+/* Premium plan: full access, no dimming */
+body[data-plan="PREMIUM"] .premium-feature .font-size-btns,
+body[data-plan="PREMIUM"] .premium-feature select,
+body[data-plan="PREMIUM"] .premium-feature input[type=range] {
     opacity: 1;
     pointer-events: auto;
     filter: none;
@@ -952,10 +961,10 @@ body[data-plan="PRO"]     .premium-feature input[type=range] {
     background: transparent;
 }
 
-/* Show the lock badge */
+/* Show the clickable lock overlay + badge for Free & Pro; hide for Premium */
 body[data-plan="FREE"]  .premium-lock-overlay,
 body[data-plan="PRO"]   .premium-lock-overlay {
-    display: none !important;
+    display: block;
 }
 body[data-plan="PREMIUM"] .premium-lock-overlay { display: none !important; }
 
@@ -988,7 +997,7 @@ body[data-plan="PRO"]   .premium-feature:hover .premium-lock-overlay::before {
 
 /* Premium tag badge next to h4 label */
 .premium-tag {
-    display: none;
+    display: inline-block;
     font-size: 8px;
     font-weight: 800;
     background: linear-gradient(135deg,#7c3aed,#5b21b6);

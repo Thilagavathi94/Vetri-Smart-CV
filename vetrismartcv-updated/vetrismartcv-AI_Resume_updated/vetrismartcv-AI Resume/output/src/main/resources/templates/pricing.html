@@ -1171,19 +1171,26 @@ document.addEventListener('keydown', (e) => {
 <script src="/js/script.js"></script>
 <script>
     // Plan selection → login → payment flow
+    // currentBillingMode is kept in sync with the Monthly/Yearly toggle below,
+    // and carried through to /payment via ?billing= so the price shown here
+    // (e.g. ₹450/Year, ₹850 Lifetime) is what checkout actually charges,
+    // instead of checkout silently defaulting to the monthly price.
+    let currentBillingMode = 'monthly';
+
     async function goToPlan(plan) {
+        const paymentPath = '/payment?plan=' + plan + '&billing=' + currentBillingMode;
         try {
             const res = await fetch('/api/auth/session');
             const data = await res.json();
             if (data.loggedIn) {
                 // Already logged in → go straight to payment
-                window.location.href = '/payment?plan=' + plan;
+                window.location.href = paymentPath;
             } else {
                 // Not logged in → go to login, pass redirect destination
-                window.location.href = '/login?redirect=/payment%3Fplan%3D' + plan;
+                window.location.href = '/login?redirect=' + encodeURIComponent(paymentPath);
             }
         } catch(e) {
-            window.location.href = '/login?redirect=/payment%3Fplan%3D' + plan;
+            window.location.href = '/login?redirect=' + encodeURIComponent(paymentPath);
         }
     }
 
@@ -1194,6 +1201,7 @@ document.addEventListener('keydown', (e) => {
     };
 
     function setToggle(mode) {
+        currentBillingMode = mode;
         document.getElementById('btnMonthly').classList.toggle('active', mode === 'monthly');
         document.getElementById('btnYearly').classList.toggle('active', mode === 'yearly');
         const p = prices[mode];

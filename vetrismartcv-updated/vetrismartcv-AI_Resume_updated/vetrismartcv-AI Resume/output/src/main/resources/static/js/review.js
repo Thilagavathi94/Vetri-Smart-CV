@@ -3269,9 +3269,9 @@ function showUpgradeBanner(plan) {
     if (existing) existing.remove();
     const banner = document.createElement('div');
     banner.id = 'upgradeBanner';
-    const planLabel = plan === 'PREMIUM' ? '🏆 Premium' : '🛡ï¸ Pro';
-    banner.style.cssText = `position:fixed;top:70px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:14px 28px;border-radius:14px;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:flex;align-items:center;gap:10px;`;
-    banner.innerHTML = `<span style="font-size:20px;">🎉</span> Welcome to ${planLabel}! All features are now unlocked. <button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.25);border:none;color:#fff;font-size:16px;cursor:pointer;padding:2px 8px;border-radius:8px;margin-left:8px;">✕</button>`;
+    const planLabel = plan === 'PREMIUM' ? 'Premium' : 'Pro';
+    banner.style.cssText = `position:fixed;top:70px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:14px 28px;border-radius:14px;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:flex;align-items:center;gap:12px;`;
+    banner.innerHTML = `<span style="width:28px;height:28px;border-radius:50%;background:#fff;color:#16a34a;display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;box-shadow:0 2px 8px rgba(0,0,0,0.16);"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>Welcome to ${planLabel}! All features are now unlocked.</span><button onclick="this.parentElement.remove()" aria-label="Close message" style="background:rgba(255,255,255,0.25);border:none;color:#fff;font-size:18px;cursor:pointer;width:34px;height:34px;border-radius:10px;margin-left:4px;display:inline-flex;align-items:center;justify-content:center;">&times;</button>`;
     document.body.appendChild(banner);
     setTimeout(() => { if (banner.parentElement) banner.remove(); }, 6000);
 }

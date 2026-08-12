@@ -182,7 +182,7 @@ public class InvoiceService {
                 cs.setFont(regular, 10);
                 cs.beginText();
                 cs.newLineAtOffset(margin, y);
-                cs.showText(planLabel(payment.getPlan()) + " Plan Subscription");
+                cs.showText(planLabel(payment.getPlan()) + " Plan Subscription (" + billingCycleLabel(payment) + ")");
                 cs.endText();
 
                 cs.beginText();
@@ -232,6 +232,13 @@ public class InvoiceService {
     private String planLabel(String plan) {
         if (plan == null) return "";
         return plan.substring(0, 1).toUpperCase(Locale.ROOT) + plan.substring(1).toLowerCase(Locale.ROOT);
+    }
+
+    /** Describes what was actually paid for — was previously omitted entirely from the PDF line item. */
+    private String billingCycleLabel(Payment payment) {
+        String cycle = payment.getBillingCycle() == null ? "MONTHLY" : payment.getBillingCycle().toUpperCase(Locale.ROOT);
+        if (!"YEARLY".equals(cycle)) return "1 month";
+        return "PREMIUM".equalsIgnoreCase(payment.getPlan()) ? "Lifetime" : "1 year";
     }
 
     /** amount is stored in whole rupees (not paise) — matches how the dashboard and invoice page display it. */

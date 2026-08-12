@@ -68,8 +68,9 @@ public class ResumeController {
             @RequestBody ResumeData data,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
-        if (userId != null)
-            data.setUserId(userId);
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
+        data.setUserId(userId);
         ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session,
                 data.getTemplateName());
         if (blocked != null)
@@ -85,11 +86,15 @@ public class ResumeController {
             @RequestBody ResumeData updates,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
         ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session,
                 updates.getTemplateName());
         if (blocked != null)
             return blocked;
-        return ResponseEntity.ok(resumeService.updateStep(id, updates));
+        return resumeService.updateStep(id, updates, userId)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(403).body(Map.of("error", "Not authorized to update this resume")));
     }
 
     /* ---- PUT /api/resume/{id}/draft ---- */
@@ -99,13 +104,15 @@ public class ResumeController {
             @RequestBody ResumeData updates,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
-        if (userId != null)
-            updates.setUserId(userId);
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
         ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session,
                 updates.getTemplateName());
         if (blocked != null)
             return blocked;
-        return ResponseEntity.ok(resumeService.saveDraft(id, updates));
+        return resumeService.saveDraft(id, updates, userId)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(403).body(Map.of("error", "Not authorized to update this resume")));
     }
 
     /* ---- POST /api/resume/{id}/process ---- */
@@ -115,26 +122,36 @@ public class ResumeController {
             @RequestBody ResumeData updates,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
-        if (userId != null)
-            updates.setUserId(userId);
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
         ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session,
                 updates.getTemplateName());
         if (blocked != null)
             return blocked;
-        return ResponseEntity.ok(resumeService.processResume(id, updates));
+        return resumeService.processResume(id, updates, userId)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(403).body(Map.of("error", "Not authorized to update this resume")));
     }
 
     /* ---- GET /api/resume/{id} ---- */
     @GetMapping("/{id}")
-    public ResponseEntity<ResumeData> getById(@PathVariable Long id) {
-        return resumeService.getById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getById(@PathVariable Long id, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
+        return resumeService.getById(id, userId)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(404).build());
     }
 
-    /* ---- GET /api/resume ---- */
+    /* ---- GET /api/resume (admin only) ---- */
     @GetMapping
-    public ResponseEntity<List<ResumeData>> getAll() {
+    public ResponseEntity<?> getAll(HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
+        if (!userService.isAdmin(userId))
+            return ResponseEntity.status(403).body(Map.of("error", "Admin access required"));
         return ResponseEntity.ok(resumeService.getAll());
     }
 
@@ -183,20 +200,26 @@ public class ResumeController {
             @RequestBody ResumeData updates,
             HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
         ResponseEntity<Map<String, Object>> blocked = blockFreeTemplateIfNeeded(userId, session,
                 updates.getTemplateName());
         if (blocked != null)
             return blocked;
-        ResumeData updated = resumeService.updateResume(id, updates);
-        if (updated != null)
-            return ResponseEntity.ok(updated);
-        return ResponseEntity.notFound().build();
+        return resumeService.updateResume(id, updates, userId)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(403).body(Map.of("error", "Not authorized to update this resume")));
     }
 
     /* ---- DELETE /api/resume/{id} ---- */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        resumeService.delete(id);
+    public ResponseEntity<?> delete(@PathVariable Long id, HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
+        boolean deleted = resumeService.delete(id, userId);
+        if (!deleted)
+            return ResponseEntity.status(403).body(Map.of("error", "Not authorized to delete this resume"));
         return ResponseEntity.noContent().build();
     }
 
@@ -208,7 +231,6 @@ public class ResumeController {
             HttpSession session) {
 
         Long userId = (Long) session.getAttribute("userId");
-        String plan = getCurrentUserPlan(userId, session);
 
         // Guest must log in
         if (userId == null) {
@@ -217,6 +239,18 @@ public class ResumeController {
                     "requireLogin", true,
                     "message", "Please login to download."));
         }
+
+        // Ownership check: the resume being downloaded/tracked must belong to
+        // the logged-in user. Without this, any authenticated user could
+        // supply another user's resume ID and have it counted against their
+        // own download quota / bypass plan limits for someone else's resume.
+        if (resumeService.getById(id, userId).isEmpty()) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "success", false,
+                    "message", "Not authorized to download this resume"));
+        }
+
+        String plan = getCurrentUserPlan(userId, session);
 
         // FREE plan can only download once
         if (!isPaidPlan(plan)) {
@@ -260,7 +294,7 @@ public class ResumeController {
                     "message", "Email is not configured on the server."));
         }
 
-        Optional<ResumeData> resumeOpt = resumeService.getById(id);
+        Optional<ResumeData> resumeOpt = resumeService.getById(id, userId);
         if (resumeOpt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of(
                     "success", false,

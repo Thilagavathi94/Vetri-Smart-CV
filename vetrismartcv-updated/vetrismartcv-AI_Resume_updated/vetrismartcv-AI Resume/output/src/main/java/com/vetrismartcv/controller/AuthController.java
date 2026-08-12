@@ -64,6 +64,12 @@ public class AuthController {
             if (Boolean.TRUE.equals(result.get("success"))) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> userMap = (Map<String, Object>) result.get("user");
+                // Session fixation protection: rotate the session ID now that
+                // the user is authenticated, before attaching their identity
+                // to it. Without this, a session ID an attacker fixed on the
+                // victim's browser before registration would remain valid
+                // (and now authenticated) after this call.
+                request.changeSessionId();
                 session.setAttribute("userId", userMap.get("id"));
                 session.setAttribute("userName", userMap.get("name"));
                 session.setAttribute("userPlan", userMap.get("plan"));
@@ -94,6 +100,8 @@ public class AuthController {
             if (Boolean.TRUE.equals(result.get("success"))) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> userMap = (Map<String, Object>) result.get("user");
+                // Session fixation protection — see the same comment in register().
+                request.changeSessionId();
                 session.setAttribute("userId", userMap.get("id"));
                 session.setAttribute("userName", userMap.get("name"));
                 session.setAttribute("userPlan", userMap.get("plan"));
@@ -163,6 +171,8 @@ public class AuthController {
 
         try {
             User user = userService.oauthLoginOrRegister(provider, providerId, name, email);
+            // Session fixation protection — see the same comment in register().
+            request.changeSessionId();
             session.setAttribute("userId", user.getId());
             session.setAttribute("userName", user.getName());
             session.setAttribute("userPlan", user.getPlan());

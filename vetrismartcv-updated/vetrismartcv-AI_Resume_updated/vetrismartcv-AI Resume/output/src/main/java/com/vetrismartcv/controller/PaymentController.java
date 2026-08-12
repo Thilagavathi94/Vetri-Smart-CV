@@ -25,9 +25,12 @@ import java.util.Optional;
 public class PaymentController {
 
     // Prices in whole rupees — used only for the amount we ask Razorpay to charge.
-    private static final Map<String, Integer> PLAN_PRICES = Map.of(
-            "PRO", 120,
-            "PREMIUM", 250
+    // Nested by plan -> billing cycle so the Monthly/Yearly toggle on the pricing
+    // page (and the "Lifetime" label shown for Premium's yearly tier) charge the
+    // amount actually shown to the user, instead of always billing monthly.
+    private static final Map<String, Map<String, Integer>> PLAN_PRICES = Map.of(
+            "PRO", Map.of("MONTHLY", 120, "YEARLY", 450),
+            "PREMIUM", Map.of("MONTHLY", 250, "YEARLY", 850)
     );
 
     @Autowired
@@ -63,9 +66,18 @@ public class PaymentController {
         }
 
         String plan = (body.getOrDefault("plan", "PRO")).toUpperCase(Locale.ROOT);
-        Integer amountRupees = PLAN_PRICES.get(plan);
-        if (amountRupees == null) {
+        Map<String, Integer> cyclePrices = PLAN_PRICES.get(plan);
+        if (cyclePrices == null) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Unknown plan: " + plan));
+        }
+
+        String billingCycle = (body.getOrDefault("billingCycle", "MONTHLY")).toUpperCase(Locale.ROOT);
+        Integer amountRupees = cyclePrices.get(billingCycle);
+        if (amountRupees == null) {
+            // Unknown/unsupported cycle for this plan — fall back to monthly rather
+            // than reject outright, but never guess at a price that wasn't offered.
+            billingCycle = "MONTHLY";
+            amountRupees = cyclePrices.get("MONTHLY");
         }
 
         try {
@@ -81,6 +93,7 @@ public class PaymentController {
                     // that conversion happens inside RazorpayService, not here.
                     .amount(amountRupees)
                     .currency("INR")
+                    .billingCycle(billingCycle)
                     .razorpayOrderId(String.valueOf(order.get("id")))
                     .status("CREATED")
                     .build();
@@ -92,7 +105,8 @@ public class PaymentController {
                     "amount", order.get("amount"),
                     "currency", order.get("currency"),
                     "keyId", razorpayService.getKeyId(),
-                    "plan", plan
+                    "plan", plan,
+                    "billingCycle", billingCycle
             ));
         } catch (Exception e) {
             return ResponseEntity.status(502).body(Map.of(

@@ -153,11 +153,11 @@
         <div class="plan-sel">
             <div class="plan-opt selected" id="planPro" onclick="selectPlan('PRO')">
                 <div class="plan-name">Pro</div>
-                <div class="plan-price">₹120 <span>/mo</span></div>
+                <div class="plan-price" id="planProPrice">₹120 <span>/mo</span></div>
             </div>
             <div class="plan-opt" id="planPremium" onclick="selectPlan('PREMIUM')">
                 <div class="plan-name">Premium</div>
-                <div class="plan-price">₹250 <span>/mo</span></div>
+                <div class="plan-price" id="planPremiumPrice">₹250 <span>/mo</span></div>
             </div>
         </div>
 
@@ -175,15 +175,43 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 let selectedPlan = 'PRO';
-const PLAN_PRICES = { PRO: 120, PREMIUM: 250 };
+// Matches PaymentController.PLAN_PRICES on the server — the server is the
+// source of truth for what's actually charged, this is only for display.
+const PLAN_PRICES = {
+    PRO:     { MONTHLY: 120, YEARLY: 450 },
+    PREMIUM: { MONTHLY: 250, YEARLY: 850 }
+};
+// Billing cycle carried over from the pricing page's Monthly/Yearly toggle,
+// via ?billing=monthly|yearly. Defaults to monthly if not present.
+const initialParams = new URLSearchParams(window.location.search);
+let selectedBilling = (initialParams.get('billing') || 'monthly').toUpperCase() === 'YEARLY' ? 'YEARLY' : 'MONTHLY';
+
+function periodLabel(plan, billing) {
+    if (billing === 'MONTHLY') return '/mo';
+    return plan === 'PREMIUM' ? ' one-time (Lifetime)' : '/yr';
+}
+
+function refreshSummary() {
+    const price = PLAN_PRICES[selectedPlan][selectedBilling];
+    const label = periodLabel(selectedPlan, selectedBilling);
+    document.getElementById('summaryPlan').textContent =
+        (selectedPlan === 'PRO' ? 'Pro Plan' : 'Premium Plan') + (selectedBilling === 'YEARLY' ? (selectedPlan === 'PREMIUM' ? ' (Lifetime)' : ' (Yearly)') : '');
+    document.getElementById('summaryPrice').textContent = `₹${price}${label}`;
+    document.getElementById('summaryTotal').textContent = `₹${price}`;
+
+    // Repaint both plan cards for the active billing cycle too, so a user who
+    // arrived via ?billing=yearly sees ₹450/yr and ₹850 (Lifetime), not ₹120/mo.
+    document.getElementById('planProPrice').innerHTML =
+        `₹${PLAN_PRICES.PRO[selectedBilling]} <span>${periodLabel('PRO', selectedBilling)}</span>`;
+    document.getElementById('planPremiumPrice').innerHTML =
+        `₹${PLAN_PRICES.PREMIUM[selectedBilling]} <span>${periodLabel('PREMIUM', selectedBilling)}</span>`;
+}
 
 function selectPlan(plan) {
     selectedPlan = plan;
     document.getElementById('planPro').classList.toggle('selected', plan === 'PRO');
     document.getElementById('planPremium').classList.toggle('selected', plan === 'PREMIUM');
-    document.getElementById('summaryPlan').textContent = plan === 'PRO' ? 'Pro Plan' : 'Premium Plan';
-    document.getElementById('summaryPrice').textContent = `₹${PLAN_PRICES[plan]}/mo`;
-    document.getElementById('summaryTotal').textContent = `₹${PLAN_PRICES[plan]}`;
+    refreshSummary();
 }
 
 function showPayError(msg) {
@@ -206,7 +234,7 @@ async function startRazorpayCheckout() {
         const orderRes = await fetch('/api/payment/create-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ plan: selectedPlan })
+            body: JSON.stringify({ plan: selectedPlan, billingCycle: selectedBilling })
         });
         const order = await orderRes.json();
 
@@ -228,7 +256,10 @@ async function startRazorpayCheckout() {
             currency: order.currency,
             order_id: order.orderId,
             name: 'VetriSmartCV',
-            description: (selectedPlan === 'PREMIUM' ? 'Premium' : 'Pro') + ' Plan Subscription',
+            description: (selectedPlan === 'PREMIUM' ? 'Premium' : 'Pro') + ' Plan'
+                + (order.billingCycle === 'YEARLY'
+                    ? (selectedPlan === 'PREMIUM' ? ' — Lifetime' : ' — Yearly')
+                    : ' Subscription'),
             theme: { color: '#7c3aed' },
             handler: async function (response) {
                 // 3) Hand the response back to our server, which re-derives the
@@ -291,9 +322,15 @@ async function startRazorpayCheckout() {
     }
 }
 
-// Pre-select plan from URL
+// Pre-select plan from URL, then repaint prices for the resolved billing cycle
+// (selectPlan() already calls refreshSummary(), but only when it actually runs —
+// this makes sure it runs even when the plan stays on the PRO default).
 const params = new URLSearchParams(window.location.search);
-if (params.get('plan') === 'PREMIUM') selectPlan('PREMIUM');
+if (params.get('plan') === 'PREMIUM') {
+    selectPlan('PREMIUM');
+} else {
+    refreshSummary();
+}
 </script>
 <script src="/js/navbar.js"></script>
 </body>

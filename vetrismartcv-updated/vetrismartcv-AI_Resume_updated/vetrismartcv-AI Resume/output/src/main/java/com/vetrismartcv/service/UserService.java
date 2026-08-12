@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -35,6 +36,7 @@ public class UserService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Autowired
     private UserRepository userRepository;
@@ -143,10 +145,18 @@ public class UserService {
             result.put("message", "This account uses " + user.getProvider() + " login. Please sign in with " + user.getProvider() + ".");
             return result;
         }
-        if (!user.getPassword().equals(hashPassword(password))) {
+        if (!verifyPassword(password, user.getPassword())) {
             result.put("success", false);
             result.put("message", "Incorrect password.");
             return result;
+        }
+
+        // Transparent migration: if this account still has the old SHA-256
+        // hash, upgrade it to BCrypt now that we know the correct password.
+        // No action needed from the user, and no forced reset.
+        if (!isBCryptHash(user.getPassword())) {
+            user.setPassword(hashPassword(password));
+            userRepository.save(user);
         }
 
         result.put("success", true);
@@ -693,8 +703,37 @@ public class UserService {
         return m;
     }
 
-    /* ---- SIMPLE PASSWORD HASH (use BCrypt in production) ---- */
+    /* ---- PASSWORD HASHING (BCrypt) ----
+     * All NEW passwords (signup, reset, admin bootstrap) are hashed with
+     * BCrypt (salted, adaptive cost — safe for production).
+     */
     private String hashPassword(String password) {
+        return passwordEncoder.encode(password);
+    }
+
+    /**
+     * Verifies a raw password against a stored hash. Stored hashes may be in
+     * either format:
+     *   - BCrypt (starts with "$2a$"/"$2b$"/"$2y$")           -> current format
+     *   - legacy raw SHA-256 hex (64 hex chars, no "$" prefix) -> pre-BCrypt accounts
+     * This lets existing accounts created before this change keep working
+     * without forcing every user to reset their password.
+     */
+    private boolean verifyPassword(String rawPassword, String storedHash) {
+        if (rawPassword == null || storedHash == null) return false;
+        if (isBCryptHash(storedHash)) {
+            return passwordEncoder.matches(rawPassword, storedHash);
+        }
+        // Legacy SHA-256 account — compare using the old algorithm.
+        return storedHash.equals(legacySha256(rawPassword));
+    }
+
+    private boolean isBCryptHash(String hash) {
+        return hash.startsWith("$2a$") || hash.startsWith("$2b$") || hash.startsWith("$2y$");
+    }
+
+    /** Old hashing algorithm, kept ONLY so pre-existing accounts can still log in and be migrated. */
+    private String legacySha256(String password) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(password.getBytes(StandardCharsets.UTF_8));

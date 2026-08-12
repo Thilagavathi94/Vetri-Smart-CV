@@ -60,7 +60,8 @@ public class OAuthController {
     public ResponseEntity<Void> googleCallback(
             @RequestParam(required = false) String code,
             @RequestParam(required = false) String state,
-            HttpSession session) {
+            HttpSession session,
+            jakarta.servlet.http.HttpServletRequest request) {
 
         if ("NOT_SET".equals(googleClientId) || "NOT_SET".equals(googleClientSecret)) {
             return redirectToLoginWithError("Google sign-in is not available. Please use email/password login.");
@@ -125,6 +126,9 @@ public class OAuthController {
 
             // Step 3: Upsert user + create session
             User user = userService.oauthLoginOrRegister("GOOGLE", providerId, name, email);
+            // Session fixation protection: rotate the session ID now that the
+            // user is authenticated, before attaching their identity to it.
+            request.changeSessionId();
             session.setAttribute("userId",   user.getId());
             session.setAttribute("userName", user.getName());
             session.setAttribute("userPlan", user.getPlan());
@@ -155,7 +159,8 @@ public class OAuthController {
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String error,
             @RequestParam(name = "error_description", required = false) String errorDescription,
-            HttpSession session) {
+            HttpSession session,
+            jakarta.servlet.http.HttpServletRequest request) {
 
         if (error != null) {
             System.err.println("[OAuthController] LinkedIn error redirect: " + error + " - " + errorDescription);
@@ -222,6 +227,9 @@ public class OAuthController {
 
             // Step 3: Upsert user + create session
             User user = userService.oauthLoginOrRegister("LINKEDIN", providerId, name, email);
+            // Session fixation protection: rotate the session ID now that the
+            // user is authenticated, before attaching their identity to it.
+            request.changeSessionId();
             session.setAttribute("userId",   user.getId());
             session.setAttribute("userName", user.getName());
             session.setAttribute("userPlan", user.getPlan());
