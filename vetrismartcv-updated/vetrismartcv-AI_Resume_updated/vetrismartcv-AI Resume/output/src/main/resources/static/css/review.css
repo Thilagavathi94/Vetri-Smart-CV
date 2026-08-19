@@ -924,10 +924,6 @@ body[data-plan="PREMIUM"] .premium-feature input[type=range] {
     word-break: normal !important;
 }
 
-.resume-doc .t10-top-wave {
-    background: #fff !important;
-}
-
 .resume-doc .t10-top-wave::before {
     display: none !important;
 }

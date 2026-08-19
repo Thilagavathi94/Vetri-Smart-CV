@@ -4417,6 +4417,8 @@ function buildTemplate7Template({ resumeData: d, edu, skills, projects, experien
 // ============================================================
 function buildTemplate8Template({ resumeData: d, edu, skills, projects, experience, color }) {
     const accent = color || '#e8600a';
+    const bottomGeoSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,100 100,100 0,0" fill="#888"/></svg>`;
+    const bottomGeoBackground = `url('data:image/svg+xml,${encodeURIComponent(bottomGeoSvg)}')`;
     const name   = d.fullName || '';
     const title  = d.jobTitle || '';
     const email  = d.email   || '';
@@ -4431,16 +4433,8 @@ function buildTemplate8Template({ resumeData: d, edu, skills, projects, experien
         ? experience.map(e=>`<div class="t8-job" style="border-left-color:${accent};"><div class="t8-job-head"><span class="t8-job-title">${e.jobTitle||e.role||e.title||''}</span><span class="t8-job-loc" style="color:${accent};">${e.company||''}</span></div><div class="t8-job-company">${e.startDate||e.from||''} – ${e.endDate||e.to||'Present'}</div>${(e.description||e.bullets||'').toString().split('\n').filter(Boolean).map(b=>`<div class="t8-bullet">${b.replace(/^[•\-]\s*/,'')}</div>`).join('')}</div>`).join('')
         : `<div style="font-size:11px;color:#9ca3af;cursor:pointer;" ${editBtn('experienceJson','Experience','')}>Add experience ✏</div>`;
     return `<div class="resume-t8" style="position:relative;">
-  <div class="t8-top-geo">
-    <svg class="t8-top-geo-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-      <polygon points="0,0 100,0 100,100" fill="${accent}"/>
-    </svg>
-  </div>
-  <div class="t8-bottom-geo">
-    <svg class="t8-bottom-geo-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-      <polygon points="0,100 100,100 0,0" fill="#888"/>
-    </svg>
-  </div>
+  <div class="t8-top-geo" style="display:none !important;"></div>
+  <div class="t8-bottom-geo" style="background-image:${bottomGeoBackground};"></div>
   <div class="t8-header">
     <div class="t8-avatar">${photoHTML}</div>
     <div>
@@ -8656,11 +8650,15 @@ function createResumePdfExportClone(resumeDoc) {
     clone.style.setProperty('background', '#ffffff', 'important');
 
     clone.querySelectorAll('[class^="resume-t"], [class*=" resume-t"], .resume-frame').forEach(inner => {
+        inner.style.setProperty('width', width + 'px', 'important');
+        inner.style.setProperty('max-width', width + 'px', 'important');
+        inner.style.setProperty('min-width', width + 'px', 'important');
         inner.style.setProperty('margin', '0', 'important');
         inner.style.setProperty('box-shadow', 'none', 'important');
     });
     markPdfNoBreakElements(clone);
     normalizePdfAvatarPlaceholders(clone);
+    normalizeTemplate8PdfGeometry(clone);
 
     const wrapper = document.createElement('div');
     wrapper.style.position = 'fixed';
@@ -8770,6 +8768,12 @@ function normalizePdfAvatarPlaceholders(clone) {
         avatar.style.setProperty('font-size', '28px', 'important');
         avatar.style.setProperty('font-weight', '800', 'important');
         avatar.style.setProperty('line-height', '1', 'important');
+    });
+}
+
+function normalizeTemplate8PdfGeometry(clone) {
+    clone.querySelectorAll('.t8-top-geo').forEach(node => {
+        node.remove();
     });
 }
 
@@ -14157,10 +14161,6 @@ function buildImageBasedTemplate({ resumeData: d, edu, skills, projects, experie
 // ============================================================
 function buildTemplate10Template({ resumeData: d, edu, skills, projects, experience, color }) {
     const accent = color || '#f59e0b';
-    // Unique id per render so this never collides with a duplicate element
-    // (e.g. the hidden clone used for PDF export), which was causing
-    // html2canvas to lose the gradient fill in the downloaded PDF.
-    const t10GradId = 't10WaveGradient-' + Math.random().toString(36).slice(2, 9);
     const name    = d.fullName || '';
     const title   = d.jobTitle || '';
     const email   = d.email || '';
@@ -14207,18 +14207,8 @@ function buildTemplate10Template({ resumeData: d, edu, skills, projects, experie
     const contactItems = [phone,email,addr,linkedin,website].filter(Boolean).join(' &nbsp;·&nbsp; ');
 
     return `<div class="resume-t10">
-      <div class="t10-top-wave">
-        <div class="t10-top-wave-fill" style="background-image:linear-gradient(135deg,${accent},#fbbf24,${accent});"></div>
-        <svg class="t10-top-wave-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-          <defs>
-            <linearGradient id="${t10GradId}" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="${accent}"/>
-              <stop offset="50%" stop-color="#fbbf24"/>
-              <stop offset="100%" stop-color="${accent}"/>
-            </linearGradient>
-          </defs>
-          <polygon points="0,0 100,0 100,60 92,70 65,86 0,74" fill="url(#${t10GradId})"/>
-        </svg>
+      <div class="t10-top-wave" style="background:linear-gradient(135deg,${accent},#fbbf24,${accent});">
+        <div class="t10-wave-cut"></div>
       </div>
       <div class="t10-top-dark">
         <div class="t10-top-dark-cut"></div>
